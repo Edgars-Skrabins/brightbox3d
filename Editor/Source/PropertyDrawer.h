@@ -1,0 +1,43 @@
+#pragma once
+
+#include "Reflection/Object.h"
+
+#include <functional>
+#include <string>
+
+namespace BrightBox3D::Level
+{
+    class Level;
+}
+
+namespace BrightBox3D::Editor
+{
+    enum class PropertyContextAction
+    {
+        Revert,
+        Apply
+    };
+
+    struct PropertyDrawOptions
+    {
+        bool instanceContext = true;
+        bool readOnly = false;
+        const Level::Level* level = nullptr;
+        std::function<bool(const Reflection::PropertyInfo&)> isOverridden;
+        std::function<void(const Reflection::PropertyInfo&, PropertyContextAction)> onContextAction;
+        std::function<bool(const Reflection::PropertyInfo&)> filter;
+    };
+
+    class PropertyDrawer
+    {
+    public:
+        static bool DrawObject(Reflection::Object& object, const PropertyDrawOptions& options);
+        static bool DrawProperty(const Reflection::PropertyInfo& property, Reflection::Object& object, const PropertyDrawOptions& options);
+        static bool DrawValue(const char* label, const Reflection::ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level);
+        static bool IsVisible(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
+        static bool IsEditable(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
+        static bool AssetField(const char* label, const std::string& assetType, Core::Guid& guid, bool readOnly);
+        static void BeginRow(const char* label, bool bold);
+        static void EndRow();
+    };
+}
