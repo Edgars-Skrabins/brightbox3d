@@ -39,7 +39,7 @@ namespace BrightBox3D::Framework
         post.vignetteIntensity = m_vignetteIntensity;
         post.vignetteRadius = m_vignetteRadius;
         post.vignetteSoftness = m_vignetteSoftness;
-        post.antiAliasing = static_cast<Rendering::AntiAliasing>(m_antiAliasing);
+        post.antiAliasing = m_antiAliasing;
 
         view.environment.skyTop = m_skyTop;
         view.environment.skyHorizon = m_skyHorizon;

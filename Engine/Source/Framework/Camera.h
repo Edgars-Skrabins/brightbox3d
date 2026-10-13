@@ -10,15 +10,6 @@
 
 namespace BrightBox3D::Framework
 {
-    BrightEnum()
-    enum class CameraAntiAliasing
-    {
-        None,
-        FXAA,
-        SMAA,
-        TAA
-    };
-
     BrightClass(.category = Categories::Gameplay, .icon = Icon::Video)
     class Camera : public Level::LevelObject
     {
@@ -108,7 +99,7 @@ namespace BrightBox3D::Framework
         float m_vignetteSoftness = 0.45f;
 
         BrightProperty(.edit = Edit::Anywhere, .category = Categories::AntiAliasing)
-        CameraAntiAliasing m_antiAliasing = CameraAntiAliasing::TAA;
+        Rendering::AntiAliasing m_antiAliasing = Rendering::AntiAliasing::TAA;
 
         BrightProperty(.edit = Edit::Anywhere, .category = Categories::Sky)
         Math::Color m_skyTop{ 0.32f, 0.52f, 0.85f, 1.0f };

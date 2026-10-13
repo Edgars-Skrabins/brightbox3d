@@ -3,6 +3,7 @@
 #include "Framework/GameSession.h"
 #include "Framework/LevelGameplaySettings.h"
 #include "Level/ObjectReplacer.h"
+#include "Serialization/ObjectSerializer.h"
 
 #include <gtest/gtest.h>
 
@@ -132,4 +133,19 @@ TEST(FrameworkTests, HotReloadKeepsGameStateValuesAndPossession)
     EXPECT_EQ(controller->GetPlayable(), level.FindObject(playableId));
     level.Update(0.016f);
     level.EndPlay();
+}
+
+TEST(FrameworkTests, CameraAntiAliasingLoadsByNameIntoTheRenderView)
+{
+    RuntimeLevel level("Camera");
+    auto* camera = level.CreateObject<Framework::Camera>();
+    const Reflection::PropertyInfo* property = Framework::Camera::StaticType().FindProperty("m_antiAliasing");
+    ASSERT_NE(property, nullptr);
+    ASSERT_NE(property->value.enumInfo, nullptr);
+    EXPECT_NE(property->value.enumInfo->FindByName("SMAA"), nullptr);
+
+    Serialization::JsonDocument document;
+    document.Parse(R"({ "m_antiAliasing": "SMAA" })");
+    Serialization::DeserializeProperties(*camera, document);
+    EXPECT_EQ(camera->BuildRenderView(64, 64, 1).post.antiAliasing, Rendering::AntiAliasing::SMAA);
 }

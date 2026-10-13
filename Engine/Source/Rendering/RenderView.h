@@ -2,11 +2,13 @@
 
 #include "Math/Color.h"
 #include "Math/Matrix4.h"
+#include "Reflection/Macros.h"
 
 #include <cstdint>
 
 namespace BrightBox3D::Rendering
 {
+    BrightEnum()
     enum class AntiAliasing
     {
         None,
