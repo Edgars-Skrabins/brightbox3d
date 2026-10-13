@@ -76,9 +76,14 @@ namespace BrightBox3D::Rendering
         MaterialBinding ResolveMaterial(const MaterialAsset* material, const EmbeddedMaterial* embedded);
         void RenderShadows(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets);
         void DrawItems(RHI::CommandList& commands, const std::vector<const DrawItem*>& items, RHI::Pipeline* single, RHI::Pipeline* doubleSided);
-        void RenderLines(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, RHI::Texture* output);
+        void RenderLines(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, RHI::Texture* output, const void* viewConstants, size_t viewConstantsSize);
         RHI::Pipeline* GetMeshPipeline(const char* key, const char* pixelEntry, const char* file, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip = true, int32_t depthBias = 0, float slopeBias = 0.0f);
         RHI::Pipeline* GetFullscreenPipeline(const char* key, const char* file, const char* entry, RHI::Format format, const RHI::BlendState& blend = {});
+        RHI::Pipeline* GetSMAAPipeline(const char* vertexEntry, const char* pixelEntry, RHI::Format format);
+        void FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load = false);
+        void EnsurePostTargets(const RenderView& view, ViewTargets& targets);
+        void EnsureSMAATextures();
+        RHI::Texture* RenderPostProcessing(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, const void* viewConstants, size_t viewConstantsSize);
 
         RHI::Device& m_device;
         ShaderLibrary& m_shaders;
@@ -91,8 +96,14 @@ namespace BrightBox3D::Rendering
         bool m_hasShadowLight = false;
         uint32_t m_lightCount = 0;
         std::unique_ptr<RHI::Texture> m_shadowMap;
+        std::unique_ptr<RHI::Texture> m_smaaArea;
+        std::unique_ptr<RHI::Texture> m_smaaSearch;
+        float m_ssaoKernel[16][4] = {};
         uint32_t m_shadowResolution = 0;
         std::unordered_map<std::string, std::unique_ptr<GpuMesh>> m_proceduralMeshes;
         RenderStatistics m_statistics;
+        RHI::Texture* m_postBloom = nullptr;
+        RHI::Texture* m_postExposure = nullptr;
+        bool m_postAutoExposure = false;
     };
 }

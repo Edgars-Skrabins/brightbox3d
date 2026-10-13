@@ -10,8 +10,13 @@
 #include "Rendering/MeshRenderer.h"
 #include "Rendering/ModelAsset.h"
 
+#include <AreaTex.h>
+#include <SearchTex.h>
+
 #include <algorithm>
 #include <cstring>
+#include <chrono>
+#include <random>
 
 namespace BrightBox3D::Rendering
 {
@@ -105,6 +110,34 @@ namespace BrightBox3D::Rendering
             float params[4];
         };
 
+        struct PostConstants
+        {
+            float params[4];
+            float params2[4];
+            float sourceSize[4];
+        };
+
+        struct SSAOConstants
+        {
+            float params[4];
+            float kernel[16][4];
+        };
+
+        float Halton(uint32_t index, uint32_t base)
+        {
+            float result = 0.0f;
+            float fraction = 1.0f / static_cast<float>(base);
+            while (index > 0)
+            {
+                result += fraction * static_cast<float>(index % base);
+                index /= base;
+                fraction /= static_cast<float>(base);
+            }
+            return result;
+        }
+
+        constexpr uint32_t LuminanceSize = 64;
+
         void Store(float* target, float x, float y, float z, float w)
         {
             target[0] = x;
@@ -160,6 +193,21 @@ namespace BrightBox3D::Rendering
         std::unique_ptr<RHI::Texture> depthCopy;
         std::unique_ptr<RHI::Texture> depth;
         std::unique_ptr<RHI::Texture> sceneColor;
+        std::unique_ptr<RHI::Texture> ao;
+        std::unique_ptr<RHI::Texture> aoBlur;
+        std::vector<std::unique_ptr<RHI::Texture>> bloom;
+        std::unique_ptr<RHI::Texture> luminance;
+        std::unique_ptr<RHI::Texture> exposure[2];
+        std::unique_ptr<RHI::Texture> history[2];
+        std::unique_ptr<RHI::Texture> ldr;
+        std::unique_ptr<RHI::Texture> smaaEdges;
+        std::unique_ptr<RHI::Texture> smaaBlend;
+        uint32_t historyIndex = 0;
+        uint32_t exposureIndex = 0;
+        uint32_t frameIndex = 0;
+        bool historyValid = false;
+        bool exposureValid = false;
+        double lastTime = 0.0;
         Math::Matrix4 previousViewProjection;
         bool hasHistory = false;
         std::unordered_map<const void*, Math::Matrix4> previousWorld;
@@ -170,6 +218,20 @@ namespace BrightBox3D::Rendering
     {
         m_lightConstants.resize(sizeof(LightConstants));
         m_shadowConstants.resize(sizeof(ShadowConstants));
+        std::mt19937 random(1337);
+        std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+        for (int i = 0; i < 16; ++i)
+        {
+            Math::Vector3 sample(distribution(random) * 2.0f - 1.0f, distribution(random) * 2.0f - 1.0f, distribution(random) * 0.9f + 0.1f);
+            sample = sample.Normalized() * distribution(random);
+            float scale = static_cast<float>(i) / 16.0f;
+            scale = Math::Lerp(0.1f, 1.0f, scale * scale);
+            sample *= scale;
+            m_ssaoKernel[i][0] = sample.x;
+            m_ssaoKernel[i][1] = sample.y;
+            m_ssaoKernel[i][2] = sample.z;
+            m_ssaoKernel[i][3] = 0.0f;
+        }
     }
 
     Renderer::~Renderer() = default;
@@ -579,7 +641,201 @@ namespace BrightBox3D::Rendering
         Store(constants->params, 1.0f, 1.0f / static_cast<float>(resolution), view.shadows.normalBias, view.shadows.bias);
     }
 
-    void Renderer::RenderLines(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, RHI::Texture* output)
+    RHI::Pipeline* Renderer::GetSMAAPipeline(const char* vertexEntry, const char* pixelEntry, RHI::Format format)
+    {
+        RHI::PipelineDesc desc;
+        desc.vertexShader = m_shaders.Get("AntiAliasingSMAA.hlsl", vertexEntry, RHI::ShaderStage::Vertex);
+        desc.pixelShader = m_shaders.Get("AntiAliasingSMAA.hlsl", pixelEntry, RHI::ShaderStage::Pixel);
+        desc.rasterizer.cullMode = RHI::CullMode::None;
+        desc.depthStencil.depthTest = false;
+        desc.depthStencil.depthWrite = false;
+        desc.colorFormats = { format };
+        return m_shaders.GetPipeline(std::string("SMAA|") + pixelEntry + "|" + FormatKey(format), desc);
+    }
+
+    void Renderer::FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load)
+    {
+        RHI::RenderPassDesc pass;
+        pass.colors.push_back({ target, 0, 0, load ? RHI::LoadAction::Load : RHI::LoadAction::DontCare });
+        pass.debugName = name;
+        commands.BeginRenderPass(pass);
+        commands.SetPipeline(pipeline);
+    }
+
+    void Renderer::EnsureSMAATextures()
+    {
+        if (m_smaaArea)
+        {
+            return;
+        }
+        RHI::TextureDesc area;
+        area.width = AREATEX_WIDTH;
+        area.height = AREATEX_HEIGHT;
+        area.format = RHI::Format::RG8Unorm;
+        area.debugName = "SMAAArea";
+        m_smaaArea = m_device.CreateTexture(area);
+        m_device.UpdateTexture(m_smaaArea.get(), 0, 0, areaTexBytes, AREATEX_PITCH);
+        RHI::TextureDesc search;
+        search.width = SEARCHTEX_WIDTH;
+        search.height = SEARCHTEX_HEIGHT;
+        search.format = RHI::Format::R8Unorm;
+        search.debugName = "SMAASearch";
+        m_smaaSearch = m_device.CreateTexture(search);
+        m_device.UpdateTexture(m_smaaSearch.get(), 0, 0, searchTexBytes, SEARCHTEX_PITCH);
+    }
+
+    void Renderer::EnsurePostTargets(const RenderView& view, ViewTargets& targets)
+    {
+        if (targets.ao && targets.ao->GetWidth() == view.width && targets.ao->GetHeight() == view.height)
+        {
+            return;
+        }
+        m_device.WaitIdle();
+        uint32_t renderable = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
+        auto make = [&](uint32_t width, uint32_t height, RHI::Format format, const char* name)
+        {
+            RHI::TextureDesc desc;
+            desc.width = std::max<uint32_t>(width, 1);
+            desc.height = std::max<uint32_t>(height, 1);
+            desc.format = format;
+            desc.usage = renderable;
+            desc.debugName = name;
+            return m_device.CreateTexture(desc);
+        };
+        targets.ao = make(view.width, view.height, RHI::Format::R8Unorm, "SSAO");
+        targets.aoBlur = make(view.width, view.height, RHI::Format::R8Unorm, "SSAOBlur");
+        targets.bloom.clear();
+        uint32_t width = view.width / 2;
+        uint32_t height = view.height / 2;
+        for (int level = 0; level < 6 && width >= 8 && height >= 8; ++level)
+        {
+            targets.bloom.push_back(make(width, height, RHI::Format::RGBA16Float, "Bloom"));
+            width /= 2;
+            height /= 2;
+        }
+        targets.luminance = make(LuminanceSize, LuminanceSize, RHI::Format::R32Float, "Luminance");
+        targets.exposure[0] = make(1, 1, RHI::Format::R32Float, "Exposure0");
+        targets.exposure[1] = make(1, 1, RHI::Format::R32Float, "Exposure1");
+        targets.history[0] = make(view.width, view.height, SceneColorFormat, "TemporalHistory0");
+        targets.history[1] = make(view.width, view.height, SceneColorFormat, "TemporalHistory1");
+        targets.ldr = make(view.width, view.height, RHI::Format::RGBA8Unorm, "LDR");
+        targets.smaaEdges = make(view.width, view.height, RHI::Format::RG8Unorm, "SMAAEdges");
+        targets.smaaBlend = make(view.width, view.height, RHI::Format::RGBA8Unorm, "SMAABlend");
+        targets.historyValid = false;
+        targets.exposureValid = false;
+    }
+
+    RHI::Texture* Renderer::RenderPostProcessing(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, const void* viewConstants, size_t viewConstantsSize)
+    {
+        const PostProcessSettings& post = view.post;
+        RHI::Texture* hdr = targets.sceneColor.get();
+        RHI::Sampler* linear = m_resources.GetLinearClampSampler();
+        RHI::Sampler* point = m_resources.GetPointClampSampler();
+        auto bindCommon = [&](const PostConstants& constants)
+        {
+            commands.SetConstants(0, viewConstants, viewConstantsSize);
+            commands.SetConstants(1, constants);
+            commands.SetSampler(0, linear);
+            commands.SetSampler(1, point);
+        };
+
+        if (post.antiAliasing == AntiAliasing::TAA && view.debugMode == RenderDebugMode::Lit)
+        {
+            RHI::Texture* history = targets.history[targets.historyIndex].get();
+            RHI::Texture* resolved = targets.history[1 - targets.historyIndex].get();
+            FullscreenPass(commands, resolved, GetFullscreenPipeline("TemporalResolve", "PostProcess.hlsl", "TemporalResolvePS", SceneColorFormat), "TemporalResolve");
+            PostConstants constants{};
+            Store(constants.params, 0.9f, targets.historyValid ? 0.0f : 1.0f, 0.0f, 0.0f);
+            Store(constants.sourceSize, static_cast<float>(view.width), static_cast<float>(view.height), 1.0f / view.width, 1.0f / view.height);
+            bindCommon(constants);
+            commands.SetTexture(0, hdr);
+            commands.SetTexture(1, history);
+            commands.SetTexture(2, targets.velocity.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+            targets.historyIndex = 1 - targets.historyIndex;
+            targets.historyValid = true;
+            hdr = resolved;
+        }
+        else
+        {
+            targets.historyValid = false;
+        }
+
+        RHI::Texture* bloom = m_resources.GetBlackTexture();
+        if (post.bloomIntensity > 0.0f && !targets.bloom.empty() && view.debugMode == RenderDebugMode::Lit)
+        {
+            PostConstants constants{};
+            Store(constants.params, post.bloomThreshold, 1.0f, 0.0f, 0.0f);
+            Store(constants.sourceSize, static_cast<float>(hdr->GetWidth()), static_cast<float>(hdr->GetHeight()), 1.0f / hdr->GetWidth(), 1.0f / hdr->GetHeight());
+            FullscreenPass(commands, targets.bloom[0].get(), GetFullscreenPipeline("BloomPrefilter", "PostProcess.hlsl", "BloomPrefilterPS", RHI::Format::RGBA16Float), "BloomPrefilter");
+            bindCommon(constants);
+            commands.SetTexture(0, hdr);
+            commands.Draw(3);
+            commands.EndRenderPass();
+            for (size_t level = 1; level < targets.bloom.size(); ++level)
+            {
+                RHI::Texture* source = targets.bloom[level - 1].get();
+                Store(constants.sourceSize, static_cast<float>(source->GetWidth()), static_cast<float>(source->GetHeight()), 1.0f / source->GetWidth(), 1.0f / source->GetHeight());
+                FullscreenPass(commands, targets.bloom[level].get(), GetFullscreenPipeline("BloomDownsample", "PostProcess.hlsl", "BloomDownsamplePS", RHI::Format::RGBA16Float), "BloomDownsample");
+                bindCommon(constants);
+                commands.SetTexture(0, source);
+                commands.Draw(3);
+                commands.EndRenderPass();
+            }
+            for (size_t level = targets.bloom.size() - 1; level > 0; --level)
+            {
+                RHI::Texture* source = targets.bloom[level].get();
+                Store(constants.sourceSize, static_cast<float>(source->GetWidth()), static_cast<float>(source->GetHeight()), 1.0f / source->GetWidth(), 1.0f / source->GetHeight());
+                FullscreenPass(commands, targets.bloom[level - 1].get(), GetFullscreenPipeline("BloomUpsample", "PostProcess.hlsl", "BloomUpsamplePS", RHI::Format::RGBA16Float, RHI::BlendState::Additive()), "BloomUpsample", true);
+                bindCommon(constants);
+                commands.SetTexture(0, source);
+                commands.Draw(3);
+                commands.EndRenderPass();
+            }
+            bloom = targets.bloom[0].get();
+        }
+
+        RHI::Texture* exposure = m_resources.GetWhiteTexture();
+        bool autoExposure = post.autoExposure && view.debugMode == RenderDebugMode::Lit;
+        if (autoExposure)
+        {
+            PostConstants constants{};
+            Store(constants.sourceSize, static_cast<float>(hdr->GetWidth()), static_cast<float>(hdr->GetHeight()), 1.0f / hdr->GetWidth(), 1.0f / hdr->GetHeight());
+            FullscreenPass(commands, targets.luminance.get(), GetFullscreenPipeline("LogLuminance", "PostProcess.hlsl", "LogLuminancePS", RHI::Format::R32Float), "LogLuminance");
+            bindCommon(constants);
+            commands.SetTexture(0, hdr);
+            commands.Draw(3);
+            commands.EndRenderPass();
+            double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            float deltaTime = targets.lastTime > 0.0 ? static_cast<float>(std::min(now - targets.lastTime, 0.25)) : 0.0f;
+            targets.lastTime = now;
+            RHI::Texture* previous = targets.exposure[targets.exposureIndex].get();
+            RHI::Texture* current = targets.exposure[1 - targets.exposureIndex].get();
+            Store(constants.params, post.exposure, post.autoExposureMin, post.autoExposureMax, post.autoExposureSpeed);
+            Store(constants.params2, static_cast<float>(LuminanceSize), targets.exposureValid ? 0.0f : 1.0f, deltaTime, 0.0f);
+            FullscreenPass(commands, current, GetFullscreenPipeline("ExposureAdapt", "PostProcess.hlsl", "ExposureAdaptPS", RHI::Format::R32Float), "ExposureAdapt");
+            bindCommon(constants);
+            commands.SetTexture(0, targets.luminance.get());
+            commands.SetTexture(1, previous);
+            commands.Draw(3);
+            commands.EndRenderPass();
+            targets.exposureIndex = 1 - targets.exposureIndex;
+            targets.exposureValid = true;
+            exposure = current;
+        }
+        else
+        {
+            targets.exposureValid = false;
+        }
+
+        m_postBloom = bloom;
+        m_postExposure = exposure;
+        m_postAutoExposure = autoExposure;
+        return hdr;
+    }
+
+    void Renderer::RenderLines(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, RHI::Texture* output, const void* viewConstants, size_t viewConstantsSize)
     {
         std::vector<LineVertex> grid;
         if (view.showGrid)
@@ -587,18 +843,22 @@ namespace BrightBox3D::Rendering
             float spacing = 1.0f;
             int extent = 100;
             Math::Vector3 center(std::round(view.position.x), 0.0f, std::round(view.position.z));
+            uint32_t minorColor = view.gridColor.ToRgba8();
+            uint32_t majorColor = view.gridMajorColor.ToRgba8();
+            uint32_t axisXColor = view.gridAxisXColor.ToRgba8();
+            uint32_t axisZColor = view.gridAxisZColor.ToRgba8();
             for (int i = -extent; i <= extent; ++i)
             {
                 bool major = (static_cast<int>(center.x) + i) % 10 == 0;
-                uint32_t color = major ? Math::Color(0.55f, 0.55f, 0.55f, 0.55f).ToRgba8() : Math::Color(0.4f, 0.4f, 0.4f, 0.3f).ToRgba8();
+                uint32_t color = major ? majorColor : minorColor;
                 float x = center.x + i * spacing;
-                grid.push_back({ { x, 0.0f, center.z - extent * spacing }, (static_cast<int>(x) == 0) ? Math::Color(0.3f, 0.3f, 0.95f, 0.8f).ToRgba8() : color });
-                grid.push_back({ { x, 0.0f, center.z + extent * spacing }, (static_cast<int>(x) == 0) ? Math::Color(0.3f, 0.3f, 0.95f, 0.8f).ToRgba8() : color });
+                grid.push_back({ { x, 0.01f, center.z - extent * spacing }, (static_cast<int>(x) == 0) ? axisZColor : color });
+                grid.push_back({ { x, 0.01f, center.z + extent * spacing }, (static_cast<int>(x) == 0) ? axisZColor : color });
                 bool majorZ = (static_cast<int>(center.z) + i) % 10 == 0;
-                uint32_t colorZ = majorZ ? Math::Color(0.55f, 0.55f, 0.55f, 0.55f).ToRgba8() : Math::Color(0.4f, 0.4f, 0.4f, 0.3f).ToRgba8();
+                uint32_t colorZ = majorZ ? majorColor : minorColor;
                 float z = center.z + i * spacing;
-                grid.push_back({ { center.x - extent * spacing, 0.0f, z }, (static_cast<int>(z) == 0) ? Math::Color(0.95f, 0.3f, 0.3f, 0.8f).ToRgba8() : colorZ });
-                grid.push_back({ { center.x + extent * spacing, 0.0f, z }, (static_cast<int>(z) == 0) ? Math::Color(0.95f, 0.3f, 0.3f, 0.8f).ToRgba8() : colorZ });
+                grid.push_back({ { center.x - extent * spacing, 0.01f, z }, (static_cast<int>(z) == 0) ? axisXColor : colorZ });
+                grid.push_back({ { center.x + extent * spacing, 0.01f, z }, (static_cast<int>(z) == 0) ? axisXColor : colorZ });
             }
         }
         const auto& depthTested = DebugDraw::GetDepthTested();
@@ -630,6 +890,7 @@ namespace BrightBox3D::Rendering
         pass.depth.load = RHI::LoadAction::Load;
         pass.debugName = "Lines";
         commands.BeginRenderPass(pass);
+        commands.SetConstants(0, viewConstants, viewConstantsSize);
         LineConstants constants{};
         if (!grid.empty())
         {
@@ -666,15 +927,26 @@ namespace BrightBox3D::Rendering
         m_statistics = {};
         ViewTargets& targets = GetTargets(view);
 
+        EnsurePostTargets(view, targets);
         Math::Matrix4 viewProjection = view.view * view.projection;
         Math::Frustum frustum = Math::Frustum::FromViewProjection(viewProjection);
+        Math::Matrix4 jitteredProjection = view.projection;
+        if (view.post.antiAliasing == AntiAliasing::TAA && view.debugMode == RenderDebugMode::Lit)
+        {
+            uint32_t sample = (targets.frameIndex % 8) + 1;
+            float jitterX = Halton(sample, 2) - 0.5f;
+            float jitterY = Halton(sample, 3) - 0.5f;
+            jitteredProjection.m[2][0] += jitterX * 2.0f / static_cast<float>(view.width);
+            jitteredProjection.m[2][1] -= jitterY * 2.0f / static_cast<float>(view.height);
+        }
+        ++targets.frameIndex;
         CollectDraws(level, view, targets, frustum);
         CollectLights(level, view);
 
         ViewConstants viewConstants{};
         viewConstants.view = view.view;
         viewConstants.projection = view.projection;
-        viewConstants.viewProjection = viewProjection;
+        viewConstants.viewProjection = view.view * jitteredProjection;
         viewConstants.inverseViewProjection = viewProjection.Inverse();
         viewConstants.unjitteredViewProjection = viewProjection;
         viewConstants.previousViewProjection = targets.hasHistory ? targets.previousViewProjection : viewProjection;
@@ -721,6 +993,30 @@ namespace BrightBox3D::Rendering
         DrawItems(commands, opaque, gbufferBack, gbufferNone);
         commands.EndRenderPass();
 
+        RHI::Texture* ambientOcclusion = m_resources.GetWhiteTexture();
+        if (view.post.ssao && (view.debugMode == RenderDebugMode::Lit || view.debugMode == RenderDebugMode::AmbientOcclusion))
+        {
+            SSAOConstants ssao{};
+            Store(ssao.params, view.post.ssaoRadius, view.post.ssaoIntensity, 0.02f, 16.0f);
+            std::memcpy(ssao.kernel, m_ssaoKernel, sizeof(m_ssaoKernel));
+            FullscreenPass(commands, targets.ao.get(), GetFullscreenPipeline("SSAO", "SSAO.hlsl", "SSAOPS", RHI::Format::R8Unorm), "SSAO");
+            commands.SetConstants(0, viewConstants);
+            commands.SetConstants(1, ssao);
+            commands.SetTexture(0, targets.depthCopy.get());
+            commands.SetTexture(1, targets.normal.get());
+            commands.SetSampler(0, m_resources.GetPointClampSampler());
+            commands.Draw(3);
+            commands.EndRenderPass();
+            FullscreenPass(commands, targets.aoBlur.get(), GetFullscreenPipeline("SSAOBlur", "SSAO.hlsl", "SSAOBlurPS", RHI::Format::R8Unorm), "SSAOBlur");
+            commands.SetConstants(0, viewConstants);
+            commands.SetConstants(1, ssao);
+            commands.SetTexture(0, targets.depthCopy.get());
+            commands.SetTexture(2, targets.ao.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+            ambientOcclusion = targets.aoBlur.get();
+        }
+
         RHI::Texture* shadowMap = m_hasShadowLight && m_shadowMap ? m_shadowMap.get() : m_resources.GetDummyShadowMap();
         auto bindLighting = [&]()
         {
@@ -742,7 +1038,7 @@ namespace BrightBox3D::Rendering
         commands.SetTexture(2, targets.material.get());
         commands.SetTexture(3, targets.emission.get());
         commands.SetTexture(4, targets.depthCopy.get());
-        commands.SetTexture(5, m_resources.GetWhiteTexture());
+        commands.SetTexture(5, ambientOcclusion);
         commands.Draw(3);
         commands.EndRenderPass();
 
@@ -761,14 +1057,20 @@ namespace BrightBox3D::Rendering
             commands.EndRenderPass();
         }
 
+        RHI::Texture* hdr = RenderPostProcessing(commands, view, targets, &viewConstants, sizeof(viewConstants));
+        AntiAliasing antiAliasing = view.post.antiAliasing;
+        bool postAA = antiAliasing == AntiAliasing::FXAA || antiAliasing == AntiAliasing::SMAA;
+        RHI::Texture* tonemapTarget = postAA ? targets.ldr.get() : output;
+
         RHI::RenderPassDesc tonemapPass;
-        tonemapPass.colors.push_back({ output, 0, 0, RHI::LoadAction::DontCare });
+        tonemapPass.colors.push_back({ tonemapTarget, 0, 0, RHI::LoadAction::DontCare });
         tonemapPass.debugName = "Tonemap";
         commands.BeginRenderPass(tonemapPass);
-        commands.SetPipeline(GetFullscreenPipeline("Tonemap", "Tonemap.hlsl", "TonemapPS", output->GetFormat()));
+        commands.SetPipeline(GetFullscreenPipeline("Tonemap", "Tonemap.hlsl", "TonemapPS", tonemapTarget->GetFormat()));
         TonemapConstants tonemap{};
         const PostProcessSettings& post = view.post;
-        Store(tonemap.exposure, post.exposure, 0.0f, 0.0f, 0.0f);
+        Store(tonemap.exposure, post.exposure, m_postAutoExposure ? 1.0f : 0.0f, 0.0f, 0.0f);
+        Store(tonemap.bloom, m_postBloom != m_resources.GetBlackTexture() ? post.bloomIntensity : 0.0f, 0.0f, 0.0f, 0.0f);
         Store(tonemap.grading, post.saturation, post.contrast, 0.0f, post.colorGrading ? 1.0f : 0.0f);
         StoreColor(tonemap.tint, post.tint, 1.0f);
         Store(tonemap.vignette, post.vignetteIntensity, post.vignetteRadius, post.vignetteSoftness, 0.0f);
@@ -778,15 +1080,70 @@ namespace BrightBox3D::Rendering
         StoreColor(tonemap.gain, post.gain, 1.0f);
         commands.SetConstants(0, viewConstants);
         commands.SetConstants(1, tonemap);
-        commands.SetTexture(0, targets.sceneColor.get());
-        commands.SetTexture(1, m_resources.GetBlackTexture());
-        commands.SetTexture(2, m_resources.GetWhiteTexture());
+        commands.SetTexture(0, hdr);
+        commands.SetTexture(1, m_postBloom);
+        commands.SetTexture(2, m_postExposure);
         commands.SetTexture(3, m_resources.GetWhiteTexture());
         commands.SetSampler(0, m_resources.GetLinearClampSampler());
         commands.Draw(3);
         commands.EndRenderPass();
 
-        RenderLines(commands, view, targets, output);
+        if (antiAliasing == AntiAliasing::FXAA)
+        {
+            PostConstants constants{};
+            Store(constants.sourceSize, static_cast<float>(view.width), static_cast<float>(view.height), 1.0f / view.width, 1.0f / view.height);
+            FullscreenPass(commands, output, GetFullscreenPipeline("FXAA", "PostProcess.hlsl", "FXAAPS", output->GetFormat()), "FXAA");
+            commands.SetConstants(0, viewConstants);
+            commands.SetConstants(1, constants);
+            commands.SetSampler(0, m_resources.GetLinearClampSampler());
+            commands.SetSampler(1, m_resources.GetPointClampSampler());
+            commands.SetTexture(0, targets.ldr.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+        }
+        else if (antiAliasing == AntiAliasing::SMAA)
+        {
+            EnsureSMAATextures();
+            float metrics[4] = { 1.0f / view.width, 1.0f / view.height, static_cast<float>(view.width), static_cast<float>(view.height) };
+            auto bindSMAA = [&]()
+            {
+                commands.SetConstants(0, metrics, sizeof(metrics));
+                commands.SetSampler(0, m_resources.GetLinearClampSampler());
+                commands.SetSampler(1, m_resources.GetPointClampSampler());
+            };
+            RHI::RenderPassDesc edges;
+            edges.colors.push_back({ targets.smaaEdges.get(), 0, 0, RHI::LoadAction::Clear, { 0, 0, 0, 0 } });
+            edges.debugName = "SMAAEdges";
+            commands.BeginRenderPass(edges);
+            commands.SetPipeline(GetSMAAPipeline("SMAAEdgeVS", "SMAAEdgePS", RHI::Format::RG8Unorm));
+            bindSMAA();
+            commands.SetTexture(0, targets.ldr.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+            RHI::RenderPassDesc blend;
+            blend.colors.push_back({ targets.smaaBlend.get(), 0, 0, RHI::LoadAction::Clear, { 0, 0, 0, 0 } });
+            blend.debugName = "SMAABlendWeights";
+            commands.BeginRenderPass(blend);
+            commands.SetPipeline(GetSMAAPipeline("SMAABlendVS", "SMAABlendPS", RHI::Format::RGBA8Unorm));
+            bindSMAA();
+            commands.SetTexture(1, targets.smaaEdges.get());
+            commands.SetTexture(2, m_smaaArea.get());
+            commands.SetTexture(3, m_smaaSearch.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+            RHI::RenderPassDesc neighborhood;
+            neighborhood.colors.push_back({ output, 0, 0, RHI::LoadAction::DontCare });
+            neighborhood.debugName = "SMAANeighborhood";
+            commands.BeginRenderPass(neighborhood);
+            commands.SetPipeline(GetSMAAPipeline("SMAANeighborhoodVS", "SMAANeighborhoodPS", output->GetFormat()));
+            bindSMAA();
+            commands.SetTexture(0, targets.ldr.get());
+            commands.SetTexture(4, targets.smaaBlend.get());
+            commands.Draw(3);
+            commands.EndRenderPass();
+        }
+
+        RenderLines(commands, view, targets, output, &viewConstants, sizeof(viewConstants));
 
         targets.previousViewProjection = viewProjection;
         targets.hasHistory = true;

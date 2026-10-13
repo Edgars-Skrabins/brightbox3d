@@ -87,6 +87,10 @@ namespace BrightBox3D::Rendering
         ShadowSettings shadows;
         RenderDebugMode debugMode = RenderDebugMode::Lit;
         bool showGrid = false;
+        Math::Color gridColor{ 0.8f, 0.8f, 0.8f, 0.28f };
+        Math::Color gridMajorColor{ 0.9f, 0.9f, 0.9f, 0.55f };
+        Math::Color gridAxisXColor{ 0.95f, 0.3f, 0.3f, 0.8f };
+        Math::Color gridAxisZColor{ 0.3f, 0.3f, 0.95f, 0.8f };
         bool isEditorView = false;
     };
 }
