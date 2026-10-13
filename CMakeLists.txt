@@ -30,6 +30,10 @@ option(BRIGHT_BUILD_TESTS "Build BrightBox3D unit tests" ON)
 
 include(cmake/Dependencies.cmake)
 include(cmake/BrightReflection.cmake)
+include(cmake/GenerateIcons.cmake)
+
+set(BRIGHT_GENERATED_DIR ${CMAKE_BINARY_DIR}/Generated)
+bright_generate_icons(${lucide_SOURCE_DIR}/font/info.json ${BRIGHT_GENERATED_DIR}/Engine/Core/Icon.h ${BRIGHT_GENERATED_DIR}/Editor/IconGlyphs.h)
 
 add_subdirectory(Tools/BrightHeaderTool)
 add_subdirectory(Engine)
