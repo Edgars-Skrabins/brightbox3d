@@ -154,7 +154,7 @@ namespace BrightBox3D::Editor
         {
             m_process.TakeResult();
         }
-        m_module.Unload(GetLevels ? GetLevels() : std::vector<Level::Level*>{});
+        m_module.Unload();
         m_state = CompileState::Idle;
         m_statusText = "No game code";
     }
@@ -292,7 +292,7 @@ namespace BrightBox3D::Editor
         ReportCompilerOutput(result.output);
         std::filesystem::path module = GetModulePath();
         std::string error;
-        bool loaded = m_module.IsLoaded() ? m_module.Reload(module, GetLevels ? GetLevels() : std::vector<Level::Level*>{}, error)
+        bool loaded = m_module.IsLoaded() ? m_module.Reload(module, error)
                                           : m_module.Load(module, m_context.GetProject().GetGameModuleName(), m_context.GetProject().GetCacheDirectory() / "HotReload", error);
         if (!loaded)
         {

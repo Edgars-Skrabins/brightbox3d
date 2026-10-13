@@ -10,11 +10,6 @@
 #include <string>
 #include <vector>
 
-namespace BrightBox3D::Level
-{
-    class Level;
-}
-
 namespace BrightBox3D::Editor
 {
     class EditorContext;
@@ -46,7 +41,6 @@ namespace BrightBox3D::Editor
         std::filesystem::path GetModulePath() const;
         static std::filesystem::path FindCMake();
 
-        std::function<std::vector<Level::Level*>()> GetLevels;
         std::function<void()> OnCompileFailed;
         std::function<void()> OnReloaded;
 

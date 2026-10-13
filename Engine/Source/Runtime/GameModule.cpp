@@ -63,29 +63,27 @@ namespace BrightBox3D::Runtime
         return true;
     }
 
-    void GameModule::Unload(const std::vector<Level::Level*>& levels)
+    void GameModule::Unload()
     {
         if (!m_library.IsLoaded())
         {
             return;
         }
         std::string name = m_name;
+        Reflection::TypeRegistry::OnModuleUnloading().Broadcast(name);
         auto predicate = [name](const Reflection::TypeInfo& type) { return type.GetModuleName() == name; };
         std::vector<Level::ReplacedObject> records;
-        for (Level::Level* level : levels)
-        {
-            if (level)
-            {
-                Level::ObjectReplacer::Extract(*level, predicate, records);
-            }
-        }
         Level::LevelObjectLibrary::Get().Clear();
+        for (Level::Level* level : Level::Level::GetAllLevels())
+        {
+            Level::ObjectReplacer::Extract(*level, predicate, records);
+        }
         Level::ObjectReplacer::DestroyExtracted(records);
         m_library.Unload();
         Level::ObjectReplacer::Restore(records);
     }
 
-    bool GameModule::Reload(const std::filesystem::path& library, const std::vector<Level::Level*>& levels, std::string& error)
+    bool GameModule::Reload(const std::filesystem::path& library, std::string& error)
     {
         if (!std::filesystem::exists(library))
         {
@@ -93,16 +91,14 @@ namespace BrightBox3D::Runtime
             return false;
         }
         std::string name = m_name;
+        Reflection::TypeRegistry::OnModuleUnloading().Broadcast(name);
         auto predicate = [name](const Reflection::TypeInfo& type) { return type.GetModuleName() == name; };
         std::vector<Level::ReplacedObject> records;
-        for (Level::Level* level : levels)
-        {
-            if (level)
-            {
-                Level::ObjectReplacer::Extract(*level, predicate, records);
-            }
-        }
         Level::LevelObjectLibrary::Get().Clear();
+        for (Level::Level* level : Level::Level::GetAllLevels())
+        {
+            Level::ObjectReplacer::Extract(*level, predicate, records);
+        }
         Level::ObjectReplacer::DestroyExtracted(records);
 
         std::filesystem::path previous = m_loadedCopy;

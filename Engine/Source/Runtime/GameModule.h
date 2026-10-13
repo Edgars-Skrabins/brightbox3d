@@ -20,8 +20,8 @@ namespace BrightBox3D::Runtime
         ~GameModule();
 
         bool Load(const std::filesystem::path& library, const std::string& name, const std::filesystem::path& shadowDirectory, std::string& error);
-        bool Reload(const std::filesystem::path& library, const std::vector<Level::Level*>& levels, std::string& error);
-        void Unload(const std::vector<Level::Level*>& levels);
+        bool Reload(const std::filesystem::path& library, std::string& error);
+        void Unload();
         bool IsLoaded() const { return m_library.IsLoaded(); }
         const std::string& GetName() const { return m_name; }
         uint32_t GetGeneration() const { return m_generation; }
