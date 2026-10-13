@@ -1,5 +1,7 @@
 #include "Assets/AssetDatabase.h"
+#include "Core/Log.h"
 #include "EditorContext.h"
+#include "Framework/LevelGameplaySettings.h"
 #include "HotReload.h"
 #include "Level/LevelSerializer.h"
 #include "PlaySession.h"
@@ -16,7 +18,7 @@
 
 using namespace BrightBox3D;
 using BrightBox3D::Editor::EditorContext;
-using BrightBox3D::Level::LevelObjectInstance;
+using BrightBox3D::Level::LevelObject;
 
 namespace
 {
@@ -28,12 +30,12 @@ namespace
             m_root = std::filesystem::temp_directory_path() / ("BrightEditorTest_" + Core::Guid::Generate().ToString());
             std::string error;
             ASSERT_TRUE(Runtime::Project::Create(m_root, "EditorTest", error)) << error;
-            ASSERT_TRUE(m_context.OpenProject(m_root, error)) << error;
+            ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;
         }
 
         void TearDown() override
         {
-            m_context.CloseProject();
+            m_context.GetProjectService().CloseProject();
             std::error_code error;
             std::filesystem::remove_all(m_root, error);
         }
@@ -52,72 +54,72 @@ namespace
 
 TEST_F(ProjectFixture, NewProjectHasStartupLevelWithDefaults)
 {
-    ASSERT_NE(m_context.GetEditLevel(), nullptr);
-    EXPECT_TRUE(m_context.GetProject().GetStartupLevel().IsValid());
-    EXPECT_NE(m_context.GetEditLevel()->FindObjectByName("Directional Light"), nullptr);
-    EXPECT_NE(m_context.GetEditLevel()->FindObjectByName("Ground"), nullptr);
-    EXPECT_FALSE(m_context.IsDirty());
+    ASSERT_NE(m_context.GetLevelService().GetEditLevel(), nullptr);
+    EXPECT_TRUE(m_context.GetProjectService().GetProject().GetStartupLevel().IsValid());
+    EXPECT_NE(m_context.GetLevelService().GetEditLevel()->FindObjectByName("Directional Light"), nullptr);
+    EXPECT_NE(m_context.GetLevelService().GetEditLevel()->FindObjectByName("Ground"), nullptr);
+    EXPECT_FALSE(m_context.GetLevelService().IsDirty());
 }
 
 TEST_F(ProjectFixture, CreateDeleteUndoRedo)
 {
-    Level::Level* level = m_context.GetEditLevel();
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
     size_t initial = level->GetObjectCount();
-    LevelObjectInstance* cube = m_context.CreateModelObject(Rendering::BuiltinAssets::Cube(), "Cube", { 1, 2, 3 });
+    LevelObject* cube = m_context.GetObjectEditService().CreateModelObject(Rendering::BuiltinAssets::Cube(), "Cube", { 1, 2, 3 });
     ASSERT_NE(cube, nullptr);
     Core::Guid id = cube->GetId();
-    EXPECT_TRUE(m_context.IsDirty());
+    EXPECT_TRUE(m_context.GetLevelService().IsDirty());
     EXPECT_EQ(level->GetObjectCount(), initial + 1);
 
-    m_context.Undo();
+    m_context.GetUndoService().Undo();
     EXPECT_EQ(level->FindObject(id), nullptr);
-    m_context.Redo();
+    m_context.GetUndoService().Redo();
     ASSERT_NE(level->FindObject(id), nullptr);
     EXPECT_NEAR(level->FindObject(id)->GetTransform().GetPosition().y, 2.0f, 1.0e-4f);
 
-    m_context.Select(id);
-    m_context.DeleteSelection();
+    m_context.GetSelectionService().Select(id);
+    m_context.GetObjectEditService().DeleteSelection();
     EXPECT_EQ(level->FindObject(id), nullptr);
-    m_context.Undo();
+    m_context.GetUndoService().Undo();
     EXPECT_NE(level->FindObject(id), nullptr);
 }
 
 TEST_F(ProjectFixture, PropertyChangesAreUndoable)
 {
-    Level::Level* level = m_context.GetEditLevel();
-    LevelObjectInstance* object = m_context.CreateObject(LevelObjectInstance::StaticType(), "Thing");
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* object = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "Thing");
     Core::Guid id = object->GetId();
     Serialization::JsonDocument before;
-    EditorContext::Snapshot(*object, before);
+    Editor::ObjectEditService::Snapshot(*object, before);
     object->GetTransform().SetLocalPosition({ 5, 0, 0 });
     object->SetName("Renamed");
-    m_context.RecordObjectChange(id, before, "Edit");
-    m_context.Undo();
+    m_context.GetUndoService().RecordObjectChange(id, before, "Edit");
+    m_context.GetUndoService().Undo();
     ASSERT_NE(level->FindObject(id), nullptr);
     EXPECT_EQ(level->FindObject(id)->GetName(), "Thing");
     EXPECT_NEAR(level->FindObject(id)->GetTransform().GetPosition().x, 0.0f, 1.0e-4f);
-    m_context.Redo();
+    m_context.GetUndoService().Redo();
     EXPECT_EQ(level->FindObject(id)->GetName(), "Renamed");
 }
 
 TEST_F(ProjectFixture, ReparentAndDuplicate)
 {
-    Level::Level* level = m_context.GetEditLevel();
-    LevelObjectInstance* parent = m_context.CreateObject(LevelObjectInstance::StaticType(), "Parent");
-    LevelObjectInstance* child = m_context.CreateObject(LevelObjectInstance::StaticType(), "Child");
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* parent = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "Parent");
+    LevelObject* child = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "Child");
     Core::Guid childId = child->GetId();
-    m_context.Reparent(*child, parent, nullptr, -1);
+    m_context.GetObjectEditService().Reparent(*child, parent, nullptr, -1);
     EXPECT_EQ(level->FindObject(childId)->GetParent(), parent);
-    m_context.Undo();
+    m_context.GetUndoService().Undo();
     EXPECT_EQ(level->FindObject(childId)->GetParent(), nullptr);
-    m_context.Redo();
+    m_context.GetUndoService().Redo();
     EXPECT_EQ(level->FindObject(childId)->GetParent(), parent);
 
-    m_context.Select(parent->GetId());
+    m_context.GetSelectionService().Select(parent->GetId());
     size_t count = level->GetObjectCount();
-    m_context.DuplicateSelection();
+    m_context.GetObjectEditService().DuplicateSelection();
     EXPECT_EQ(level->GetObjectCount(), count + 2);
-    LevelObjectInstance* copy = m_context.GetPrimarySelection();
+    LevelObject* copy = m_context.GetSelectionService().GetPrimarySelection();
     ASSERT_NE(copy, nullptr);
     EXPECT_NE(copy->GetId(), parent->GetId());
     EXPECT_EQ(copy->GetChildren().size(), 1u);
@@ -125,40 +127,40 @@ TEST_F(ProjectFixture, ReparentAndDuplicate)
 
 TEST_F(ProjectFixture, SaveAndReloadLevel)
 {
-    LevelObjectInstance* cube = m_context.CreateModelObject(Rendering::BuiltinAssets::Cube(), "SavedCube", { 0, 1, 0 });
+    LevelObject* cube = m_context.GetObjectEditService().CreateModelObject(Rendering::BuiltinAssets::Cube(), "SavedCube", { 0, 1, 0 });
     Core::Guid id = cube->GetId();
-    ASSERT_TRUE(m_context.SaveLevel());
-    EXPECT_FALSE(m_context.IsDirty());
-    Core::Guid levelAsset = m_context.GetEditLevel()->GetAsset();
-    ASSERT_TRUE(m_context.OpenLevel(levelAsset));
-    ASSERT_NE(m_context.GetEditLevel()->FindObject(id), nullptr);
-    EXPECT_EQ(m_context.GetEditLevel()->FindObject(id)->GetName(), "SavedCube");
+    ASSERT_TRUE(m_context.GetLevelService().SaveLevel());
+    EXPECT_FALSE(m_context.GetLevelService().IsDirty());
+    Core::Guid levelAsset = m_context.GetLevelService().GetEditLevel()->GetAsset();
+    ASSERT_TRUE(m_context.GetLevelService().OpenLevel(levelAsset));
+    ASSERT_NE(m_context.GetLevelService().GetEditLevel()->FindObject(id), nullptr);
+    EXPECT_EQ(m_context.GetLevelService().GetEditLevel()->FindObject(id)->GetName(), "SavedCube");
 }
 
 TEST_F(ProjectFixture, LevelObjectAssetsLinkAndEditInIsolation)
 {
-    LevelObjectInstance* cube = m_context.CreateModelObject(Rendering::BuiltinAssets::Cube(), "Crate", { 0, 0, 0 });
+    LevelObject* cube = m_context.GetObjectEditService().CreateModelObject(Rendering::BuiltinAssets::Cube(), "Crate", { 0, 0, 0 });
     Core::Guid id = cube->GetId();
-    Core::Guid asset = m_context.CreateLevelObjectAsset(*cube, "");
+    Core::Guid asset = m_context.GetAssetCreationService().CreateVariantAsset(*cube, "");
     ASSERT_TRUE(asset.IsValid());
-    LevelObjectInstance* linked = m_context.GetEditLevel()->FindObject(id);
+    LevelObject* linked = m_context.GetLevelService().GetEditLevel()->FindObject(id);
     ASSERT_NE(linked, nullptr);
     EXPECT_TRUE(linked->GetLink().isRoot);
-    LevelObjectInstance* second = m_context.InstantiateLevelObject(asset, { 3, 0, 0 });
+    LevelObject* second = m_context.GetObjectEditService().InstantiateLevelObject(asset, { 3, 0, 0 });
     ASSERT_NE(second, nullptr);
     Core::Guid secondId = second->GetId();
 
-    ASSERT_TRUE(m_context.OpenLevelObjectEditor(asset));
-    EXPECT_TRUE(m_context.IsEditingLevelObject());
-    LevelObjectInstance* root = m_context.GetEditLevel()->GetCollections().front()->GetRoots().front();
+    ASSERT_TRUE(m_context.GetLevelObjectEditService().OpenLevelObjectEditor(asset));
+    EXPECT_TRUE(m_context.GetLevelObjectEditService().IsEditingLevelObject());
+    LevelObject* root = m_context.GetLevelService().GetEditLevel()->GetCollections().front()->GetRoots().front();
     root->SetName("CrateRenamed");
-    LevelObjectInstance* child = m_context.GetEditLevel()->CreateObject(LevelObjectInstance::StaticType(), nullptr, root);
+    LevelObject* child = m_context.GetLevelService().GetEditLevel()->CreateObject(LevelObject::StaticType(), nullptr, root);
     child->SetName("Lid");
-    m_context.MarkDirty(*root);
-    m_context.CloseLevelObjectEditor(true);
-    EXPECT_FALSE(m_context.IsEditingLevelObject());
+    m_context.GetLevelService().MarkDirty(*root);
+    m_context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
+    EXPECT_FALSE(m_context.GetLevelObjectEditService().IsEditingLevelObject());
 
-    LevelObjectInstance* refreshed = m_context.GetEditLevel()->FindObject(secondId);
+    LevelObject* refreshed = m_context.GetLevelService().GetEditLevel()->FindObject(secondId);
     ASSERT_NE(refreshed, nullptr);
     ASSERT_EQ(refreshed->GetChildren().size(), 1u);
     EXPECT_EQ(refreshed->GetChildren()[0]->GetName(), "Lid");
@@ -166,22 +168,22 @@ TEST_F(ProjectFixture, LevelObjectAssetsLinkAndEditInIsolation)
 
 TEST_F(ProjectFixture, PlaySessionRevertsUnlessKept)
 {
-    LevelObjectInstance* a = m_context.CreateObject(LevelObjectInstance::StaticType(), "A");
-    LevelObjectInstance* b = m_context.CreateObject(LevelObjectInstance::StaticType(), "B");
+    LevelObject* a = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "A");
+    LevelObject* b = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "B");
     Core::Guid idA = a->GetId();
     Core::Guid idB = b->GetId();
     Editor::PlaySession session(m_context);
-    m_context.SetPlaySession(&session);
+    m_context.GetLevelService().SetPlaySession(&session);
     ASSERT_TRUE(session.Start());
-    EXPECT_TRUE(m_context.IsPlaying());
+    EXPECT_TRUE(m_context.GetLevelService().IsPlaying());
     session.GetLevel()->FindObject(idA)->GetTransform().SetLocalPosition({ 9, 9, 9 });
     session.GetLevel()->FindObject(idB)->GetTransform().SetLocalPosition({ 7, 7, 7 });
     session.ToggleKeepChanges(idB);
     session.Tick(0.016f);
     session.Stop();
-    m_context.SetPlaySession(nullptr);
-    EXPECT_NEAR(m_context.GetEditLevel()->FindObject(idA)->GetTransform().GetPosition().x, 0.0f, 1.0e-4f);
-    EXPECT_NEAR(m_context.GetEditLevel()->FindObject(idB)->GetTransform().GetPosition().x, 7.0f, 1.0e-4f);
+    m_context.GetLevelService().SetPlaySession(nullptr);
+    EXPECT_NEAR(m_context.GetLevelService().GetEditLevel()->FindObject(idA)->GetTransform().GetPosition().x, 0.0f, 1.0e-4f);
+    EXPECT_NEAR(m_context.GetLevelService().GetEditLevel()->FindObject(idB)->GetTransform().GetPosition().x, 7.0f, 1.0e-4f);
 }
 
 TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)
@@ -193,16 +195,16 @@ TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)
     std::filesystem::path source = m_root / "Source";
     WriteFile(source / "Scorer.h", R"(#pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
 
 BrightClass()
-class Scorer : public BrightBox3D::Level::LevelObjectInstance
+class Scorer : public BrightBox3D::Level::LevelObject
 {
     BrightBody()
 public:
     void OnGameUpdate(float deltaTime) override;
 
-    BrightProperty(EditAnywhere)
+    BrightProperty(.edit = Edit::Anywhere)
     int m_score = 0;
 };
 )");
@@ -229,13 +231,13 @@ void Scorer::OnGameUpdate(float deltaTime)
     ASSERT_TRUE(compile()) << reload.GetStatusText();
     const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find("Scorer");
     ASSERT_NE(type, nullptr);
-    EXPECT_EQ(type->GetModuleName(), m_context.GetProject().GetGameModuleName());
+    EXPECT_EQ(type->GetModuleName(), m_context.GetProjectService().GetProject().GetGameModuleName());
 
-    Level::Level* level = m_context.GetEditLevel();
-    LevelObjectInstance* parent = level->CreateObject(LevelObjectInstance::StaticType());
-    LevelObjectInstance* scorer = level->CreateObject(*type);
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* parent = level->CreateObject(LevelObject::StaticType());
+    LevelObject* scorer = level->CreateObject(*type);
     Core::Guid id = scorer->GetId();
-    LevelObjectInstance* child = level->CreateObject(LevelObjectInstance::StaticType(), nullptr, scorer);
+    LevelObject* child = level->CreateObject(LevelObject::StaticType(), nullptr, scorer);
     Core::Guid childId = child->GetId();
     scorer->SetParent(parent);
     scorer->GetTransform().SetLocalPosition({ 4, 5, 6 });
@@ -243,19 +245,19 @@ void Scorer::OnGameUpdate(float deltaTime)
 
     WriteFile(source / "Scorer.h", R"(#pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
 
 BrightClass()
-class Scorer : public BrightBox3D::Level::LevelObjectInstance
+class Scorer : public BrightBox3D::Level::LevelObject
 {
     BrightBody()
 public:
     void OnGameUpdate(float deltaTime) override;
 
-    BrightProperty(EditAnywhere)
+    BrightProperty(.edit = Edit::Anywhere)
     int m_score = 0;
 
-    BrightProperty(EditAnywhere)
+    BrightProperty(.edit = Edit::Anywhere)
     float m_bonus = 2.5f;
 };
 )");
@@ -272,7 +274,7 @@ void Scorer::OnGameUpdate(float deltaTime)
     const Reflection::TypeInfo* reloaded = Reflection::TypeRegistry::Find("Scorer");
     ASSERT_NE(reloaded, nullptr);
     ASSERT_NE(reloaded->FindProperty("m_bonus"), nullptr);
-    LevelObjectInstance* restored = level->FindObject(id);
+    LevelObject* restored = level->FindObject(id);
     ASSERT_NE(restored, nullptr);
     EXPECT_EQ(&restored->GetType(), reloaded);
     EXPECT_EQ(reloaded->FindProperty("m_score")->GetValue<int>(restored), 41);
@@ -291,7 +293,130 @@ void Scorer::OnGameUpdate(float deltaTime)
 
     reload.OnProjectClosed();
     EXPECT_EQ(Reflection::TypeRegistry::Find("Scorer"), nullptr);
-    LevelObjectInstance* missing = level->FindObject(id);
+    LevelObject* missing = level->FindObject(id);
     ASSERT_NE(missing, nullptr);
     EXPECT_EQ(missing->GetMissingTypeName(), "Scorer");
+}
+
+TEST_F(ProjectFixture, CancellingACompileStopsQuicklyAndKeepsTheModule)
+{
+    std::filesystem::path source = m_context.GetProjectService().GetProject().GetSourceDirectory();
+    WriteFile(source / "Counter.h", R"(#pragma once
+
+#include "Level/LevelObject.h"
+
+BrightClass()
+class Counter : public BrightBox3D::Level::LevelObject
+{
+    BrightBody()
+public:
+    BrightProperty(.edit = Edit::Anywhere)
+    int m_count = 0;
+};
+)");
+    WriteFile(source / "Counter.cpp", "#include \"Counter.h\"\n");
+
+    Editor::HotReload reload(m_context);
+    reload.RequestCompile();
+    auto start = std::chrono::steady_clock::now();
+    do
+    {
+        reload.Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while ((reload.IsCompiling() || reload.GetState() == Editor::CompileState::Idle) && std::chrono::steady_clock::now() - start < std::chrono::minutes(5));
+    ASSERT_EQ(reload.GetState(), Editor::CompileState::Succeeded) << reload.GetStatusText();
+    std::filesystem::path module = reload.GetModulePath();
+    ASSERT_TRUE(std::filesystem::exists(module));
+    auto moduleTime = std::filesystem::last_write_time(module);
+
+    WriteFile(source / "Counter.cpp", "#include \"Counter.h\"\n\nint CounterValue() { return 1; }\n");
+    reload.RequestCompile();
+    reload.Update();
+    ASSERT_TRUE(reload.IsCompiling());
+
+    auto cancelStart = std::chrono::steady_clock::now();
+    reload.Cancel();
+    EXPECT_LT(std::chrono::steady_clock::now() - cancelStart, std::chrono::seconds(3));
+    EXPECT_EQ(reload.GetState(), Editor::CompileState::Idle);
+    EXPECT_EQ(reload.GetStatusText(), "Compile cancelled");
+    EXPECT_EQ(std::filesystem::last_write_time(module), moduleTime);
+    EXPECT_TRUE(reload.GetModule().IsLoaded());
+    reload.OnProjectClosed();
+}
+
+TEST_F(ProjectFixture, FailedReloadRestoresThePreviousModuleAndSaysSo)
+{
+    std::filesystem::path source = m_context.GetProjectService().GetProject().GetSourceDirectory();
+    WriteFile(source / "Keeper.h", R"(#pragma once
+
+#include "Level/LevelObject.h"
+
+BrightClass()
+class Keeper : public BrightBox3D::Level::LevelObject
+{
+    BrightBody()
+public:
+    BrightProperty(.edit = Edit::Anywhere)
+    int m_value = 0;
+};
+)");
+    WriteFile(source / "Keeper.cpp", "#include \"Keeper.h\"\n");
+
+    Editor::HotReload reload(m_context);
+    reload.RequestCompile();
+    auto start = std::chrono::steady_clock::now();
+    do
+    {
+        reload.Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while ((reload.IsCompiling() || reload.GetState() == Editor::CompileState::Idle) && std::chrono::steady_clock::now() - start < std::chrono::minutes(5));
+    ASSERT_EQ(reload.GetState(), Editor::CompileState::Succeeded) << reload.GetStatusText();
+    Runtime::GameModule& module = reload.GetModule();
+    std::filesystem::path previous = module.GetLoadedCopy();
+    ASSERT_FALSE(previous.empty());
+
+    std::filesystem::path corrupt = m_root / "Binaries" / ("Corrupt" + reload.GetModulePath().extension().string());
+    WriteFile(corrupt, "not a library");
+    Core::Log::Clear();
+    std::string error;
+    EXPECT_FALSE(module.Reload(corrupt, error));
+    EXPECT_FALSE(error.empty());
+
+    bool reportedRestore = false;
+    Core::Log::ForEach([&](const Core::LogEntry& entry)
+    {
+        reportedRestore |= entry.message.find("the previous module was restored") != std::string::npos;
+    });
+    EXPECT_TRUE(reportedRestore);
+    EXPECT_TRUE(module.IsLoaded());
+    EXPECT_EQ(module.GetLoadedCopy(), previous);
+    EXPECT_TRUE(std::filesystem::exists(module.GetLoadedCopy()));
+    EXPECT_NE(Reflection::TypeRegistry::Find("Keeper"), nullptr);
+    reload.OnProjectClosed();
+}
+
+TEST_F(ProjectFixture, LegacyProjectGameModeMovesIntoLevels)
+{
+    m_context.GetProjectService().CloseProject();
+    std::filesystem::path projectFile = m_root / Runtime::Project::FileName;
+    Serialization::JsonDocument project;
+    ASSERT_TRUE(Serialization::LoadJsonFile(projectFile, project));
+    Serialization::JsonValue legacy(rapidjson::kObjectType);
+    legacy.AddMember("$type", "GameMode", project.GetAllocator());
+    legacy.AddMember("m_playerCount", 3, project.GetAllocator());
+    Serialization::SetMember(project, "gameMode", std::move(legacy), project.GetAllocator());
+    ASSERT_TRUE(Serialization::SaveJsonFile(projectFile, project));
+
+    std::string error;
+    ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;
+    const Serialization::JsonValue* entry = Framework::LevelGameplaySettings::FindEntry(m_context.GetLevelService().GetEditLevel()->GetSettings(), Framework::GameplaySlot::GameMode);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(Framework::LevelGameplaySettings::GetClassName(*entry), "GameModeBase");
+    const Serialization::JsonValue* settings = Framework::LevelGameplaySettings::FindObjectSettings(*entry);
+    ASSERT_NE(settings, nullptr);
+    EXPECT_EQ(Serialization::GetNumber(*settings, "m_playerCount", 0.0), 3.0);
+
+    Serialization::JsonDocument saved;
+    ASSERT_TRUE(Serialization::LoadJsonFile(projectFile, saved));
+    EXPECT_FALSE(saved.HasMember("gameMode"));
 }

@@ -7,7 +7,7 @@ namespace BrightBox3D::Editor
         constexpr size_t MaxCommands = 512;
     }
 
-    void UndoStack::Push(std::unique_ptr<EditorCommand> command)
+    void UndoStack::Push(std::unique_ptr<UndoCommand> command)
     {
         m_commands.resize(m_position);
         m_commands.push_back(std::move(command));

@@ -1,9 +1,9 @@
 #include "Picking.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Geometry/ModelAsset.h"
 #include "Level/Level.h"
 #include "Rendering/MeshRenderer.h"
-#include "Rendering/ModelAsset.h"
 
 #include <limits>
 
@@ -16,7 +16,7 @@ namespace BrightBox3D::Editor
         for (Rendering::MeshRenderer* renderer : level.FindComponentsOfType<Rendering::MeshRenderer>())
         {
             auto model = renderer->GetModel().Load();
-            const Rendering::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr;
+            const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr;
             if (!mesh)
             {
                 continue;

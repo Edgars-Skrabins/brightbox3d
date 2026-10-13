@@ -6,14 +6,14 @@
 namespace BrightBox3D::Level
 {
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 }
 
 namespace BrightBox3D::Editor
 {
     struct PickResult
     {
-        Level::LevelObjectInstance* object = nullptr;
+        Level::LevelObject* object = nullptr;
         float distance = 0.0f;
         Math::Vector3 point;
     };

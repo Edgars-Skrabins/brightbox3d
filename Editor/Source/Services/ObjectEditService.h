@@ -1,0 +1,33 @@
+#pragma once
+
+#include "Core/Guid.h"
+#include "Level/Level.h"
+#include "Math/Vector3.h"
+#include "Serialization/Json.h"
+
+#include <string>
+
+namespace BrightBox3D::Editor
+{
+    class EditorContext;
+
+    class ObjectEditService
+    {
+    public:
+        explicit ObjectEditService(EditorContext& context) : m_context(context) {}
+
+        Level::LevelObject* CreateObject(const Reflection::TypeInfo& type, const std::string& name, Level::LevelObject* parent = nullptr);
+        Level::LevelObject* CreateModelObject(const Core::Guid& model, const std::string& name, const Math::Vector3& position, Level::LevelObject* parent = nullptr);
+        Level::LevelObject* InstantiateLevelObject(const Core::Guid& asset, const Math::Vector3& position, Level::LevelObject* parent = nullptr);
+        Level::LevelObject* CreateLight(int lightType);
+        void DeleteSelection();
+        void DuplicateSelection();
+        void Reparent(Level::LevelObject& object, Level::LevelObject* parent, Level::LevelCollection* collection, int siblingIndex);
+
+        static void Snapshot(const Level::LevelObject& object, Serialization::JsonDocument& document);
+        Level::LevelObject* RestoreSnapshot(const Serialization::JsonValue& snapshot, const Core::Guid& parentId, int collectionIndex, int siblingIndex);
+
+    private:
+        EditorContext& m_context;
+    };
+}
