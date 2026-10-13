@@ -5,6 +5,8 @@ add_library(BrightEditorCore STATIC ${BRIGHT_EDITOR_SOURCES})
 target_include_directories(BrightEditorCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Source ${BRIGHT_GENERATED_DIR}/Editor)
 target_link_libraries(BrightEditorCore PUBLIC BrightBox3D BrightImGui BrightStb)
 add_dependencies(BrightEditorCore ninja)
+target_compile_definitions(BrightEditorCore PRIVATE BRIGHT_MODULE_NAME="BrightEditor")
+bright_generate_reflection(BrightEditorCore ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 
 add_executable(BrightEditor ${CMAKE_CURRENT_SOURCE_DIR}/Source/Main.cpp)
 target_link_libraries(BrightEditor PRIVATE BrightEditorCore)

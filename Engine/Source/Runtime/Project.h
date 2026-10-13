@@ -2,6 +2,7 @@
 
 #include "Core/Guid.h"
 #include "Runtime/ProjectLayout.h"
+#include "Runtime/ProjectSettings.h"
 #include "Serialization/Json.h"
 
 #include <filesystem>
@@ -31,28 +32,26 @@ namespace BrightBox3D::Runtime
         std::filesystem::path GetBuildDirectory() const { return m_root / ProjectLayout::BuildFolder; }
         std::filesystem::path GetCompileDirectory() const { return GetCacheDirectory() / ProjectLayout::CompileCacheFolder; }
         std::filesystem::path GetHotReloadCacheDirectory() const { return GetCacheDirectory() / ProjectLayout::HotReloadCacheFolder; }
-        const std::string& GetName() const { return m_name; }
+        const std::string& GetName() const { return m_settings.name; }
 
-        const Core::Guid& GetStartupLevel() const { return m_startupLevel; }
-        void SetStartupLevel(const Core::Guid& level) { m_startupLevel = level; }
+        const Core::Guid& GetStartupLevel() const { return m_settings.startupLevel; }
+        void SetStartupLevel(const Core::Guid& level) { m_settings.startupLevel = level; }
         const Serialization::JsonValue* GetLegacyGameMode() const { return m_legacyGameMode.IsObject() ? &m_legacyGameMode : nullptr; }
         void ClearLegacyGameMode() { m_legacyGameMode.SetNull(); }
-        float GetFixedTimeStep() const { return m_fixedTimeStep; }
-        void SetFixedTimeStep(float step) { m_fixedTimeStep = step; }
-        bool GetAutoHotReload() const { return m_autoHotReload; }
-        void SetAutoHotReload(bool enabled) { m_autoHotReload = enabled; }
-        const std::string& GetGameModuleName() const { return m_gameModuleName; }
+        float GetFixedTimeStep() const { return m_settings.fixedTimeStep; }
+        void SetFixedTimeStep(float step) { m_settings.fixedTimeStep = step; }
+        bool GetAutoHotReload() const { return m_settings.autoHotReload; }
+        void SetAutoHotReload(bool enabled) { m_settings.autoHotReload = enabled; }
+        const std::string& GetGameModuleName() const { return m_settings.gameModule; }
 
         static Project* GetCurrent();
         static void SetCurrent(Project* project);
 
     private:
+        static bool WriteSettings(const std::filesystem::path& path, const ProjectSettings& settings);
+
         std::filesystem::path m_root;
-        std::string m_name;
-        std::string m_gameModuleName = "Game";
-        Core::Guid m_startupLevel;
+        ProjectSettings m_settings;
         Serialization::JsonDocument m_legacyGameMode;
-        float m_fixedTimeStep = 1.0f / 60.0f;
-        bool m_autoHotReload = true;
     };
 }

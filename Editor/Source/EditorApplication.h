@@ -4,6 +4,7 @@
 #include "EditorCommandLine.h"
 #include "EditorContext.h"
 #include "Platform/Window.h"
+#include "RecentProjects.h"
 #include "Runtime/RenderContext.h"
 
 #include <memory>
@@ -76,8 +77,6 @@ namespace BrightBox3D::Editor
         void DrawDockSpace();
         void DrawStatusBar();
         bool OpenProject(const std::filesystem::path& path);
-        void LoadRecentProjects();
-        void SaveRecentProjects();
         void AddRecentProject(const std::filesystem::path& path);
         void ProcessFileChanges();
         void UpdateTitle();
@@ -101,7 +100,7 @@ namespace BrightBox3D::Editor
         Core::FileWatcher m_fileWatcher;
         EditorContext m_context;
         std::vector<ViewRenderRequest> m_renderRequests;
-        std::vector<std::string> m_recentProjects;
+        RecentProjects m_recentProjects;
         std::string m_launcherPath;
         std::string m_launcherName = "MyGame";
         std::string m_launcherLocation;

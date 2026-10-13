@@ -97,7 +97,8 @@ namespace BrightBox3D::Editor
         }
         std::filesystem::permissions(output / executableName, std::filesystem::perms::owner_exec | std::filesystem::perms::group_exec | std::filesystem::perms::others_exec, std::filesystem::perm_options::add, code);
 
-        Runtime::GameManifest manifest = Runtime::GameManifest::FromProject(project);
+        Runtime::GameManifest manifest;
+        manifest.AssignFromProject(project);
         if (!std::filesystem::exists(module))
         {
             manifest.gameModule.clear();

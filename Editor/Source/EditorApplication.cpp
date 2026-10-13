@@ -172,7 +172,7 @@ namespace BrightBox3D::Editor
             }
         });
 
-        LoadRecentProjects();
+        m_recentProjects.Load(GetUserDirectory() / RecentProjects::FileName);
         std::filesystem::path home = Platform::Shell::UserDirectory();
         m_launcherLocation = home.empty() ? std::string() : (home / DefaultProjectsFolder).generic_string();
         std::filesystem::path projectPath = m_options.project;
@@ -251,43 +251,10 @@ namespace BrightBox3D::Editor
         Platform::Window::ShutdownPlatform();
     }
 
-    void EditorApplication::LoadRecentProjects()
-    {
-        m_recentProjects.clear();
-        Serialization::JsonDocument document;
-        if (Serialization::LoadJsonFile(GetUserDirectory() / "RecentProjects.json", document) && document.IsArray())
-        {
-            for (const Serialization::JsonValue& entry : document.GetArray())
-            {
-                if (entry.IsString() && Runtime::Project::IsProjectDirectory(entry.GetString()))
-                {
-                    m_recentProjects.push_back(entry.GetString());
-                }
-            }
-        }
-    }
-
-    void EditorApplication::SaveRecentProjects()
-    {
-        Serialization::JsonDocument document;
-        document.SetArray();
-        for (const std::string& path : m_recentProjects)
-        {
-            document.PushBack(Serialization::MakeString(path, document.GetAllocator()), document.GetAllocator());
-        }
-        Serialization::SaveJsonFile(GetUserDirectory() / "RecentProjects.json", document);
-    }
-
     void EditorApplication::AddRecentProject(const std::filesystem::path& path)
     {
-        std::string text = path.generic_string();
-        m_recentProjects.erase(std::remove(m_recentProjects.begin(), m_recentProjects.end(), text), m_recentProjects.end());
-        m_recentProjects.insert(m_recentProjects.begin(), text);
-        if (m_recentProjects.size() > 12)
-        {
-            m_recentProjects.resize(12);
-        }
-        SaveRecentProjects();
+        m_recentProjects.Add(path);
+        m_recentProjects.Save(GetUserDirectory() / RecentProjects::FileName);
     }
 
     bool EditorApplication::OpenProject(const std::filesystem::path& path)
@@ -457,12 +424,12 @@ namespace BrightBox3D::Editor
         ImGui::Spacing();
 
         ImGui::SeparatorText(Text(EditorText::RecentProjects));
-        if (m_recentProjects.empty())
+        if (m_recentProjects.GetProjects().empty())
         {
             ImGui::TextDisabled("%s", Text(EditorText::NoRecentProjects));
         }
         std::string toOpen;
-        for (const std::string& path : m_recentProjects)
+        for (const std::string& path : m_recentProjects.GetProjects())
         {
             if (ImGui::Selectable(path.c_str()))
             {

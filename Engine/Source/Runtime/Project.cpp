@@ -1,13 +1,18 @@
 #include "Runtime/Project.h"
 
+#include "Core/EngineInfo.h"
 #include "Core/FileSystem.h"
 #include "Core/SharedLibrary.h"
 #include "Core/StringUtils.h"
+#include "Serialization/ObjectSerializer.h"
 
 namespace BrightBox3D::Runtime
 {
     namespace
     {
+        constexpr const char* LegacySettingsKey = "settings";
+        constexpr const char* LegacyGameModeKey = "gameMode";
+
         Project* s_current = nullptr;
 
         std::string SanitizeModuleName(const std::string& name)
@@ -30,12 +35,12 @@ namespace BrightBox3D::Runtime
 
     std::filesystem::path Project::GetGameModulePath() const
     {
-        return GetBinariesDirectory() / Core::SharedLibrary::PlatformFileName(m_gameModuleName);
+        return GetBinariesDirectory() / Core::SharedLibrary::PlatformFileName(m_settings.gameModule);
     }
 
     std::filesystem::path Project::GetStagingModulePath() const
     {
-        return GetBinariesDirectory() / ProjectLayout::StagingFolder / Core::SharedLibrary::PlatformFileName(m_gameModuleName);
+        return GetBinariesDirectory() / ProjectLayout::StagingFolder / Core::SharedLibrary::PlatformFileName(m_settings.gameModule);
     }
 
     Project* Project::GetCurrent()
@@ -53,6 +58,16 @@ namespace BrightBox3D::Runtime
         return std::filesystem::exists(directory / FileName);
     }
 
+    bool Project::WriteSettings(const std::filesystem::path& path, const ProjectSettings& settings)
+    {
+        ProjectSettings stamped = settings;
+        stamped.engineVersion = Core::EngineVersion;
+        Serialization::JsonDocument document;
+        document.SetObject();
+        Serialization::SerializeProperties(stamped, document, document.GetAllocator());
+        return Serialization::SaveJsonFile(path, document);
+    }
+
     bool Project::Create(const std::filesystem::path& directory, const std::string& name, std::string& error)
     {
         if (std::filesystem::exists(directory / FileName))
@@ -65,18 +80,10 @@ namespace BrightBox3D::Runtime
             error = "Cannot create the project folders";
             return false;
         }
-        Serialization::JsonDocument document;
-        document.SetObject();
-        auto& allocator = document.GetAllocator();
-        document.AddMember("name", Serialization::MakeString(name, allocator), allocator);
-        document.AddMember("engineVersion", "0.1.0", allocator);
-        document.AddMember("gameModule", Serialization::MakeString(SanitizeModuleName(name), allocator), allocator);
-        document.AddMember("startupLevel", rapidjson::Value(rapidjson::kNullType), allocator);
-        Serialization::JsonValue settings(rapidjson::kObjectType);
-        settings.AddMember("fixedTimeStep", 1.0 / 60.0, allocator);
-        settings.AddMember("autoHotReload", true, allocator);
-        document.AddMember("settings", settings, allocator);
-        if (!Serialization::SaveJsonFile(directory / FileName, document))
+        ProjectSettings settings;
+        settings.name = name;
+        settings.gameModule = SanitizeModuleName(name);
+        if (!WriteSettings(directory / FileName, settings))
         {
             error = "Cannot write the project file";
             return false;
@@ -102,42 +109,30 @@ namespace BrightBox3D::Runtime
         {
             m_root = directory;
         }
-        m_name = Serialization::GetString(document, "name", m_root.filename().string());
-        m_gameModuleName = Serialization::GetString(document, "gameModule", SanitizeModuleName(m_name));
-        m_startupLevel = Core::Guid::Parse(Serialization::GetString(document, "startupLevel"));
+        m_settings = ProjectSettings();
+        Serialization::DeserializeProperties(m_settings, document);
+        if (const Serialization::JsonValue* legacySettings = Serialization::FindMember(document, LegacySettingsKey))
+        {
+            Serialization::DeserializeProperties(m_settings, *legacySettings);
+        }
+        if (m_settings.name.empty())
+        {
+            m_settings.name = m_root.filename().string();
+        }
+        if (m_settings.gameModule.empty())
+        {
+            m_settings.gameModule = SanitizeModuleName(m_settings.name);
+        }
         m_legacyGameMode.SetNull();
-        if (const Serialization::JsonValue* gameMode = Serialization::FindMember(document, "gameMode"); gameMode && gameMode->IsObject())
+        if (const Serialization::JsonValue* gameMode = Serialization::FindMember(document, LegacyGameModeKey); gameMode && gameMode->IsObject())
         {
             m_legacyGameMode.CopyFrom(*gameMode, m_legacyGameMode.GetAllocator());
-        }
-        if (const Serialization::JsonValue* settings = Serialization::FindMember(document, "settings"))
-        {
-            m_fixedTimeStep = static_cast<float>(Serialization::GetNumber(*settings, "fixedTimeStep", 1.0 / 60.0));
-            m_autoHotReload = Serialization::GetBool(*settings, "autoHotReload", true);
         }
         return true;
     }
 
     bool Project::Save() const
     {
-        Serialization::JsonDocument document;
-        document.SetObject();
-        auto& allocator = document.GetAllocator();
-        document.AddMember("name", Serialization::MakeString(m_name, allocator), allocator);
-        document.AddMember("engineVersion", "0.1.0", allocator);
-        document.AddMember("gameModule", Serialization::MakeString(m_gameModuleName, allocator), allocator);
-        if (m_startupLevel.IsValid())
-        {
-            document.AddMember("startupLevel", Serialization::MakeString(m_startupLevel.ToString(), allocator), allocator);
-        }
-        else
-        {
-            document.AddMember("startupLevel", rapidjson::Value(rapidjson::kNullType), allocator);
-        }
-        Serialization::JsonValue settings(rapidjson::kObjectType);
-        settings.AddMember("fixedTimeStep", static_cast<double>(m_fixedTimeStep), allocator);
-        settings.AddMember("autoHotReload", m_autoHotReload, allocator);
-        document.AddMember("settings", settings, allocator);
-        return Serialization::SaveJsonFile(m_root / FileName, document);
+        return WriteSettings(m_root / FileName, m_settings);
     }
 }

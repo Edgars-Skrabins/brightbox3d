@@ -56,7 +56,7 @@ int main(int argc, char** argv)
             Core::Log::Error("Cannot open project: " + error);
             return 1;
         }
-        manifest = Runtime::GameManifest::FromProject(project);
+        manifest.AssignFromProject(project);
         root = project.GetRoot();
         modulePath = project.GetGameModulePath();
         Runtime::MigrateLegacyLevelObjectAssets(project);
