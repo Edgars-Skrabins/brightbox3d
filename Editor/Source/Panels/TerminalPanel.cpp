@@ -3,6 +3,8 @@
 #include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -17,33 +19,33 @@ namespace BrightBox3D::Editor
 
     void TerminalPanel::Draw()
     {
-        if (!ImGui::Begin("Terminal"))
+        if (!ImGui::Begin(WindowTitle(EditorWindow::Terminal).c_str()))
         {
             ImGui::End();
             return;
         }
-        if (ImGui::Button("Clear"))
+        if (ImGui::Button(Text(EditorText::Clear)))
         {
             Core::Log::Clear();
         }
         ImGui::SameLine();
-        ImGui::Checkbox("Auto-scroll", &m_autoScroll);
+        ImGui::Checkbox(Text(EditorText::AutoScroll), &m_autoScroll);
         ImGui::SameLine();
-        auto toggle = [](const char* label, bool& value, int count, ImVec4 color)
+        auto toggle = [](EditorText label, bool& value, int count, ImVec4 color)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, value ? color : EditorColorVec4(EditorColor::TextDim));
-            std::string text = std::string(label) + " " + std::to_string(count);
+            std::string text = Text(label, count);
             if (ImGui::Button(text.c_str()))
             {
                 value = !value;
             }
             ImGui::PopStyleColor();
         };
-        toggle("Info", m_showInfo, Core::Log::Count(Core::LogLevel::Info), EditorColorVec4(EditorColor::Text));
+        toggle(EditorText::LogInfoCount, m_showInfo, Core::Log::Count(Core::LogLevel::Info), EditorColorVec4(EditorColor::Text));
         ImGui::SameLine();
-        toggle("Warnings", m_showWarnings, Core::Log::Count(Core::LogLevel::Warning), EditorColorVec4(EditorColor::Warning));
+        toggle(EditorText::LogWarningCount, m_showWarnings, Core::Log::Count(Core::LogLevel::Warning), EditorColorVec4(EditorColor::Warning));
         ImGui::SameLine();
-        toggle("Errors", m_showErrors, Core::Log::Count(Core::LogLevel::Error), EditorColorVec4(EditorColor::Error));
+        toggle(EditorText::LogErrorCount, m_showErrors, Core::Log::Count(Core::LogLevel::Error), EditorColorVec4(EditorColor::Error));
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
         ImGui::InputTextWithHint("##filter", "Filter", &m_filter);
@@ -78,7 +80,7 @@ namespace BrightBox3D::Editor
             if (ImGui::IsItemHovered() && !entry.file.empty())
             {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-                ImGui::SetTooltip("Double-click to open %s:%d", entry.file.c_str(), entry.line);
+                ImGui::SetTooltip("%s", Text(EditorText::OpenLogSourceTooltip, entry.file, entry.line).c_str());
                 if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                 {
                     m_application.OpenFileInEditor(entry.file, entry.line);
@@ -86,7 +88,7 @@ namespace BrightBox3D::Editor
             }
             if (ImGui::BeginPopupContextItem("EntryContext"))
             {
-                if (ImGui::MenuItem("Copy"))
+                if (ImGui::MenuItem(Text(EditorText::Copy)))
                 {
                     ImGui::SetClipboardText(text.c_str());
                 }

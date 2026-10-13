@@ -1,6 +1,7 @@
 #include "ImGui/ImGuiRenderer.h"
 
 #include "Math/Matrix4.h"
+#include "Shaders/ShaderBindings.h"
 
 namespace BrightBox3D::Editor
 {
@@ -118,8 +119,8 @@ namespace BrightBox3D::Editor
         projection.m[3][0] = (right + left) / (left - right);
         projection.m[3][1] = (top + bottom) / (bottom - top);
         projection.m[3][2] = 0.5f;
-        commands.SetConstants(0, projection);
-        commands.SetSampler(0, m_sampler.get());
+        commands.SetConstants(BRIGHT_SLOT_LOCAL_CONSTANTS, projection);
+        commands.SetSampler(BRIGHT_SLOT_OVERLAY_SAMPLER, m_sampler.get());
 
         ImVec2 clipOffset = drawData->DisplayPos;
         ImVec2 clipScale = drawData->FramebufferScale;
@@ -151,7 +152,7 @@ namespace BrightBox3D::Editor
                 RHI::ScissorRect scissor{ static_cast<int32_t>(clipMin.x), static_cast<int32_t>(clipMin.y), static_cast<int32_t>(clipMax.x - clipMin.x), static_cast<int32_t>(clipMax.y - clipMin.y) };
                 commands.SetScissor(scissor);
                 auto* texture = reinterpret_cast<RHI::Texture*>(command.GetTexID());
-                commands.SetTexture(0, texture);
+                commands.SetTexture(BRIGHT_SLOT_OVERLAY_TEXTURE, texture);
                 commands.DrawIndexed(command.ElemCount, 1, command.IdxOffset, static_cast<int32_t>(command.VtxOffset), 0);
             }
         }

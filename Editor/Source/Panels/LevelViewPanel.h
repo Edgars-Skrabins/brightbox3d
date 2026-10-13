@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Core/Guid.h"
 #include "EditorCamera.h"
 #include "Math/Geometry.h"
-#include "RHI/Resources.h"
 #include "Rendering/RenderView.h"
-#include "Core/Guid.h"
+#include "RHI/Resources.h"
 #include "Serialization/Json.h"
 
 #include <imgui.h>
@@ -14,6 +14,13 @@
 namespace BrightBox3D::Editor
 {
     class EditorApplication;
+
+    enum class GizmoOperation
+    {
+        Translate,
+        Rotate,
+        Scale
+    };
 
     class LevelViewPanel
     {
@@ -41,6 +48,9 @@ namespace BrightBox3D::Editor
         std::unique_ptr<RHI::Texture> m_target;
         Rendering::RenderDebugMode m_debugMode = Rendering::RenderDebugMode::Lit;
         bool m_showGrid = true;
+        GizmoOperation m_gizmoOperation = GizmoOperation::Translate;
+        bool m_gizmoLocal = false;
+        bool m_snapping = false;
         bool m_gizmoActive = false;
         bool m_iconHovered = false;
         Serialization::JsonDocument m_gizmoBefore;

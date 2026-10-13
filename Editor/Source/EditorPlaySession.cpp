@@ -2,11 +2,12 @@
 
 #include "Core/Log.h"
 #include "EditorApplication.h"
+#include "EditorText.h"
 #include "Framework/Camera.h"
+#include "Framework/CameraScreen.h"
 #include "Framework/GameSession.h"
 #include "Platform/Input.h"
 #include "Rendering/Renderer.h"
-#include "UI/ScreenRenderer.h"
 
 namespace BrightBox3D::Editor
 {
@@ -35,13 +36,13 @@ namespace BrightBox3D::Editor
             return false;
         }
         Platform::WindowDesc desc;
-        desc.title = m_context.GetProject().GetName() + " - PlayMode";
+        desc.title = Text(EditorText::PlayModeWindowTitle, m_context.GetProjectService().GetProject().GetName());
         desc.width = 1280;
         desc.height = 720;
         m_window = std::make_unique<Platform::Window>(desc);
         if (!m_window->IsValid())
         {
-            Core::Log::Error("Could not create the PlayMode window");
+            Core::Log::Error(Text(EditorText::PlayModeWindowFailed));
             PlaySession::Stop();
             m_window.reset();
             return false;
@@ -62,7 +63,7 @@ namespace BrightBox3D::Editor
 
     void EditorPlaySession::BeginGame()
     {
-        Framework::GameSession::Start(*m_level, m_context.GetProject().GetGameMode());
+        Framework::GameSession::Start(*m_level);
     }
 
     void EditorPlaySession::Stop()
@@ -129,7 +130,7 @@ namespace BrightBox3D::Editor
         {
             Rendering::RenderView view = camera->BuildRenderView(backbuffer->GetWidth(), backbuffer->GetHeight(), PlayViewId);
             m_application.GetRenderer().Render(commands, m_level.get(), view, backbuffer);
-            UI::ScreenRenderer::Get().RenderCameraScreen(commands, *camera, *m_level, backbuffer, m_window.get());
+            Framework::RenderCameraScreen(commands, *camera, *m_level, backbuffer, m_window.get());
         }
         else
         {

@@ -2,24 +2,28 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Assets/TextAsset.h"
+#include "Core/EngineInfo.h"
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
-#include "Panels/LevelViewPanel.h"
-#include "Reflection/PropertyTraits.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
-#include "Framework/GameMode.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
+#include "Framework/LevelGameplaySettings.h"
+#include "Geometry/ModelAsset.h"
+#include "ImGui/ImGuiRenderer.h"
 #include "Level/LevelSerializer.h"
 #include "Level/MissingComponent.h"
+#include "ObjectIcons.h"
+#include "Panels/LevelViewPanel.h"
 #include "PropertyDrawer.h"
+#include "Reflection/PropertyTraits.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/MaterialAsset.h"
-#include "Rendering/ModelAsset.h"
 #include "Rendering/TextureAsset.h"
 #include "Serialization/ObjectSerializer.h"
 #include "Thumbnails.h"
-#include "ImGui/ImGuiRenderer.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -29,8 +33,8 @@
 
 namespace BrightBox3D::Editor
 {
-    using Level::Component;
-    using Level::LevelObjectInstance;
+    using Level::LevelObjectComponent;
+    using Level::LevelObject;
     using Level::LevelSerializer;
 
     InspectorPanel::InspectorPanel(EditorApplication& application) : m_application(application)
@@ -39,48 +43,53 @@ namespace BrightBox3D::Editor
 
     InspectorPanel::~InspectorPanel() = default;
 
-    void InspectorPanel::TrackEdit(LevelObjectInstance& object, bool changed)
+    void InspectorPanel::TrackEdit(LevelObject& object, bool changed)
     {
         EditorContext& context = m_application.GetContext();
         if (changed)
         {
-            context.MarkDirty(object);
+            context.GetLevelService().MarkDirty(object);
             if (ImGui::IsAnyItemActive())
             {
                 m_editInProgress = true;
             }
             else
             {
-                context.RecordObjectChange(object.GetId(), m_before, "Edit Property");
+                context.GetUndoService().RecordObjectChange(object.GetId(), m_before, Text(EditorText::UndoEditProperty));
                 m_editInProgress = false;
                 m_cachedObject = {};
             }
         }
         else if (m_editInProgress && !ImGui::IsAnyItemActive())
         {
-            context.RecordObjectChange(object.GetId(), m_before, "Edit Property");
+            context.GetUndoService().RecordObjectChange(object.GetId(), m_before, Text(EditorText::UndoEditProperty));
             m_editInProgress = false;
             m_cachedObject = {};
         }
     }
 
-    bool InspectorPanel::DrawGameModeSettings(Serialization::JsonValue& settings, Serialization::JsonAllocator& allocator, bool readOnly)
+    bool InspectorPanel::DrawGameplaySettings(Serialization::JsonDocument& levelSettings, Framework::GameplaySlot slot, bool readOnly)
     {
-        if (!settings.IsObject())
-        {
-            settings.SetObject();
-        }
-        std::string typeName = Serialization::GetString(settings, Serialization::TypeKey, "GameMode");
+        using Framework::LevelGameplaySettings;
+        const Reflection::TypeInfo& base = LevelGameplaySettings::GetBaseType(slot);
+        auto& allocator = levelSettings.GetAllocator();
+        Serialization::JsonValue& entry = LevelGameplaySettings::GetOrCreateEntry(levelSettings, slot);
+        std::string className = LevelGameplaySettings::GetClassName(entry);
         bool changed = false;
-        PropertyDrawer::BeginRow("GameMode Class", false);
+        PropertyDrawer::BeginRow(Text(EditorText::ClassRowLabel, base.GetName()).c_str(), false);
         ImGui::BeginDisabled(readOnly);
-        if (ImGui::BeginCombo("##gamemode", typeName.c_str()))
+        if (ImGui::BeginCombo("##class", className.empty() ? "None" : className.c_str()))
         {
-            for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Framework::GameMode::StaticType()))
+            if (LevelGameplaySettings::IsOptional(slot) && ImGui::Selectable(Text(EditorText::None), className.empty()))
             {
-                if (ImGui::Selectable(type->GetName().c_str(), type->GetName() == typeName))
+                className.clear();
+                changed = true;
+            }
+            for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(base))
+            {
+                if (ImGui::Selectable(type->GetName().c_str(), type->GetName() == className))
                 {
-                    typeName = type->GetName();
+                    className = type->GetName();
                     changed = true;
                 }
             }
@@ -88,35 +97,44 @@ namespace BrightBox3D::Editor
         }
         ImGui::EndDisabled();
         PropertyDrawer::EndRow();
-        const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
-        if (!type || !type->IsA(Framework::GameMode::StaticType()))
+        if (changed)
         {
-            ImGui::TextColored(EditorColorVec4(EditorColor::Missing), "GameMode class '%s' is not loaded", typeName.c_str());
-            return false;
+            LevelGameplaySettings::SetClassName(entry, className, allocator);
         }
-        std::unique_ptr<Reflection::Object> temporary(type->CreateInstance());
+        if (className.empty())
+        {
+            return changed;
+        }
+        const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(className);
+        if (!type || !type->IsA(base) || type->IsAbstract())
+        {
+            ImGui::TextColored(EditorColorVec4(EditorColor::Missing), "%s", Text(EditorText::ClassNotLoaded, base.GetName(), className).c_str());
+            return changed;
+        }
+        Serialization::JsonValue& settings = LevelGameplaySettings::GetObjectSettings(entry, allocator);
+        std::unique_ptr<Reflection::EngineObject> temporary(type->CreateInstance());
         Serialization::DeserializeProperties(*temporary, settings);
         PropertyDrawOptions options;
         options.instanceContext = false;
         options.readOnly = readOnly;
-        changed |= PropertyDrawer::DrawObject(*temporary, options);
-        if (changed)
+        if (PropertyDrawer::DrawObject(*temporary, options))
         {
             Serialization::JsonValue updated;
-            Serialization::SerializeObject(*temporary, updated, allocator);
+            Serialization::SerializeProperties(*temporary, updated, allocator);
             settings = std::move(updated);
+            changed = true;
         }
         return changed;
     }
 
-    bool InspectorPanel::DrawComponent(LevelObjectInstance& object, Component& component, size_t index, size_t count, bool structural)
+    bool InspectorPanel::DrawComponent(LevelObject& object, LevelObjectComponent& component, size_t index, size_t count, bool structural)
     {
         EditorContext& context = m_application.GetContext();
         bool changed = false;
         ImGui::PushID(component.GetLocalId().ToString().c_str());
         bool isTransform = &component == &object.GetTransform();
         auto* missing = Reflection::Cast<Level::MissingComponent>(&component);
-        std::string title = missing ? missing->GetMissingTypeName() + " (missing)" : component.GetType().GetName();
+        std::string title = missing ? Text(EditorText::MissingComponentTitle, missing->GetMissingTypeName()) : ObjectIcons::Label(component.GetType(), component.GetType().GetName());
 
         float checkboxSpace = isTransform ? 0.0f : ImGui::GetFrameHeight() + ImGui::GetStyle().ItemInnerSpacing.x;
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -125,24 +143,24 @@ namespace BrightBox3D::Editor
         if (!isTransform && ImGui::BeginPopupContextItem("ComponentContext"))
         {
             ImGui::BeginDisabled(!structural);
-            if (ImGui::MenuItem("Remove Component"))
+            if (ImGui::MenuItem(Text(EditorText::RemoveComponent)))
             {
                 removed = true;
             }
-            if (ImGui::MenuItem("Move Up", nullptr, false, index > 0))
+            if (ImGui::MenuItem(Text(EditorText::MoveUp), nullptr, false, index > 0))
             {
                 object.MoveComponent(&component, static_cast<int>(index) - 1);
                 changed = true;
             }
-            if (ImGui::MenuItem("Move Down", nullptr, false, index + 1 < count))
+            if (ImGui::MenuItem(Text(EditorText::MoveDown), nullptr, false, index + 1 < count))
             {
                 object.MoveComponent(&component, static_cast<int>(index) + 1);
                 changed = true;
             }
             ImGui::EndDisabled();
-            if (ImGui::MenuItem("Reset"))
+            if (ImGui::MenuItem(Text(EditorText::Reset)))
             {
-                std::unique_ptr<Reflection::Object> fresh(component.GetType().CreateInstance());
+                std::unique_ptr<Reflection::EngineObject> fresh(component.GetType().CreateInstance());
                 if (fresh)
                 {
                     Serialization::CopyProperties(*fresh, component);
@@ -178,14 +196,14 @@ namespace BrightBox3D::Editor
             ImGui::Indent(4.0f);
             if (missing)
             {
-                ImGui::TextWrapped("The component class '%s' is not loaded. Its data is preserved and will be restored when the class exists again.", missing->GetMissingTypeName().c_str());
+                ImGui::TextWrapped("%s", Text(EditorText::MissingComponentExplanation, missing->GetMissingTypeName()).c_str());
             }
             else
             {
                 PropertyDrawOptions options;
-                options.instanceContext = !context.IsEditingLevelObject();
-                options.level = context.GetActiveLevel();
-                if (object.IsLinked() && !context.IsEditingLevelObject())
+                options.instanceContext = !context.GetLevelObjectEditService().IsEditingLevelObject();
+                options.level = context.GetLevelService().GetActiveLevel();
+                if (object.IsLinked() && !context.GetLevelObjectEditService().IsEditingLevelObject())
                 {
                     options.isOverridden = [&](const Reflection::PropertyInfo& property)
                     {
@@ -196,9 +214,9 @@ namespace BrightBox3D::Editor
                         if (action == PropertyContextAction::Revert)
                         {
                             Serialization::JsonDocument before;
-                            EditorContext::Snapshot(object, before);
+                            ObjectEditService::Snapshot(object, before);
                             LevelSerializer::RevertProperty(object, &component, property.name);
-                            context.RecordObjectChange(object.GetId(), before, "Revert Property");
+                            context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoRevertProperty));
                         }
                         else
                         {
@@ -215,15 +233,15 @@ namespace BrightBox3D::Editor
                         Reflection::PropertyInfo display = *property;
                         if (display.name == "m_localPosition")
                         {
-                            display.displayName = "Position";
+                            display.displayName = Text(EditorText::Position);
                         }
                         else if (display.name == "m_localRotation")
                         {
-                            display.displayName = "Rotation";
+                            display.displayName = Text(EditorText::Rotation);
                         }
                         else if (display.name == "m_localScale")
                         {
-                            display.displayName = "Scale";
+                            display.displayName = Text(EditorText::Scale);
                         }
                         changed |= PropertyDrawer::DrawProperty(display, transform, options);
                     }
@@ -244,11 +262,11 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    void InspectorPanel::DrawAddComponent(LevelObjectInstance& object)
+    void InspectorPanel::DrawAddComponent(LevelObject& object)
     {
         float width = std::min(260.0f, ImGui::GetContentRegionAvail().x);
         ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - width) * 0.5f + ImGui::GetCursorPosX());
-        if (ImGui::Button("Add Component", ImVec2(width, 0.0f)))
+        if (ImGui::Button(Text(EditorText::AddComponent), ImVec2(width, 0.0f)))
         {
             m_componentFilter.clear();
             ImGui::OpenPopup("AddComponentPopup");
@@ -261,7 +279,7 @@ namespace BrightBox3D::Editor
             }
             ImGui::InputTextWithHint("##search", "Search components", &m_componentFilter);
             std::map<std::string, std::vector<const Reflection::TypeInfo*>> byCategory;
-            for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::Component::StaticType()))
+            for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObjectComponent::StaticType()))
             {
                 if (type == &Level::Transform::StaticType() || type == &Level::MissingComponent::StaticType())
                 {
@@ -276,7 +294,7 @@ namespace BrightBox3D::Editor
                 {
                     continue;
                 }
-                std::string category = type->GetCategory().empty() ? (type->GetModuleName() == "BrightBox3D" ? "Engine" : "Game") : type->GetCategory();
+                std::string category = type->GetCategory().empty() ? (type->GetModuleName() == Core::EngineModuleName ? Text(EditorText::EngineCategory) : Text(EditorText::GameCategory)) : type->GetCategory();
                 byCategory[category].push_back(type);
             }
             for (auto& [category, types] : byCategory)
@@ -284,12 +302,12 @@ namespace BrightBox3D::Editor
                 ImGui::SeparatorText(category.c_str());
                 for (const Reflection::TypeInfo* type : types)
                 {
-                    if (ImGui::Selectable(type->GetName().c_str()))
+                    if (ImGui::Selectable(ObjectIcons::Label(*type, type->GetName()).c_str()))
                     {
                         Serialization::JsonDocument before;
-                        EditorContext::Snapshot(object, before);
+                        ObjectEditService::Snapshot(object, before);
                         object.AddComponent(*type);
-                        m_application.GetContext().RecordObjectChange(object.GetId(), before, "Add " + type->GetName());
+                        m_application.GetContext().GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoAddComponent, type->GetName()));
                         m_cachedObject = {};
                         ImGui::CloseCurrentPopup();
                     }
@@ -299,15 +317,15 @@ namespace BrightBox3D::Editor
         }
     }
 
-    void InspectorPanel::DrawObject(LevelObjectInstance& object)
+    void InspectorPanel::DrawObject(LevelObject& object)
     {
         EditorContext& context = m_application.GetContext();
-        if (m_cachedObject != object.GetId() || (!ImGui::IsAnyItemActive() && !m_editInProgress && m_cachedRevision != context.GetUndo().GetRevision() + context.GetLevelRevision()))
+        if (m_cachedObject != object.GetId() || (!ImGui::IsAnyItemActive() && !m_editInProgress && m_cachedRevision != context.GetUndoService().GetUndo().GetRevision() + context.GetLevelService().GetLevelRevision()))
         {
             m_before.SetNull();
-            EditorContext::Snapshot(object, m_before);
+            ObjectEditService::Snapshot(object, m_before);
             m_cachedObject = object.GetId();
-            m_cachedRevision = context.GetUndo().GetRevision() + context.GetLevelRevision();
+            m_cachedRevision = context.GetUndoService().GetUndo().GetRevision() + context.GetLevelService().GetLevelRevision();
         }
         bool changed = false;
         bool active = object.IsActiveSelf();
@@ -324,67 +342,68 @@ namespace BrightBox3D::Editor
             object.SetName(name);
             changed = true;
         }
-        ImGui::TextDisabled("%s", object.GetMissingTypeName().empty() ? object.GetType().GetName().c_str() : (object.GetMissingTypeName() + " (missing type)").c_str());
+        ImGui::TextDisabled("%s", object.GetMissingTypeName().empty() ? object.GetType().GetName().c_str() : Text(EditorText::MissingTypeLabel, object.GetMissingTypeName()).c_str());
 
         bool structural = true;
-        if (!context.IsEditingLevelObject() && object.IsLinked())
+        if (!context.GetLevelObjectEditService().IsEditingLevelObject() && object.IsLinked())
         {
-            LevelObjectInstance* linkRoot = object.GetLinkRoot();
+            LevelObject* linkRoot = object.GetLinkRoot();
             const Assets::AssetRecord* record = linkRoot ? Assets::AssetDatabase::Get().FindRecord(linkRoot->GetLink().asset) : nullptr;
             ImGui::PushStyleColor(ImGuiCol_ChildBg, EditorColorVec4(EditorColor::Linked, 0.12f));
             ImGui::BeginChild("LinkBar", ImVec2(0, ImGui::GetFrameHeightWithSpacing() * 2.2f), ImGuiChildFlags_Borders);
-            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "LevelObject: %s", record ? record->name.c_str() : "missing");
-            if (linkRoot && !context.IsPlaying())
+            bool linkedToTemplate = record && record->type == Assets::AssetType::LevelObjectTemplate;
+            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(linkedToTemplate ? EditorText::LinkedTemplate : EditorText::LinkedVariant, record ? record->name : std::string(Text(EditorText::MissingLink))).c_str());
+            if (linkRoot && !context.GetLevelService().IsPlaying())
             {
-                if (ImGui::SmallButton("Select"))
+                if (ImGui::SmallButton(Text(EditorText::Select)))
                 {
-                    context.SelectAsset(linkRoot->GetLink().asset);
+                    context.GetSelectionService().SelectAsset(linkRoot->GetLink().asset);
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Open"))
+                if (ImGui::SmallButton(Text(EditorText::Open)))
                 {
                     Core::Guid asset = linkRoot->GetLink().asset;
                     ImGui::EndChild();
                     ImGui::PopStyleColor();
-                    context.OpenLevelObjectEditor(asset);
+                    context.GetLevelObjectEditService().OpenLevelObjectEditor(asset);
                     return;
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Apply All"))
+                if (ImGui::SmallButton(Text(linkedToTemplate ? EditorText::ApplyToTemplate : EditorText::ApplyAll)))
                 {
                     LevelSerializer::ApplyAllToAsset(*linkRoot);
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Revert All"))
+                if (ImGui::SmallButton(Text(linkedToTemplate ? EditorText::RevertToTemplate : EditorText::RevertAll)))
                 {
                     Serialization::JsonDocument before;
-                    EditorContext::Snapshot(*linkRoot, before);
+                    ObjectEditService::Snapshot(*linkRoot, before);
                     Core::Guid id = linkRoot->GetId();
                     LevelSerializer::RevertAll(*linkRoot);
-                    context.RecordObjectChange(id, before, "Revert Overrides");
+                    context.GetUndoService().RecordObjectChange(id, before, Text(EditorText::UndoRevertOverrides));
                     ImGui::EndChild();
                     ImGui::PopStyleColor();
                     return;
                 }
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Unlink"))
+                if (ImGui::SmallButton(Text(linkedToTemplate ? EditorText::DetachFromTemplate : EditorText::Unlink)))
                 {
                     Serialization::JsonDocument before;
-                    EditorContext::Snapshot(*linkRoot, before);
+                    ObjectEditService::Snapshot(*linkRoot, before);
                     LevelSerializer::Unlink(*linkRoot);
-                    context.RecordObjectChange(linkRoot->GetId(), before, "Unlink");
+                    context.GetUndoService().RecordObjectChange(linkRoot->GetId(), before, Text(EditorText::Unlink));
                 }
             }
             ImGui::EndChild();
             ImGui::PopStyleColor();
             structural = false;
         }
-        if (context.IsPlaying())
+        if (context.GetLevelService().IsPlaying())
         {
             if (EditorPlaySession* session = m_application.GetPlaySession())
             {
                 bool keeping = session->IsKeepingChanges(object.GetId());
-                if (ImGui::Checkbox("Keep changes after PlayMode", &keeping))
+                if (ImGui::Checkbox(Text(EditorText::KeepPlayModeChanges), &keeping))
                 {
                     session->ToggleKeepChanges(object.GetId());
                 }
@@ -395,8 +414,8 @@ namespace BrightBox3D::Editor
         changed |= DrawComponent(object, object.GetTransform(), 0, 1, false);
 
         PropertyDrawOptions brainOptions;
-        brainOptions.instanceContext = !context.IsEditingLevelObject();
-        brainOptions.level = context.GetActiveLevel();
+        brainOptions.instanceContext = !context.GetLevelObjectEditService().IsEditingLevelObject();
+        brainOptions.level = context.GetLevelService().GetActiveLevel();
         bool hasBrainProperties = false;
         for (const Reflection::PropertyInfo* property : object.GetType().GetAllProperties())
         {
@@ -407,7 +426,7 @@ namespace BrightBox3D::Editor
             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             if (ImGui::CollapsingHeader(object.GetType().GetName().c_str()))
             {
-                if (object.IsLinked() && !context.IsEditingLevelObject())
+                if (object.IsLinked() && !context.GetLevelObjectEditService().IsEditingLevelObject())
                 {
                     brainOptions.isOverridden = [&](const Reflection::PropertyInfo& property) { return LevelSerializer::IsPropertyOverridden(object, nullptr, property.name); };
                     brainOptions.onContextAction = [&](const Reflection::PropertyInfo& property, PropertyContextAction action)
@@ -415,9 +434,9 @@ namespace BrightBox3D::Editor
                         if (action == PropertyContextAction::Revert)
                         {
                             Serialization::JsonDocument before;
-                            EditorContext::Snapshot(object, before);
+                            ObjectEditService::Snapshot(object, before);
                             LevelSerializer::RevertProperty(object, nullptr, property.name);
-                            context.RecordObjectChange(object.GetId(), before, "Revert Property");
+                            context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoRevertProperty));
                         }
                         else
                         {
@@ -434,12 +453,12 @@ namespace BrightBox3D::Editor
         size_t count = object.GetComponents().size();
         for (size_t index = 0; index < object.GetComponents().size(); ++index)
         {
-            Component* component = object.GetComponents()[index].get();
+            LevelObjectComponent* component = object.GetComponents()[index].get();
             if (component->IsPendingDestroy())
             {
                 continue;
             }
-            bool componentChanged = DrawComponent(object, *component, index, count, structural || context.IsPlaying());
+            bool componentChanged = DrawComponent(object, *component, index, count, structural || context.GetLevelService().IsPlaying());
             changed |= componentChanged;
             if (componentChanged && index < object.GetComponents().size() && object.GetComponents()[index].get() != component)
             {
@@ -449,15 +468,15 @@ namespace BrightBox3D::Editor
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-        if (structural || context.IsPlaying())
+        if (structural || context.GetLevelService().IsPlaying())
         {
             DrawAddComponent(object);
         }
         else
         {
-            ImGui::TextDisabled("Unlink or open the LevelObject to add components");
+            ImGui::TextDisabled("%s", Text(EditorText::UnlinkToAddComponents));
         }
-        if (!context.IsPlaying())
+        if (!context.GetLevelService().IsPlaying())
         {
             TrackEdit(object, changed);
         }
@@ -481,7 +500,7 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        ImGui::SeparatorText("Import Settings");
+        ImGui::SeparatorText(Text(EditorText::ImportSettings));
         for (auto it = m_importSettings.MemberBegin(); it != m_importSettings.MemberEnd(); ++it)
         {
             std::string name = it->name.GetString();
@@ -534,13 +553,13 @@ namespace BrightBox3D::Editor
             PropertyDrawer::EndRow();
         }
         ImGui::BeginDisabled(!m_importSettingsDirty);
-        if (ImGui::Button("Apply"))
+        if (ImGui::Button(Text(EditorText::Apply)))
         {
             database.SaveImportSettings(guid, m_importSettings);
             m_importSettingsDirty = false;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Revert"))
+        if (ImGui::Button(Text(EditorText::Revert)))
         {
             database.LoadImportSettings(*record, m_importSettings);
             m_importSettingsDirty = false;
@@ -555,7 +574,7 @@ namespace BrightBox3D::Editor
         const Assets::AssetRecord* record = database.FindRecord(guid);
         if (!record)
         {
-            ImGui::TextDisabled("Asset not found");
+            ImGui::TextDisabled("%s", Text(EditorText::AssetNotFound));
             return;
         }
         Assets::AssetRecord copy = *record;
@@ -574,41 +593,41 @@ namespace BrightBox3D::Editor
         switch (copy.type)
         {
         case Assets::AssetType::Level:
-            if (ImGui::Button("Open Level"))
+            if (ImGui::Button(Text(EditorText::OpenLevel)))
             {
-                context.OpenLevel(guid);
+                context.GetLevelService().OpenLevel(guid);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Set as Startup Level"))
+            if (ImGui::Button(Text(EditorText::SetStartupLevel)))
             {
-                context.GetProject().SetStartupLevel(guid);
-                context.GetProject().Save();
+                context.GetProjectService().GetProject().SetStartupLevel(guid);
+                context.GetProjectService().GetProject().Save();
             }
             break;
-        case Assets::AssetType::LevelObject:
-            if (ImGui::Button("Open LevelObject"))
+        case Assets::AssetType::LevelObjectVariant:
+            if (ImGui::Button(Text(EditorText::OpenLevelObject)))
             {
-                context.OpenLevelObjectEditor(guid);
+                context.GetLevelObjectEditService().OpenLevelObjectEditor(guid);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Place in Level"))
+            if (ImGui::Button(Text(EditorText::PlaceInLevel)))
             {
-                context.InstantiateLevelObject(guid, m_application.GetLevelView().GetSpawnPoint());
+                context.GetObjectEditService().InstantiateLevelObject(guid, m_application.GetLevelView().GetSpawnPoint());
             }
             break;
         case Assets::AssetType::LevelObjectTemplate:
-            ImGui::TextWrapped("Templates are only used to create LevelObjects. They cannot be placed or spawned.");
-            if (ImGui::Button("Edit Template"))
+            ImGui::TextWrapped("%s", Text(EditorText::TemplateExplanation));
+            if (ImGui::Button(Text(EditorText::EditTemplate)))
             {
-                context.OpenLevelObjectEditor(guid);
+                context.GetLevelObjectEditService().OpenLevelObjectEditor(guid);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Create LevelObject"))
+            if (ImGui::Button(Text(EditorText::CreateVariant)))
             {
-                Core::Guid created = context.CreateLevelObjectFromTemplate(guid);
+                Core::Guid created = context.GetAssetCreationService().CreateVariantFromTemplate(guid);
                 if (created.IsValid())
                 {
-                    context.SelectAsset(created);
+                    context.GetSelectionService().SelectAsset(created);
                 }
             }
             break;
@@ -648,18 +667,18 @@ namespace BrightBox3D::Editor
         }
         case Assets::AssetType::Model:
         {
-            auto model = database.Load<Rendering::ModelAsset>(guid);
+            auto model = database.Load<Geometry::ModelAsset>(guid);
             if (model)
             {
                 size_t triangles = 0;
-                for (const Rendering::MeshData& mesh : model->GetMeshes())
+                for (const Geometry::MeshData& mesh : model->GetMeshes())
                 {
                     triangles += mesh.indices.size() / 3;
                 }
                 ImGui::Text("%zu meshes, %zu nodes, %zu triangles", model->GetMeshes().size(), model->GetNodes().size(), triangles);
-                if (ImGui::Button("Place in Level"))
+                if (ImGui::Button(Text(EditorText::PlaceInLevel)))
                 {
-                    context.CreateModelObject(guid, copy.name.substr(0, copy.name.find('.')), m_application.GetLevelView().GetSpawnPoint());
+                    context.GetObjectEditService().CreateModelObject(guid, copy.name.substr(0, copy.name.find('.')), m_application.GetLevelView().GetSpawnPoint());
                 }
             }
             DrawImportSettings(guid);
@@ -669,7 +688,7 @@ namespace BrightBox3D::Editor
         case Assets::AssetType::Widget:
         case Assets::AssetType::StyleSheet:
         {
-            if (ImGui::Button("Open in Code Editor"))
+            if (ImGui::Button(Text(EditorText::OpenInCodeEditor)))
             {
                 m_application.OpenFileInEditor(database.GetAbsolutePath(copy).string(), 0);
             }
@@ -690,43 +709,43 @@ namespace BrightBox3D::Editor
     void InspectorPanel::DrawCollection()
     {
         EditorContext& context = m_application.GetContext();
-        Level::LevelCollection* collection = context.GetSelectedCollection();
-        Level::Level* level = context.GetActiveLevel();
-        if (!collection || !level || context.GetCollectionIndex(collection) < 0)
+        Level::LevelCollection* collection = context.GetSelectionService().GetSelectedCollection();
+        Level::Level* level = context.GetLevelService().GetActiveLevel();
+        if (!collection || !level || context.GetLevelService().GetCollectionIndex(collection) < 0)
         {
-            ImGui::TextDisabled("Nothing selected");
+            ImGui::TextDisabled("%s", Text(EditorText::NothingSelected));
             return;
         }
-        ImGui::Text("LevelCollection");
+        ImGui::TextUnformatted(Text(EditorText::LevelCollection));
         std::string name = collection->GetName();
-        PropertyDrawer::BeginRow("Name", false);
-        if (ImGui::InputText("##name", &name, ImGuiInputTextFlags_EnterReturnsTrue) && !context.IsPlaying())
+        PropertyDrawer::BeginRow(Text(EditorText::Name), false);
+        if (ImGui::InputText("##name", &name, ImGuiInputTextFlags_EnterReturnsTrue) && !context.GetLevelService().IsPlaying())
         {
             collection->SetName(name);
-            context.MarkDirty(collection);
+            context.GetLevelService().MarkDirty(collection);
         }
         PropertyDrawer::EndRow();
         const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(collection->GetAsset());
-        ImGui::TextDisabled("Asset: %s", record ? record->path.c_str() : "(not saved yet)");
+        ImGui::TextDisabled("%s", Text(EditorText::AssetPath, record ? record->path : std::string(Text(EditorText::NotSavedYet))).c_str());
         ImGui::Text("%zu root objects", collection->GetRoots().size());
-        if (!context.IsPlaying() && !context.IsEditingLevelObject())
+        if (!context.GetLevelService().IsPlaying() && !context.GetLevelObjectEditService().IsEditingLevelObject())
         {
-            if (ImGui::Button("Set Active"))
+            if (ImGui::Button(Text(EditorText::SetActive)))
             {
-                context.SetActiveCollection(collection);
+                context.GetLevelService().SetActiveCollection(collection);
             }
             ImGui::SameLine();
             ImGui::BeginDisabled(level->GetCollections().size() <= 1);
-            if (ImGui::Button("Remove From Level"))
+            if (ImGui::Button(Text(EditorText::RemoveFromLevel)))
             {
                 if (collection->IsDirty())
                 {
                     Level::LevelSerializer::SaveCollection(*collection);
                 }
                 level->RemoveCollection(collection);
-                context.SelectCollection(nullptr);
-                context.MarkDirty(level->GetDefaultCollection());
-                context.GetUndo().Clear();
+                context.GetSelectionService().SelectCollection(nullptr);
+                context.GetLevelService().MarkDirty(level->GetDefaultCollection());
+                context.GetUndoService().GetUndo().Clear();
             }
             ImGui::EndDisabled();
         }
@@ -735,53 +754,36 @@ namespace BrightBox3D::Editor
     void InspectorPanel::DrawLevel()
     {
         EditorContext& context = m_application.GetContext();
-        Level::Level* level = context.GetEditLevel();
-        if (!level || context.IsEditingLevelObject())
+        Level::Level* level = context.GetLevelService().GetEditLevel();
+        if (!level || context.GetLevelObjectEditService().IsEditingLevelObject())
         {
             return;
         }
-        ImGui::Text("Level: %s", level->GetName().c_str());
-        ImGui::SeparatorText("GameMode");
-        Serialization::JsonDocument& settings = level->GetSettings();
-        bool overrideGameMode = Serialization::GetBool(settings, "overrideGameMode", false);
-        if (ImGui::Checkbox("Override project GameMode", &overrideGameMode) && !context.IsPlaying())
+        ImGui::TextUnformatted(Text(EditorText::LevelName, level->GetName()).c_str());
+        for (Framework::GameplaySlot slot : { Framework::GameplaySlot::GameMode, Framework::GameplaySlot::LevelBehavior })
         {
-            Serialization::SetMember(settings, "overrideGameMode", Serialization::JsonValue(overrideGameMode), settings.GetAllocator());
-            context.MarkDirty(level->GetDefaultCollection());
-        }
-        if (overrideGameMode)
-        {
-            Serialization::JsonValue* gameMode = const_cast<Serialization::JsonValue*>(Serialization::FindMember(settings, "gameMode"));
-            if (!gameMode)
+            ImGui::PushID(static_cast<int>(slot));
+            ImGui::SeparatorText(Framework::LevelGameplaySettings::GetBaseType(slot).GetName().c_str());
+            if (DrawGameplaySettings(level->GetSettings(), slot, context.GetLevelService().IsPlaying()))
             {
-                Serialization::JsonValue fresh(rapidjson::kObjectType);
-                fresh.AddMember("$type", "GameMode", settings.GetAllocator());
-                settings.AddMember("gameMode", fresh, settings.GetAllocator());
-                gameMode = &settings["gameMode"];
+                context.GetLevelService().MarkDirty(level->GetDefaultCollection());
             }
-            if (DrawGameModeSettings(*gameMode, settings.GetAllocator(), context.IsPlaying()))
-            {
-                context.MarkDirty(level->GetDefaultCollection());
-            }
-        }
-        else
-        {
-            ImGui::TextDisabled("Uses the project's default GameMode (Project Settings)");
+            ImGui::PopID();
         }
 
-        ImGui::SeparatorText("LevelCollections");
+        ImGui::SeparatorText(Text(EditorText::LevelCollections));
         for (const auto& collection : level->GetCollections())
         {
             ImGui::BulletText("%s", collection->GetName().c_str());
         }
-        if (!context.IsPlaying())
+        if (!context.GetLevelService().IsPlaying())
         {
-            if (ImGui::Button("New Collection"))
+            if (ImGui::Button(Text(EditorText::NewCollection)))
             {
-                Level::LevelCollection* created = level->AddCollection("Collection " + std::to_string(level->GetCollections().size() + 1));
+                Level::LevelCollection* created = level->AddCollection(Text(EditorText::DefaultCollectionName, level->GetCollections().size() + 1));
                 Level::LevelSerializer::SaveCollection(*created);
-                context.MarkDirty(level->GetDefaultCollection());
-                context.SelectCollection(created);
+                context.GetLevelService().MarkDirty(level->GetDefaultCollection());
+                context.GetSelectionService().SelectCollection(created);
             }
             ImGui::SameLine();
             if (ImGui::BeginCombo("##addexisting", "Add Existing...", ImGuiComboFlags_NoArrowButton))
@@ -795,8 +797,8 @@ namespace BrightBox3D::Editor
                     if (ImGui::Selectable(record.path.c_str()))
                     {
                         Level::LevelSerializer::LoadCollectionInto(*level, record.guid);
-                        context.MarkDirty(level->GetDefaultCollection());
-                        context.BumpLevelRevision();
+                        context.GetLevelService().MarkDirty(level->GetDefaultCollection());
+                        context.GetLevelService().BumpLevelRevision();
                     }
                 }
                 ImGui::EndCombo();
@@ -806,26 +808,26 @@ namespace BrightBox3D::Editor
 
     void InspectorPanel::Draw()
     {
-        if (!ImGui::Begin("Inspector"))
+        if (!ImGui::Begin(WindowTitle(EditorWindow::Inspector).c_str()))
         {
             ImGui::End();
             return;
         }
         EditorContext& context = m_application.GetContext();
-        switch (context.GetFocus())
+        switch (context.GetSelectionService().GetFocus())
         {
         case SelectionFocus::Objects:
-            if (LevelObjectInstance* object = context.GetPrimarySelection())
+            if (LevelObject* object = context.GetSelectionService().GetPrimarySelection())
             {
-                if (context.GetSelection().size() > 1)
+                if (context.GetSelectionService().GetSelection().size() > 1)
                 {
-                    ImGui::TextDisabled("%zu objects selected (editing the last selected)", context.GetSelection().size());
+                    ImGui::TextDisabled("%zu objects selected (editing the last selected)", context.GetSelectionService().GetSelection().size());
                 }
                 DrawObject(*object);
             }
             break;
         case SelectionFocus::Asset:
-            DrawAsset(context.GetSelectedAsset());
+            DrawAsset(context.GetSelectionService().GetSelectedAsset());
             break;
         case SelectionFocus::Collection:
             DrawCollection();
@@ -834,7 +836,7 @@ namespace BrightBox3D::Editor
             DrawLevel();
             break;
         default:
-            ImGui::TextDisabled("Select an object or asset");
+            ImGui::TextDisabled("%s", Text(EditorText::SelectObjectOrAsset));
             break;
         }
         ImGui::End();

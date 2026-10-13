@@ -1,13 +1,13 @@
 #include "Thumbnails.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Geometry/ModelAsset.h"
 #include "Level/Level.h"
 #include "Level/LevelSerializer.h"
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/Light.h"
 #include "Rendering/MaterialAsset.h"
 #include "Rendering/MeshRenderer.h"
-#include "Rendering/ModelAsset.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/TextureAsset.h"
 
@@ -129,37 +129,37 @@ namespace BrightBox3D::Editor
 
         Level::Level preview("Thumbnail");
         Math::Bounds bounds;
-        auto addRenderer = [&](Level::LevelObjectInstance& object, const Core::Guid& model, int mesh)
+        auto addRenderer = [&](Level::LevelObject& object, const Core::Guid& model, int mesh)
         {
             auto* renderer = object.AddComponent<Rendering::MeshRenderer>();
-            renderer->SetModel(Assets::AssetReference<Rendering::ModelAsset>(model));
+            renderer->SetModel(Assets::AssetReference<Geometry::ModelAsset>(model));
             renderer->SetMeshIndex(mesh);
             return renderer;
         };
         if (record->type == Assets::AssetType::Model)
         {
-            auto model = database.Load<Rendering::ModelAsset>(asset);
+            auto model = database.Load<Geometry::ModelAsset>(asset);
             if (!model)
             {
                 return false;
             }
             for (size_t i = 0; i < model->GetMeshes().size() && i < 64; ++i)
             {
-                Level::LevelObjectInstance* object = preview.CreateObject(Level::LevelObjectInstance::StaticType());
+                Level::LevelObject* object = preview.CreateObject(Level::LevelObject::StaticType());
                 addRenderer(*object, asset, static_cast<int>(i));
                 bounds.Encapsulate(model->GetMeshes()[i].bounds);
             }
         }
         else if (record->type == Assets::AssetType::Material)
         {
-            Level::LevelObjectInstance* object = preview.CreateObject(Level::LevelObjectInstance::StaticType());
+            Level::LevelObject* object = preview.CreateObject(Level::LevelObject::StaticType());
             auto* renderer = addRenderer(*object, Rendering::BuiltinAssets::Sphere(), 0);
             renderer->SetMaterial(0, Assets::AssetReference<Rendering::MaterialAsset>(asset));
             bounds.Encapsulate(Math::Bounds{ { -0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f } });
         }
-        else if (record->type == Assets::AssetType::LevelObject)
+        else if (record->type == Assets::AssetType::LevelObjectVariant)
         {
-            Level::LevelObjectInstance* root = Level::LevelSerializer::Instantiate(preview, asset, nullptr, nullptr);
+            Level::LevelObject* root = Level::LevelSerializer::Instantiate(preview, asset, nullptr, nullptr);
             if (!root)
             {
                 return false;
@@ -167,7 +167,7 @@ namespace BrightBox3D::Editor
             for (Rendering::MeshRenderer* renderer : preview.FindComponentsOfType<Rendering::MeshRenderer>())
             {
                 auto model = renderer->GetModel().Load();
-                if (const Rendering::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
+                if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
                 {
                     bounds.Encapsulate(mesh->bounds.Transformed(renderer->GetTransform().GetWorldMatrix()));
                 }
@@ -182,7 +182,7 @@ namespace BrightBox3D::Editor
             return false;
         }
 
-        Level::LevelObjectInstance* sun = preview.CreateObject(Level::LevelObjectInstance::StaticType());
+        Level::LevelObject* sun = preview.CreateObject(Level::LevelObject::StaticType());
         sun->GetTransform().SetLocalEulerAngles({ 40.0f, -40.0f, 0.0f });
         auto* light = sun->AddComponent<Rendering::Light>();
         light->SetLightType(Rendering::LightType::Directional);

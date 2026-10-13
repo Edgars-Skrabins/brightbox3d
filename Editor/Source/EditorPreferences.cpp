@@ -17,49 +17,52 @@ namespace BrightBox3D::Editor
         }
 
         const EditorColorInfo ColorInfos[] = {
-            { "Accent", "Accent", "Interface", Hex(0xFF8A3D) },
-            { "Background", "Background", "Interface", Hex(0x151517) },
-            { "Panel", "Panel", "Interface", Hex(0x1E1E21) },
-            { "Field", "Input Field", "Interface", Hex(0x141416) },
-            { "Control", "Button", "Interface", Hex(0x2C2C30) },
-            { "ControlHovered", "Button Hovered", "Interface", Hex(0x38383D) },
-            { "Border", "Border", "Interface", Hex(0x0E0E10) },
-            { "Text", "Text", "Interface", Hex(0xE4E4E7) },
-            { "TextDim", "Dim Text", "Interface", Hex(0x8B8B93) },
-            { "RowStripe", "Row Stripe", "Interface", Hex(0xFFFFFF, 0.025f) },
-            { "RowHovered", "Row Hovered", "Interface", Hex(0xFFFFFF, 0.05f) },
-            { "TreeLines", "Hierarchy Lines", "Interface", Hex(0x8B8B93, 0.25f) },
-            { "Linked", "Linked LevelObject", "Status", Hex(0x5AA9FF) },
-            { "Missing", "Missing Type", "Status", Hex(0xFF5C5C) },
-            { "Override", "Property Override", "Status", Hex(0x5AA9FF) },
-            { "PlayMode", "PlayMode", "Status", Hex(0x3D8BFF) },
-            { "Success", "Success", "Status", Hex(0x7BD88F) },
-            { "Warning", "Warning", "Status", Hex(0xFFC452) },
-            { "Error", "Error", "Status", Hex(0xFF6B6B) },
-            { "GridMinor", "Grid", "Level View", Hex(0xCCCCCC, 0.28f) },
-            { "GridMajor", "Grid Major Lines", "Level View", Hex(0xE6E6E6, 0.55f) },
-            { "AxisX", "X Axis", "Level View", Hex(0xF24D4D, 0.8f) },
-            { "AxisZ", "Z Axis", "Level View", Hex(0x4D4DF2, 0.8f) },
-            { "LightGizmo", "Light", "Level View", Hex(0xFFE666, 0.9f) },
-            { "CameraGizmo", "Camera", "Level View", Hex(0xC8D2FF) },
-            { "PlayerStartGizmo", "PlayerStart", "Level View", Hex(0x78F08C) },
-            { "Collider", "Collider", "Level View", Hex(0x59FF66, 0.9f) },
-            { "Trigger", "Trigger", "Level View", Hex(0x4DCCFF, 0.9f) },
-            { "GizmoBackground", "Icon Background", "Level View", Hex(0x28282A, 0.8f) },
-            { "AssetFolder", "Folder", "Asset Types", Hex(0xDCBE5A) },
-            { "AssetLevel", "Level", "Asset Types", Hex(0x78C878) },
-            { "AssetCollection", "LevelCollection", "Asset Types", Hex(0x64AA78) },
-            { "AssetLevelObject", "LevelObject", "Asset Types", Hex(0x64AAFF) },
-            { "AssetTemplate", "LevelObject Template", "Asset Types", Hex(0xA08CFF) },
-            { "AssetMaterial", "Material", "Asset Types", Hex(0xE678A0) },
-            { "AssetModel", "Model", "Asset Types", Hex(0x969696) },
-            { "AssetTexture", "Texture", "Asset Types", Hex(0x78DCDC) },
-            { "AssetUI", "Screen / Widget", "Asset Types", Hex(0xF0A050) },
-            { "AssetStyleSheet", "StyleSheet", "Asset Types", Hex(0xC878F0) },
-            { "AssetOther", "Other", "Asset Types", Hex(0xB4B4B4) }
+            { "Accent", EditorText::ColorAccent, EditorColorCategory::Interface, Hex(0xFF8A3D) },
+            { "Background", EditorText::ColorBackground, EditorColorCategory::Interface, Hex(0x151517) },
+            { "Panel", EditorText::ColorPanel, EditorColorCategory::Interface, Hex(0x1E1E21) },
+            { "Field", EditorText::ColorField, EditorColorCategory::Interface, Hex(0x141416) },
+            { "Control", EditorText::ColorControl, EditorColorCategory::Interface, Hex(0x2C2C30) },
+            { "ControlHovered", EditorText::ColorControlHovered, EditorColorCategory::Interface, Hex(0x38383D) },
+            { "Border", EditorText::ColorBorder, EditorColorCategory::Interface, Hex(0x0E0E10) },
+            { "Text", EditorText::ColorText, EditorColorCategory::Interface, Hex(0xE4E4E7) },
+            { "TextDim", EditorText::ColorTextDim, EditorColorCategory::Interface, Hex(0x8B8B93) },
+            { "RowStripe", EditorText::ColorRowStripe, EditorColorCategory::Interface, Hex(0xFFFFFF, 0.025f) },
+            { "RowHovered", EditorText::ColorRowHovered, EditorColorCategory::Interface, Hex(0xFFFFFF, 0.05f) },
+            { "TreeLines", EditorText::ColorTreeLines, EditorColorCategory::Interface, Hex(0x8B8B93, 0.25f) },
+            { "Linked", EditorText::ColorLinked, EditorColorCategory::Status, Hex(0x5AA9FF) },
+            { "Missing", EditorText::ColorMissing, EditorColorCategory::Status, Hex(0xFF5C5C) },
+            { "Override", EditorText::ColorOverride, EditorColorCategory::Status, Hex(0x5AA9FF) },
+            { "PlayMode", EditorText::ColorPlayMode, EditorColorCategory::Status, Hex(0x3D8BFF) },
+            { "Success", EditorText::ColorSuccess, EditorColorCategory::Status, Hex(0x7BD88F) },
+            { "Warning", EditorText::ColorWarning, EditorColorCategory::Status, Hex(0xFFC452) },
+            { "Error", EditorText::ColorError, EditorColorCategory::Status, Hex(0xFF6B6B) },
+            { "GridMinor", EditorText::ColorGridMinor, EditorColorCategory::LevelView, Hex(0xCCCCCC, 0.28f) },
+            { "GridMajor", EditorText::ColorGridMajor, EditorColorCategory::LevelView, Hex(0xE6E6E6, 0.55f) },
+            { "AxisX", EditorText::ColorAxisX, EditorColorCategory::LevelView, Hex(0xF24D4D, 0.8f) },
+            { "AxisZ", EditorText::ColorAxisZ, EditorColorCategory::LevelView, Hex(0x4D4DF2, 0.8f) },
+            { "LightGizmo", EditorText::ColorLightGizmo, EditorColorCategory::LevelView, Hex(0xFFE666, 0.9f) },
+            { "CameraGizmo", EditorText::ColorCameraGizmo, EditorColorCategory::LevelView, Hex(0xC8D2FF) },
+            { "PlayerStartGizmo", EditorText::ColorPlayerStartGizmo, EditorColorCategory::LevelView, Hex(0x78F08C) },
+            { "Collider", EditorText::ColorCollider, EditorColorCategory::LevelView, Hex(0x59FF66, 0.9f) },
+            { "Trigger", EditorText::ColorTrigger, EditorColorCategory::LevelView, Hex(0x4DCCFF, 0.9f) },
+            { "GizmoBackground", EditorText::ColorGizmoBackground, EditorColorCategory::LevelView, Hex(0x28282A, 0.8f) },
+            { "AssetFolder", EditorText::ColorAssetFolder, EditorColorCategory::AssetTypes, Hex(0xDCBE5A) },
+            { "AssetLevel", EditorText::ColorAssetLevel, EditorColorCategory::AssetTypes, Hex(0x78C878) },
+            { "AssetCollection", EditorText::ColorAssetCollection, EditorColorCategory::AssetTypes, Hex(0x64AA78) },
+            { "AssetLevelObject", EditorText::ColorAssetLevelObject, EditorColorCategory::AssetTypes, Hex(0x64AAFF) },
+            { "AssetTemplate", EditorText::ColorAssetTemplate, EditorColorCategory::AssetTypes, Hex(0xA08CFF) },
+            { "AssetMaterial", EditorText::ColorAssetMaterial, EditorColorCategory::AssetTypes, Hex(0xE678A0) },
+            { "AssetModel", EditorText::ColorAssetModel, EditorColorCategory::AssetTypes, Hex(0x969696) },
+            { "AssetTexture", EditorText::ColorAssetTexture, EditorColorCategory::AssetTypes, Hex(0x78DCDC) },
+            { "AssetUI", EditorText::ColorAssetUI, EditorColorCategory::AssetTypes, Hex(0xF0A050) },
+            { "AssetStyleSheet", EditorText::ColorAssetStyleSheet, EditorColorCategory::AssetTypes, Hex(0xC878F0) },
+            { "AssetOther", EditorText::ColorAssetOther, EditorColorCategory::AssetTypes, Hex(0xB4B4B4) }
         };
 
         static_assert(std::size(ColorInfos) == static_cast<size_t>(EditorColor::Count));
+
+        const EditorText ColorCategoryLabels[] = { EditorText::ColorCategoryInterface, EditorText::ColorCategoryStatus, EditorText::ColorCategoryLevelView, EditorText::ColorCategoryAssetTypes };
+        static_assert(std::size(ColorCategoryLabels) == static_cast<size_t>(EditorColorCategory::Count));
 
         std::string ToHex(const Math::Color& color)
         {
@@ -88,6 +91,11 @@ namespace BrightBox3D::Editor
         {
             return ToHex(a) == ToHex(b);
         }
+    }
+
+    EditorText ColorCategoryLabel(EditorColorCategory category)
+    {
+        return ColorCategoryLabels[static_cast<size_t>(category)];
     }
 
     EditorPreferences& EditorPreferences::Get()
@@ -120,7 +128,7 @@ namespace BrightBox3D::Editor
         std::string error;
         if (!Serialization::LoadJsonFile(path, document, &error) || !document.IsObject())
         {
-            Core::Log::Warning("Could not read editor preferences: " + error);
+            Core::Log::Warning(Text(EditorText::PreferencesLoadFailed, error));
             return;
         }
         if (const Serialization::JsonValue* colors = Serialization::FindMember(document, "colors"); colors && colors->IsObject())

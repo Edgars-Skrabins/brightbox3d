@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "ObjectIcons.h"
 
 #include <string>
 
 namespace BrightBox3D::Level
 {
     class LevelCollection;
-    class LevelObjectInstance;
+    class LevelObject;
 }
 
 namespace BrightBox3D::Editor
@@ -22,10 +23,10 @@ namespace BrightBox3D::Editor
 
     private:
         void DrawCollection(Level::LevelCollection& collection);
-        void DrawObject(Level::LevelObjectInstance& object);
-        void DrawCreateMenu(Level::LevelObjectInstance* parent);
-        void DrawObjectContextMenu(Level::LevelObjectInstance& object);
-        bool MatchesFilter(const Level::LevelObjectInstance& object) const;
+        void DrawObject(Level::LevelObject& object);
+        void DrawCreateMenu(Level::LevelObject* parent);
+        void DrawObjectContextMenu(Level::LevelObject& object);
+        bool MatchesFilter(const Level::LevelObject& object) const;
         void DrawRowBackground(bool selected);
 
         EditorApplication& m_application;
@@ -35,5 +36,6 @@ namespace BrightBox3D::Editor
         bool m_focusRename = false;
         Core::Guid m_scrollTo;
         int m_rowIndex = 0;
+        ObjectIcons m_icons;
     };
 }

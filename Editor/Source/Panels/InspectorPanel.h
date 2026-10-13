@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Framework/LevelGameplaySettings.h"
 #include "Serialization/Json.h"
 
 #include <memory>
@@ -8,13 +9,13 @@
 
 namespace BrightBox3D::Reflection
 {
-    class Object;
+    class EngineObject;
 }
 
 namespace BrightBox3D::Level
 {
-    class Component;
-    class LevelObjectInstance;
+    class LevelObjectComponent;
+    class LevelObject;
 }
 
 namespace BrightBox3D::Editor
@@ -28,17 +29,17 @@ namespace BrightBox3D::Editor
         ~InspectorPanel();
 
         void Draw();
-        static bool DrawGameModeSettings(Serialization::JsonValue& settings, Serialization::JsonAllocator& allocator, bool readOnly);
+        static bool DrawGameplaySettings(Serialization::JsonDocument& levelSettings, Framework::GameplaySlot slot, bool readOnly);
 
     private:
-        void DrawObject(Level::LevelObjectInstance& object);
-        bool DrawComponent(Level::LevelObjectInstance& object, Level::Component& component, size_t index, size_t count, bool structural);
-        void DrawAddComponent(Level::LevelObjectInstance& object);
+        void DrawObject(Level::LevelObject& object);
+        bool DrawComponent(Level::LevelObject& object, Level::LevelObjectComponent& component, size_t index, size_t count, bool structural);
+        void DrawAddComponent(Level::LevelObject& object);
         void DrawAsset(const Core::Guid& guid);
         void DrawImportSettings(const Core::Guid& guid);
         void DrawCollection();
         void DrawLevel();
-        void TrackEdit(Level::LevelObjectInstance& object, bool changed);
+        void TrackEdit(Level::LevelObject& object, bool changed);
 
         EditorApplication& m_application;
         Core::Guid m_cachedObject;

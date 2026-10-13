@@ -2,11 +2,13 @@
 
 #include "Assets/AssetDatabase.h"
 #include "EditorPreferences.h"
+#include "EditorText.h"
 #include "Level/Level.h"
 #include "Math/Color.h"
 #include "Math/Quaternion.h"
 #include "Math/Vector2.h"
 #include "Math/Vector4.h"
+#include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
 
 #include <imgui.h>
@@ -126,7 +128,7 @@ namespace BrightBox3D::Editor
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         Assets::AssetType type = Assets::AssetTypeFromName(assetType);
         const Assets::AssetRecord* record = guid.IsValid() ? database.FindRecord(guid) : nullptr;
-        std::string preview = record ? record->name : (guid.IsValid() ? "Missing (" + guid.ToString().substr(0, 8) + ")" : "None (" + assetType + ")");
+        std::string preview = record ? record->name : (guid.IsValid() ? Text(EditorText::MissingAsset, guid.ToString().substr(0, 8)) : Text(EditorText::NoneOfType, assetType));
         bool changed = false;
         ImGui::BeginDisabled(readOnly);
         float clearWidth = ImGui::GetFrameHeight();
@@ -140,7 +142,7 @@ namespace BrightBox3D::Editor
                 ImGui::SetKeyboardFocusHere();
             }
             ImGui::InputTextWithHint("##filter", "Search", &filter);
-            if (ImGui::Selectable("None", !guid.IsValid()))
+            if (ImGui::Selectable(Text(EditorText::None), !guid.IsValid()))
             {
                 guid = Core::Guid{};
                 changed = true;
@@ -195,6 +197,27 @@ namespace BrightBox3D::Editor
         }
         ImGui::PopID();
         ImGui::EndDisabled();
+        return changed;
+    }
+
+    bool PropertyDrawer::ClassField(const char* label, const Reflection::TypeInfo* baseType, std::string& typeName)
+    {
+        bool changed = false;
+        if (ImGui::BeginCombo(label, typeName.c_str()))
+        {
+            if (baseType)
+            {
+                for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(*baseType))
+                {
+                    if (ImGui::Selectable(type->GetName().c_str(), type->GetName() == typeName))
+                    {
+                        typeName = type->GetName();
+                        changed = true;
+                    }
+                }
+            }
+            ImGui::EndCombo();
+        }
         return changed;
     }
 
@@ -290,8 +313,8 @@ namespace BrightBox3D::Editor
         case PropertyKind::ObjectReference:
         {
             Core::Guid& guid = *static_cast<Core::Guid*>(value);
-            const Level::LevelObjectInstance* object = level && guid.IsValid() ? level->FindObject(guid) : nullptr;
-            std::string text = object ? object->GetName() : (guid.IsValid() ? "Missing Object" : "None (" + descriptor.referenceType + ")");
+            const Level::LevelObject* object = level && guid.IsValid() ? level->FindObject(guid) : nullptr;
+            std::string text = object ? object->GetName() : (guid.IsValid() ? std::string(Text(EditorText::MissingObject)) : Text(EditorText::NoneOfType, descriptor.referenceType));
             ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
             if (!readOnly && ImGui::BeginDragDropTarget())
             {
@@ -304,7 +327,7 @@ namespace BrightBox3D::Editor
             }
             if (!readOnly && ImGui::BeginPopupContextItem())
             {
-                if (ImGui::MenuItem("Clear"))
+                if (ImGui::MenuItem(Text(EditorText::Clear)))
                 {
                     guid = Core::Guid{};
                     changed = true;
@@ -313,6 +336,9 @@ namespace BrightBox3D::Editor
             }
             break;
         }
+        case PropertyKind::ClassReference:
+            changed = ClassField(label, descriptor.baseType ? &descriptor.baseType() : nullptr, *static_cast<std::string*>(value));
+            break;
         case PropertyKind::Array:
             break;
         }
@@ -320,7 +346,7 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    bool PropertyDrawer::DrawProperty(const PropertyInfo& property, Object& object, const PropertyDrawOptions& options)
+    bool PropertyDrawer::DrawProperty(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options)
     {
         bool editable = IsEditable(property, options);
         bool overridden = options.isOverridden && options.isOverridden(property);
@@ -343,11 +369,11 @@ namespace BrightBox3D::Editor
             }
             if (options.onContextAction && overridden && ImGui::BeginPopupContextItem("PropertyContext"))
             {
-                if (ImGui::MenuItem("Revert to LevelObject"))
+                if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
                 {
                     options.onContextAction(property, PropertyContextAction::Revert);
                 }
-                if (ImGui::MenuItem("Apply to LevelObject"))
+                if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
                 {
                     options.onContextAction(property, PropertyContextAction::Apply);
                 }
@@ -356,7 +382,7 @@ namespace BrightBox3D::Editor
             if (open)
             {
                 int size = static_cast<int>(count);
-                BeginRow("Size", false);
+                BeginRow(Text(EditorText::ArraySize), false);
                 ImGui::BeginDisabled(!editable);
                 if (ImGui::InputInt("##size", &size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue) && size >= 0 && size < 4096)
                 {
@@ -369,7 +395,7 @@ namespace BrightBox3D::Editor
                 int removeIndex = -1;
                 for (size_t i = 0; i < count; ++i)
                 {
-                    std::string label = "Element " + std::to_string(i);
+                    std::string label = Text(EditorText::ArrayElement, i);
                     BeginRow(label.c_str(), false);
                     if (editable)
                     {
@@ -398,7 +424,7 @@ namespace BrightBox3D::Editor
                     }
                     changed = true;
                 }
-                if (editable && ImGui::Button("Add Element"))
+                if (editable && ImGui::Button(Text(EditorText::AddElement)))
                 {
                     property.array.resize(value, count + 1);
                     changed = true;
@@ -421,11 +447,11 @@ namespace BrightBox3D::Editor
         }
         if (options.onContextAction && overridden && ImGui::BeginPopupContextItem("PropertyContext"))
         {
-            if (ImGui::MenuItem("Revert to LevelObject"))
+            if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
             {
                 options.onContextAction(property, PropertyContextAction::Revert);
             }
-            if (ImGui::MenuItem("Apply to LevelObject"))
+            if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
             {
                 options.onContextAction(property, PropertyContextAction::Apply);
             }
@@ -439,7 +465,7 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    bool PropertyDrawer::DrawObject(Object& object, const PropertyDrawOptions& options)
+    bool PropertyDrawer::DrawObject(EngineObject& object, const PropertyDrawOptions& options)
     {
         std::vector<const PropertyInfo*> properties = object.GetType().GetAllProperties();
         std::vector<std::string> categories;

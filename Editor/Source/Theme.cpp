@@ -2,7 +2,7 @@
 
 #include "Core/FileSystem.h"
 #include "EditorPreferences.h"
-#include "Icons.h"
+#include "IconGlyphs.h"
 
 #include <imgui.h>
 
@@ -176,7 +176,7 @@ namespace BrightBox3D::Editor
             "C:/Windows/Fonts/segoeui.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         };
-        static const ImWchar iconRanges[] = { Icons::RangeMin, Icons::RangeMax, 0 };
+        static const ImWchar iconRanges[] = { IconRangeMin, IconRangeMax, 0 };
         bool loaded = false;
         for (const char* candidate : candidates)
         {

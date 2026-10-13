@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorText.h"
 #include "Math/Color.h"
 
 #include <imgui.h>
@@ -55,11 +56,22 @@ namespace BrightBox3D::Editor
         Count
     };
 
+    enum class EditorColorCategory
+    {
+        Interface,
+        Status,
+        LevelView,
+        AssetTypes,
+        Count
+    };
+
+    EditorText ColorCategoryLabel(EditorColorCategory category);
+
     struct EditorColorInfo
     {
         const char* key;
-        const char* label;
-        const char* category;
+        EditorText label;
+        EditorColorCategory category;
         Math::Color defaultValue;
     };
 

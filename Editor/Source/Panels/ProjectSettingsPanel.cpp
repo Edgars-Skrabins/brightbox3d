@@ -1,6 +1,8 @@
 #include "Panels/ProjectSettingsPanel.h"
 
 #include "EditorApplication.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
 #include "Panels/InspectorPanel.h"
 #include "PropertyDrawer.h"
 
@@ -19,20 +21,20 @@ namespace BrightBox3D::Editor
             return;
         }
         ImGui::SetNextWindowSize(ImVec2(520, 480), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin("Project Settings", &m_open))
+        if (!ImGui::Begin(WindowTitle(EditorWindow::ProjectSettings).c_str(), &m_open))
         {
             ImGui::End();
             return;
         }
-        Runtime::Project& project = m_application.GetContext().GetProject();
+        Runtime::Project& project = m_application.GetContext().GetProjectService().GetProject();
         bool changed = false;
-        ImGui::Text("Project: %s", project.GetName().c_str());
+        ImGui::TextUnformatted(Text(EditorText::ProjectName, project.GetName()).c_str());
         ImGui::TextDisabled("%s", project.GetRoot().generic_string().c_str());
-        ImGui::TextDisabled("Game module: %s", project.GetGameModuleName().c_str());
+        ImGui::TextDisabled("%s", Text(EditorText::GameModuleName, project.GetGameModuleName()).c_str());
 
-        ImGui::SeparatorText("Startup");
+        ImGui::SeparatorText(Text(EditorText::SettingsStartup));
         Core::Guid startup = project.GetStartupLevel();
-        PropertyDrawer::BeginRow("Startup Level", false);
+        PropertyDrawer::BeginRow(Text(EditorText::StartupLevel), false);
         if (PropertyDrawer::AssetField("##startup", "Level", startup, false))
         {
             project.SetStartupLevel(startup);
@@ -40,17 +42,13 @@ namespace BrightBox3D::Editor
         }
         PropertyDrawer::EndRow();
 
-        ImGui::SeparatorText("Default GameMode");
-        Serialization::JsonDocument& gameMode = project.GetGameMode();
-        changed |= InspectorPanel::DrawGameModeSettings(gameMode, gameMode.GetAllocator(), m_application.GetContext().IsPlaying());
-
-        ImGui::SeparatorText("Simulation");
+        ImGui::SeparatorText(Text(EditorText::SettingsSimulation));
         float rate = 1.0f / project.GetFixedTimeStep();
-        PropertyDrawer::BeginRow("Fixed Update Rate (Hz)", false);
+        PropertyDrawer::BeginRow(Text(EditorText::FixedUpdateRate), false);
         if (ImGui::DragFloat("##rate", &rate, 1.0f, 10.0f, 240.0f, "%.0f"))
         {
             project.SetFixedTimeStep(1.0f / std::max(rate, 1.0f));
-            if (Level::Level* level = m_application.GetContext().GetEditLevel())
+            if (Level::Level* level = m_application.GetContext().GetLevelService().GetEditLevel())
             {
                 level->SetFixedDeltaTime(project.GetFixedTimeStep());
             }
@@ -58,9 +56,9 @@ namespace BrightBox3D::Editor
         }
         PropertyDrawer::EndRow();
 
-        ImGui::SeparatorText("Hot Reload");
+        ImGui::SeparatorText(Text(EditorText::SettingsHotReload));
         bool autoReload = project.GetAutoHotReload();
-        PropertyDrawer::BeginRow("Compile on save", false);
+        PropertyDrawer::BeginRow(Text(EditorText::CompileOnSave), false);
         if (ImGui::Checkbox("##auto", &autoReload))
         {
             project.SetAutoHotReload(autoReload);

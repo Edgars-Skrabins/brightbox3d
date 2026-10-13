@@ -5,6 +5,7 @@
 #include "Core/Log.h"
 #include "Core/SharedLibrary.h"
 #include "EditorContext.h"
+#include "EditorText.h"
 #include "Runtime/GameManifest.h"
 
 namespace BrightBox3D::Editor
@@ -37,7 +38,7 @@ namespace BrightBox3D::Editor
             }
             if (code)
             {
-                error = "copy '" + from.generic_string() + "' failed: " + code.message();
+                error = Text(EditorText::CopyFailed, from.generic_string(), code.message());
                 return false;
             }
             return true;
@@ -46,29 +47,29 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path GameBuilder::DefaultOutput(EditorContext& context)
     {
-        return context.GetProject().GetRoot() / "Build" / PlatformName();
+        return context.GetProjectService().GetProject().GetRoot() / "Build" / PlatformName();
     }
 
     bool GameBuilder::Build(EditorContext& context, const std::filesystem::path& output, std::string& error)
     {
-        Runtime::Project& project = context.GetProject();
+        Runtime::Project& project = context.GetProjectService().GetProject();
         if (!project.GetStartupLevel().IsValid())
         {
-            error = "the project has no startup level";
+            error = Text(EditorText::NoStartupLevel);
             return false;
         }
-        if (context.IsDirty() && !context.SaveLevel())
+        if (context.GetLevelService().IsDirty() && !context.GetLevelService().SaveLevel())
         {
-            error = "saving the level failed";
+            error = Text(EditorText::SavingLevelFailed);
             return false;
         }
-        Core::Log::Info("Building '" + project.GetName() + "' into " + output.generic_string());
+        Core::Log::Info(Text(EditorText::BuildingGame, project.GetName(), output.generic_string()));
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         database.Refresh();
         std::string cookErrors;
         if (!database.CookAll(cookErrors))
         {
-            Core::Log::Warning("Some assets failed to cook:\n" + cookErrors);
+            Core::Log::Warning(Text(EditorText::CookFailed, cookErrors));
         }
 
         std::error_code code;
@@ -84,7 +85,7 @@ namespace BrightBox3D::Editor
 #endif
         if (!std::filesystem::exists(player))
         {
-            error = "BrightPlayer was not found next to the editor";
+            error = Text(EditorText::PlayerNotFound);
             return false;
         }
         if (!CopyPath(player, output / executableName, error) ||
@@ -106,13 +107,12 @@ namespace BrightBox3D::Editor
         manifest.gameModule = std::filesystem::exists(module) ? project.GetGameModuleName() : std::string();
         manifest.startupLevel = project.GetStartupLevel();
         manifest.fixedTimeStep = project.GetFixedTimeStep();
-        manifest.gameMode.CopyFrom(project.GetGameMode(), manifest.gameMode.GetAllocator());
         if (!manifest.Save(output / Runtime::GameManifest::FileName))
         {
-            error = "writing Game.json failed";
+            error = Text(EditorText::ManifestWriteFailed);
             return false;
         }
-        Core::Log::Info("Build finished: " + (output / executableName).generic_string());
+        Core::Log::Info(Text(EditorText::BuildFinished, (output / executableName).generic_string()));
         return true;
     }
 }

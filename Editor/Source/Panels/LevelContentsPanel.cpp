@@ -1,13 +1,18 @@
 #include "Panels/LevelContentsPanel.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineInfo.h"
+#include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
-#include "Icons.h"
+#include "IconGlyphs.h"
 #include "Level/LevelSerializer.h"
+#include "ObjectIcons.h"
 #include "Panels/LevelViewPanel.h"
 #include "Physics/Colliders.h"
 #include "Reflection/TypeRegistry.h"
@@ -29,35 +34,6 @@ namespace BrightBox3D::Editor
         {
             std::transform(text.begin(), text.end(), text.begin(), ::tolower);
             return text;
-        }
-
-        const char* ObjectIcon(const Level::LevelObjectInstance& object)
-        {
-            if (object.IsA<Framework::PlayerStart>())
-            {
-                return Icons::Flag;
-            }
-            if (object.IsA<Framework::Camera>())
-            {
-                return Icons::Video;
-            }
-            if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
-            {
-                return light->GetLightType() == Rendering::LightType::Directional ? Icons::Sun : Icons::Lightbulb;
-            }
-            if (object.GetComponent<Rendering::MeshRenderer>())
-            {
-                return Icons::Box;
-            }
-            if (object.GetComponent<Physics::Collider>())
-            {
-                return Icons::SquareDashed;
-            }
-            if (&object.GetType() != &Level::LevelObjectInstance::StaticType())
-            {
-                return Icons::FileCode;
-            }
-            return Icons::CircleDashed;
         }
 
         void DrawRowLabel(const ImVec2& position, const char* icon, const ImVec4& iconColor, const std::string& name, const ImVec4& nameColor, const std::string& suffix)
@@ -105,7 +81,7 @@ namespace BrightBox3D::Editor
     {
     }
 
-    bool LevelContentsPanel::MatchesFilter(const Level::LevelObjectInstance& object) const
+    bool LevelContentsPanel::MatchesFilter(const Level::LevelObject& object) const
     {
         if (m_filter.empty())
         {
@@ -115,7 +91,7 @@ namespace BrightBox3D::Editor
         {
             return true;
         }
-        for (const Level::LevelObjectInstance* child : object.GetChildren())
+        for (const Level::LevelObject* child : object.GetChildren())
         {
             if (MatchesFilter(*child))
             {
@@ -125,66 +101,66 @@ namespace BrightBox3D::Editor
         return false;
     }
 
-    void LevelContentsPanel::DrawCreateMenu(Level::LevelObjectInstance* parent)
+    void LevelContentsPanel::DrawCreateMenu(Level::LevelObject* parent)
     {
         EditorContext& context = m_application.GetContext();
         Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : m_application.GetLevelView().GetSpawnPoint();
-        if (ImGui::MenuItem("Empty LevelObject"))
+        if (ImGui::MenuItem(Text(EditorText::EmptyLevelObject)))
         {
-            context.CreateObject(Level::LevelObjectInstance::StaticType(), "LevelObject", parent);
+            context.GetObjectEditService().CreateObject(Level::LevelObject::StaticType(), Level::LevelObject::StaticType().GetName(), parent);
         }
-        if (ImGui::BeginMenu("3D Object"))
+        if (ImGui::BeginMenu(Text(EditorText::CreateMenu3DObject)))
         {
             struct Primitive
             {
-                const char* name;
+                EditorText name;
                 Core::Guid guid;
             };
             Primitive primitives[] = {
-                { "Cube", Rendering::BuiltinAssets::Cube() },
-                { "Sphere", Rendering::BuiltinAssets::Sphere() },
-                { "Capsule", Rendering::BuiltinAssets::Capsule() },
-                { "Cylinder", Rendering::BuiltinAssets::Cylinder() },
-                { "Plane", Rendering::BuiltinAssets::Plane() },
-                { "Quad", Rendering::BuiltinAssets::Quad() }
+                { EditorText::PrimitiveCube, Rendering::BuiltinAssets::Cube() },
+                { EditorText::PrimitiveSphere, Rendering::BuiltinAssets::Sphere() },
+                { EditorText::PrimitiveCapsule, Rendering::BuiltinAssets::Capsule() },
+                { EditorText::PrimitiveCylinder, Rendering::BuiltinAssets::Cylinder() },
+                { EditorText::PrimitivePlane, Rendering::BuiltinAssets::Plane() },
+                { EditorText::PrimitiveQuad, Rendering::BuiltinAssets::Quad() }
             };
             for (const Primitive& primitive : primitives)
             {
-                if (ImGui::MenuItem(primitive.name))
+                if (ImGui::MenuItem(Text(primitive.name)))
                 {
-                    context.CreateModelObject(primitive.guid, primitive.name, spawn, parent);
+                    context.GetObjectEditService().CreateModelObject(primitive.guid, Text(primitive.name), spawn, parent);
                 }
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Light"))
+        if (ImGui::BeginMenu(Text(EditorText::CreateMenuLight)))
         {
-            if (ImGui::MenuItem("Directional Light"))
+            if (ImGui::MenuItem(Text(EditorText::DirectionalLight)))
             {
-                context.CreateLight(0);
+                context.GetObjectEditService().CreateLight(0);
             }
-            if (ImGui::MenuItem("Point Light"))
+            if (ImGui::MenuItem(Text(EditorText::PointLight)))
             {
-                context.CreateLight(1);
+                context.GetObjectEditService().CreateLight(1);
             }
-            if (ImGui::MenuItem("Spot Light"))
+            if (ImGui::MenuItem(Text(EditorText::SpotLight)))
             {
-                context.CreateLight(2);
+                context.GetObjectEditService().CreateLight(2);
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Gameplay"))
+        if (ImGui::BeginMenu(Text(EditorText::CreateMenuGameplay)))
         {
-            if (ImGui::MenuItem("Player Start"))
+            if (ImGui::MenuItem(Text(EditorText::PlayerStart)))
             {
-                if (auto* object = context.CreateObject(Framework::PlayerStart::StaticType(), "PlayerStart", parent))
+                if (auto* object = context.GetObjectEditService().CreateObject(Framework::PlayerStart::StaticType(), Framework::PlayerStart::StaticType().GetName(), parent))
                 {
                     object->GetTransform().SetPosition({ spawn.x, 0.0f, spawn.z });
                 }
             }
-            if (ImGui::MenuItem("Camera"))
+            if (ImGui::MenuItem(Text(EditorText::Camera)))
             {
-                if (auto* object = context.CreateObject(Framework::Camera::StaticType(), "Camera", parent))
+                if (auto* object = context.GetObjectEditService().CreateObject(Framework::Camera::StaticType(), Framework::Camera::StaticType().GetName(), parent))
                 {
                     object->GetTransform().SetPosition(spawn + Math::Vector3(0.0f, 1.5f, 0.0f));
                 }
@@ -192,102 +168,102 @@ namespace BrightBox3D::Editor
             ImGui::EndMenu();
         }
         std::vector<const Reflection::TypeInfo*> custom;
-        for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObjectInstance::StaticType()))
+        for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObject::StaticType()))
         {
-            if (type != &Level::LevelObjectInstance::StaticType() && type->GetModuleName() != "BrightBox3D")
+            if (type != &Level::LevelObject::StaticType() && type->GetModuleName() != Core::EngineModuleName)
             {
                 custom.push_back(type);
             }
         }
-        if (!custom.empty() && ImGui::BeginMenu("Game Classes"))
+        if (!custom.empty() && ImGui::BeginMenu(Text(EditorText::CreateMenuGameClasses)))
         {
             for (const Reflection::TypeInfo* type : custom)
             {
                 if (ImGui::MenuItem(type->GetName().c_str()))
                 {
-                    context.CreateObject(*type, type->GetName(), parent);
+                    context.GetObjectEditService().CreateObject(*type, type->GetName(), parent);
                 }
             }
             ImGui::EndMenu();
         }
     }
 
-    void LevelContentsPanel::DrawObjectContextMenu(Level::LevelObjectInstance& object)
+    void LevelContentsPanel::DrawObjectContextMenu(Level::LevelObject& object)
     {
         EditorContext& context = m_application.GetContext();
-        if (!context.IsSelected(object.GetId()))
+        if (!context.GetSelectionService().IsSelected(object.GetId()))
         {
-            context.Select(object.GetId());
+            context.GetSelectionService().Select(object.GetId());
         }
-        if (ImGui::MenuItem("Rename", "F2"))
+        if (ImGui::MenuItem(Text(EditorText::Rename), "F2"))
         {
             m_renaming = object.GetId();
             m_renameBuffer = object.GetName();
             m_focusRename = true;
         }
-        if (ImGui::MenuItem("Duplicate", "Cmd+D"))
+        if (ImGui::MenuItem(Text(EditorText::Duplicate), "Cmd+D"))
         {
-            context.DuplicateSelection();
+            context.GetObjectEditService().DuplicateSelection();
         }
-        if (ImGui::MenuItem("Delete", "Del"))
+        if (ImGui::MenuItem(Text(EditorText::Delete), "Del"))
         {
-            context.DeleteSelection();
+            context.GetObjectEditService().DeleteSelection();
             return;
         }
-        if (ImGui::MenuItem("Focus", "F"))
+        if (ImGui::MenuItem(Text(EditorText::Focus), "F"))
         {
             m_application.GetLevelView().FocusSelection();
         }
         ImGui::Separator();
-        if (ImGui::BeginMenu("Create Child"))
+        if (ImGui::BeginMenu(Text(EditorText::CreateChild)))
         {
             DrawCreateMenu(&object);
             ImGui::EndMenu();
         }
-        if (!context.IsPlaying())
+        if (!context.GetLevelService().IsPlaying())
         {
             ImGui::Separator();
             if (object.GetLink().isRoot)
             {
-                if (ImGui::MenuItem("Select LevelObject Asset"))
+                if (ImGui::MenuItem(Text(EditorText::SelectLevelObjectAsset)))
                 {
-                    context.SelectAsset(object.GetLink().asset);
+                    context.GetSelectionService().SelectAsset(object.GetLink().asset);
                 }
-                if (ImGui::MenuItem("Open LevelObject"))
+                if (ImGui::MenuItem(Text(EditorText::OpenLevelObject)))
                 {
-                    context.OpenLevelObjectEditor(object.GetLink().asset);
+                    context.GetLevelObjectEditService().OpenLevelObjectEditor(object.GetLink().asset);
                     return;
                 }
-                if (ImGui::MenuItem("Apply All Overrides"))
+                if (ImGui::MenuItem(Text(EditorText::ApplyAllOverrides)))
                 {
                     Level::LevelSerializer::ApplyAllToAsset(object);
                 }
-                if (ImGui::MenuItem("Revert All Overrides"))
+                if (ImGui::MenuItem(Text(EditorText::RevertAllOverrides)))
                 {
                     Serialization::JsonDocument before;
-                    EditorContext::Snapshot(object, before);
+                    ObjectEditService::Snapshot(object, before);
                     Core::Guid id = object.GetId();
                     Level::LevelSerializer::RevertAll(object);
-                    context.RecordObjectChange(id, before, "Revert Overrides");
+                    context.GetUndoService().RecordObjectChange(id, before, Text(EditorText::UndoRevertOverrides));
                     return;
                 }
-                if (ImGui::MenuItem("Unlink"))
+                if (ImGui::MenuItem(Text(EditorText::Unlink)))
                 {
                     Serialization::JsonDocument before;
-                    EditorContext::Snapshot(object, before);
+                    ObjectEditService::Snapshot(object, before);
                     Level::LevelSerializer::Unlink(object);
-                    context.RecordObjectChange(object.GetId(), before, "Unlink");
+                    context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::Unlink));
                 }
             }
-            else if (!object.IsLinked() && !context.IsEditingLevelObject())
+            else if (!object.IsLinked() && !context.GetLevelObjectEditService().IsEditingLevelObject())
             {
-                if (ImGui::MenuItem("Create LevelObject Asset"))
+                if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectVariant)))
                 {
-                    context.CreateLevelObjectAsset(object, context.GetAssetsFolder());
+                    context.GetAssetCreationService().CreateVariantAsset(object, context.GetAssetCreationService().GetAssetsFolder());
                 }
-                if (ImGui::MenuItem("Create LevelObjectTemplate"))
+                if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectTemplate)))
                 {
-                    context.CreateTemplateAsset(&object, context.GetAssetsFolder());
+                    context.GetAssetCreationService().CreateTemplateAsset(&object, context.GetAssetCreationService().GetAssetsFolder());
                 }
             }
         }
@@ -295,14 +271,14 @@ namespace BrightBox3D::Editor
         {
             ImGui::Separator();
             bool keeping = session->IsKeepingChanges(object.GetId());
-            if (ImGui::MenuItem("Keep Changes", nullptr, keeping))
+            if (ImGui::MenuItem(Text(EditorText::KeepChanges), nullptr, keeping))
             {
                 session->ToggleKeepChanges(object.GetId());
             }
         }
     }
 
-    void LevelContentsPanel::DrawObject(Level::LevelObjectInstance& object)
+    void LevelContentsPanel::DrawObject(Level::LevelObject& object)
     {
         if (object.GetHideInLevelContents() || object.IsPendingDestroy() || !MatchesFilter(object))
         {
@@ -311,13 +287,13 @@ namespace BrightBox3D::Editor
         EditorContext& context = m_application.GetContext();
         ImGui::PushID(object.GetId().ToString().c_str());
 
-        bool hasChildren = std::any_of(object.GetChildren().begin(), object.GetChildren().end(), [](const Level::LevelObjectInstance* child) { return !child->GetHideInLevelContents(); });
+        bool hasChildren = std::any_of(object.GetChildren().begin(), object.GetChildren().end(), [](const Level::LevelObject* child) { return !child->GetHideInLevelContents(); });
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
         if (!hasChildren)
         {
             flags |= ImGuiTreeNodeFlags_Leaf;
         }
-        if (context.IsSelected(object.GetId()))
+        if (context.GetSelectionService().IsSelected(object.GetId()))
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
@@ -325,9 +301,9 @@ namespace BrightBox3D::Editor
         {
             ImGui::SetNextItemOpen(true);
         }
-        for (const Core::Guid& selected : context.GetSelection())
+        for (const Core::Guid& selected : context.GetSelectionService().GetSelection())
         {
-            Level::LevelObjectInstance* selectedObject = context.GetActiveLevel()->FindObject(selected);
+            Level::LevelObject* selectedObject = context.GetLevelService().GetActiveLevel()->FindObject(selected);
             if (selectedObject && selectedObject->IsDescendantOf(&object) && m_scrollTo == selected)
             {
                 ImGui::SetNextItemOpen(true);
@@ -336,27 +312,27 @@ namespace BrightBox3D::Editor
 
         ImVec4 color = EditorColorVec4(EditorColor::Text);
         ImVec4 iconColor = EditorColorVec4(EditorColor::TextDim);
-        const char* icon = ObjectIcon(object);
+        const char* icon = IconGlyph(m_icons.ObjectIcon(object));
         if (!object.GetMissingTypeName().empty())
         {
             color = EditorColorVec4(EditorColor::Missing);
             iconColor = color;
-            icon = Icons::TriangleAlert;
+            icon = IconGlyph(Icon::TriangleAlert);
         }
-        else if (object.IsLinked() && !context.IsEditingLevelObject())
+        else if (object.IsLinked() && !context.GetLevelObjectEditService().IsEditingLevelObject())
         {
             color = EditorColorVec4(EditorColor::Linked);
             iconColor = color;
-            icon = Icons::Package;
+            icon = IconGlyph(Icon::Package);
         }
         if (!object.IsActiveInHierarchy())
         {
             color.w *= 0.5f;
             iconColor.w *= 0.5f;
         }
-        bool keeping = context.IsPlaying() && m_application.GetPlaySession() && m_application.GetPlaySession()->IsKeepingChanges(object.GetId());
+        bool keeping = context.GetLevelService().IsPlaying() && m_application.GetPlaySession() && m_application.GetPlaySession()->IsKeepingChanges(object.GetId());
 
-        DrawRowBackground(context.IsSelected(object.GetId()));
+        DrawRowBackground(context.GetSelectionService().IsSelected(object.GetId()));
         ImVec2 rowPosition = ImGui::GetCursorScreenPos();
         ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
         bool open;
@@ -374,9 +350,9 @@ namespace BrightBox3D::Editor
             if (ImGui::InputText("##rename", &m_renameBuffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
             {
                 Serialization::JsonDocument before;
-                EditorContext::Snapshot(object, before);
+                ObjectEditService::Snapshot(object, before);
                 object.SetName(m_renameBuffer);
-                context.RecordObjectChange(object.GetId(), before, "Rename");
+                context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::Rename));
                 m_renaming = {};
             }
             else if (!ImGui::IsItemActive() && !m_focusRename && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Escape)))
@@ -389,15 +365,15 @@ namespace BrightBox3D::Editor
             std::string suffix;
             if (!object.GetMissingTypeName().empty())
             {
-                suffix = "(missing " + object.GetMissingTypeName() + ")";
+                suffix = Text(EditorText::MissingTypeSuffix, object.GetMissingTypeName());
             }
-            else if (&object.GetType() != &Level::LevelObjectInstance::StaticType())
+            else if (&object.GetType() != &Level::LevelObject::StaticType())
             {
                 suffix = "[" + object.GetType().GetName() + "]";
             }
             if (keeping)
             {
-                suffix += suffix.empty() ? "(keep changes)" : "  (keep changes)";
+                suffix += (suffix.empty() ? "" : "  ") + std::string(Text(EditorText::KeepChangesSuffix));
             }
             open = ImGui::TreeNodeEx("##node", flags, "%s", "");
             DrawRowLabel(labelPosition, icon, iconColor, object.GetName(), color, suffix);
@@ -410,7 +386,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
         {
-            context.Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl);
+            context.GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl);
         }
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
@@ -428,16 +404,16 @@ namespace BrightBox3D::Editor
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
             {
                 Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                Level::LevelObjectInstance* draggedObject = context.GetActiveLevel()->FindObject(dragged);
+                Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(dragged);
                 if (draggedObject && draggedObject != &object && !object.IsDescendantOf(draggedObject))
                 {
                     if (ImGui::GetIO().KeyAlt)
                     {
-                        context.Reparent(*draggedObject, object.GetParent(), object.GetCollection(), object.GetSiblingIndex());
+                        context.GetObjectEditService().Reparent(*draggedObject, object.GetParent(), object.GetCollection(), object.GetSiblingIndex());
                     }
                     else
                     {
-                        context.Reparent(*draggedObject, &object, object.GetCollection(), -1);
+                        context.GetObjectEditService().Reparent(*draggedObject, &object, object.GetCollection(), -1);
                     }
                 }
             }
@@ -445,13 +421,17 @@ namespace BrightBox3D::Editor
             {
                 Core::Guid guid = *static_cast<const Core::Guid*>(payload->Data);
                 const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(guid);
-                if (record && record->type == Assets::AssetType::LevelObject)
+                if (record && record->type == Assets::AssetType::LevelObjectVariant)
                 {
-                    context.InstantiateLevelObject(guid, object.GetTransform().GetPosition(), &object);
+                    context.GetObjectEditService().InstantiateLevelObject(guid, object.GetTransform().GetPosition(), &object);
                 }
                 else if (record && record->type == Assets::AssetType::Model)
                 {
-                    context.CreateModelObject(guid, record->name.substr(0, record->name.find('.')), object.GetTransform().GetPosition(), &object);
+                    context.GetObjectEditService().CreateModelObject(guid, record->name.substr(0, record->name.find('.')), object.GetTransform().GetPosition(), &object);
+                }
+                else if (record && record->type == Assets::AssetType::LevelObjectTemplate)
+                {
+                    Core::Log::Warning(Text(EditorText::CreateVariantFirst));
                 }
             }
             ImGui::EndDragDropTarget();
@@ -464,8 +444,8 @@ namespace BrightBox3D::Editor
 
         if (open)
         {
-            std::vector<Level::LevelObjectInstance*> children = object.GetChildren();
-            for (Level::LevelObjectInstance* child : children)
+            std::vector<Level::LevelObject*> children = object.GetChildren();
+            for (Level::LevelObject* child : children)
             {
                 DrawObject(*child);
             }
@@ -479,7 +459,7 @@ namespace BrightBox3D::Editor
         EditorContext& context = m_application.GetContext();
         ImGui::PushID(&collection);
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
-        bool selected = context.GetFocus() == SelectionFocus::Collection && context.GetSelectedCollection() == &collection;
+        bool selected = context.GetSelectionService().GetFocus() == SelectionFocus::Collection && context.GetSelectionService().GetSelectedCollection() == &collection;
         if (selected)
         {
             flags |= ImGuiTreeNodeFlags_Selected;
@@ -490,41 +470,41 @@ namespace BrightBox3D::Editor
             label += " *";
         }
         std::string suffix;
-        if (context.GetActiveCollection() == &collection && context.GetEditLevel() && context.GetEditLevel()->GetCollections().size() > 1)
+        if (context.GetLevelService().GetActiveCollection() == &collection && context.GetLevelService().GetEditLevel() && context.GetLevelService().GetEditLevel()->GetCollections().size() > 1)
         {
-            suffix = "(active)";
+            suffix = Text(EditorText::ActiveSuffix);
         }
         DrawRowBackground(selected);
         ImVec2 rowPosition = ImGui::GetCursorScreenPos();
         ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
         bool open = ImGui::TreeNodeEx("##collection", flags, "%s", "");
-        DrawRowLabel(labelPosition, Icons::Layers, EditorColorVec4(EditorColor::TextDim), label, EditorColorVec4(EditorColor::Text), suffix);
-        DrawRowTag(labelPosition.y, "Collection");
+        DrawRowLabel(labelPosition, IconGlyph(Icon::Layers), EditorColorVec4(EditorColor::TextDim), label, EditorColorVec4(EditorColor::Text), suffix);
+        DrawRowTag(labelPosition.y, Text(EditorText::CollectionTag));
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
-            context.SelectCollection(&collection);
+            context.GetSelectionService().SelectCollection(&collection);
         }
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
             {
                 Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                if (Level::LevelObjectInstance* draggedObject = context.GetActiveLevel()->FindObject(dragged))
+                if (Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(dragged))
                 {
-                    context.Reparent(*draggedObject, nullptr, &collection, -1);
+                    context.GetObjectEditService().Reparent(*draggedObject, nullptr, &collection, -1);
                 }
             }
             ImGui::EndDragDropTarget();
         }
         if (ImGui::BeginPopupContextItem("CollectionContext"))
         {
-            if (ImGui::MenuItem("Set Active Collection"))
+            if (ImGui::MenuItem(Text(EditorText::SetActiveCollection)))
             {
-                context.SetActiveCollection(&collection);
+                context.GetLevelService().SetActiveCollection(&collection);
             }
-            if (ImGui::BeginMenu("Create"))
+            if (ImGui::BeginMenu(Text(EditorText::Create)))
             {
-                context.SetActiveCollection(&collection);
+                context.GetLevelService().SetActiveCollection(&collection);
                 DrawCreateMenu(nullptr);
                 ImGui::EndMenu();
             }
@@ -532,8 +512,8 @@ namespace BrightBox3D::Editor
         }
         if (open)
         {
-            std::vector<Level::LevelObjectInstance*> roots = collection.GetRoots();
-            for (Level::LevelObjectInstance* root : roots)
+            std::vector<Level::LevelObject*> roots = collection.GetRoots();
+            for (Level::LevelObject* root : roots)
             {
                 DrawObject(*root);
             }
@@ -544,20 +524,20 @@ namespace BrightBox3D::Editor
 
     void LevelContentsPanel::Draw()
     {
-        if (!ImGui::Begin("Level Contents"))
+        if (!ImGui::Begin(WindowTitle(EditorWindow::LevelContents).c_str()))
         {
             ImGui::End();
             return;
         }
         EditorContext& context = m_application.GetContext();
-        Level::Level* level = context.GetActiveLevel();
+        Level::Level* level = context.GetLevelService().GetActiveLevel();
         if (!level)
         {
-            ImGui::TextDisabled("No level open");
+            ImGui::TextDisabled("%s", Text(EditorText::NoLevelOpen));
             ImGui::End();
             return;
         }
-        if (ImGui::Button(Icons::Plus))
+        if (ImGui::Button(IconGlyph(Icon::Plus)))
         {
             ImGui::OpenPopup("CreatePopup");
         }
@@ -568,28 +548,28 @@ namespace BrightBox3D::Editor
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputTextWithHint("##filter", (std::string(Icons::Search) + "  Search").c_str(), &m_filter);
+        ImGui::InputTextWithHint("##filter", (std::string(IconGlyph(Icon::Search)) + "  Search").c_str(), &m_filter);
 
-        std::string levelLabel = level->GetName() + (context.IsDirty() ? " *" : "");
-        std::string levelSuffix = context.IsPlaying() ? "(PlayMode)" : "";
-        bool levelSelected = context.GetFocus() == SelectionFocus::Level;
+        std::string levelLabel = level->GetName() + (context.GetLevelService().IsDirty() ? " *" : "");
+        std::string levelSuffix = context.GetLevelService().IsPlaying() ? Text(EditorText::PlayModeSuffix) : "";
+        bool levelSelected = context.GetSelectionService().GetFocus() == SelectionFocus::Level;
         PushSelectionColors();
         ImGui::Spacing();
         ImVec2 levelPosition = ImGui::GetCursorScreenPos();
         float levelHeight = ImGui::GetFrameHeight();
         if (ImGui::Selectable("##level", levelSelected, ImGuiSelectableFlags_None, ImVec2(0, levelHeight)))
         {
-            context.SelectLevel();
+            context.GetSelectionService().SelectLevel();
         }
         ImVec2 levelLabelPosition(levelPosition.x + ImGui::GetStyle().FramePadding.x, levelPosition.y + (levelHeight - ImGui::GetTextLineHeight()) * 0.5f);
-        DrawRowLabel(levelLabelPosition, Icons::Map, EditorColorVec4(EditorColor::Accent), levelLabel, EditorColorVec4(EditorColor::Text), levelSuffix);
-        DrawRowTag(levelLabelPosition.y, "Level");
+        DrawRowLabel(levelLabelPosition, IconGlyph(Icon::Map), EditorColorVec4(EditorColor::Accent), levelLabel, EditorColorVec4(EditorColor::Text), levelSuffix);
+        DrawRowTag(levelLabelPosition.y, Text(EditorText::AssetTypeLevel));
         ImGui::Spacing();
         ImGui::Separator();
 
         ImGui::BeginChild("Tree", ImVec2(0, 0), ImGuiChildFlags_None);
         m_rowIndex = 0;
-        for (Level::LevelObjectInstance* selected : context.GetSelectedObjects())
+        for (Level::LevelObject* selected : context.GetSelectionService().GetSelectedObjects())
         {
             static Core::Guid lastSelected;
             if (selected->GetId() != lastSelected)
@@ -600,7 +580,7 @@ namespace BrightBox3D::Editor
         }
         for (const auto& collection : level->GetCollections())
         {
-            if (context.IsPlaying() && collection->GetName() == "Runtime" && collection->GetRoots().empty())
+            if (context.GetLevelService().IsPlaying() && collection->GetName() == Level::Level::RuntimeCollectionName && collection->GetRoots().empty())
             {
                 continue;
             }
@@ -608,7 +588,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
         {
-            context.ClearSelection();
+            context.GetSelectionService().ClearSelection();
         }
         if (ImGui::BeginPopupContextWindow("TreeContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
         {
@@ -617,7 +597,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsWindowFocused() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F2))
         {
-            if (Level::LevelObjectInstance* primary = context.GetPrimarySelection())
+            if (Level::LevelObject* primary = context.GetSelectionService().GetPrimarySelection())
             {
                 m_renaming = primary->GetId();
                 m_renameBuffer = primary->GetName();

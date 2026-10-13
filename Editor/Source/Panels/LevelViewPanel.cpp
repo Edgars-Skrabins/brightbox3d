@@ -5,9 +5,12 @@
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
-#include "Icons.h"
+#include "Geometry/ModelAsset.h"
+#include "IconGlyphs.h"
 #include "ImGui/ImGuiRenderer.h"
 #include "Level/LevelSerializer.h"
 #include "Physics/Colliders.h"
@@ -16,7 +19,6 @@
 #include "Rendering/Light.h"
 #include "Rendering/MaterialAsset.h"
 #include "Rendering/MeshRenderer.h"
-#include "Rendering/ModelAsset.h"
 
 #include <ImGuizmo.h>
 
@@ -44,23 +46,23 @@ namespace BrightBox3D::Editor
 
     void LevelViewPanel::FocusSelection()
     {
-        Level::LevelObjectInstance* object = m_application.GetContext().GetPrimarySelection();
+        Level::LevelObject* object = m_application.GetContext().GetSelectionService().GetPrimarySelection();
         if (!object)
         {
             return;
         }
         Math::Bounds bounds;
-        std::function<void(Level::LevelObjectInstance&)> gather = [&](Level::LevelObjectInstance& node)
+        std::function<void(Level::LevelObject&)> gather = [&](Level::LevelObject& node)
         {
             if (auto* renderer = node.GetComponent<Rendering::MeshRenderer>())
             {
                 auto model = renderer->GetModel().Load();
-                if (const Rendering::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
+                if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
                 {
                     bounds.Encapsulate(mesh->bounds.Transformed(node.GetTransform().GetWorldMatrix()));
                 }
             }
-            for (Level::LevelObjectInstance* child : node.GetChildren())
+            for (Level::LevelObject* child : node.GetChildren())
             {
                 gather(*child);
             }
@@ -88,7 +90,7 @@ namespace BrightBox3D::Editor
 
     Math::Vector3 LevelViewPanel::PlacementPoint(const Math::Ray& ray) const
     {
-        Level::Level* level = m_application.GetContext().GetActiveLevel();
+        Level::Level* level = m_application.GetContext().GetLevelService().GetActiveLevel();
         if (level)
         {
             PickResult hit = PickObject(*level, ray);
@@ -123,37 +125,37 @@ namespace BrightBox3D::Editor
             }
             return pressed;
         };
-        if (toggle(std::string(Icons::Move) + "  Move", context.GetGizmoOperation() == GizmoOperation::Translate))
+        if (toggle(std::string(IconGlyph(Icon::Move)) + "  Move", m_gizmoOperation == GizmoOperation::Translate))
         {
-            context.SetGizmoOperation(GizmoOperation::Translate);
+            m_gizmoOperation = GizmoOperation::Translate;
         }
         ImGui::SameLine();
-        if (toggle(std::string(Icons::Rotate) + "  Rotate", context.GetGizmoOperation() == GizmoOperation::Rotate))
+        if (toggle(std::string(IconGlyph(Icon::RotateCw)) + "  Rotate", m_gizmoOperation == GizmoOperation::Rotate))
         {
-            context.SetGizmoOperation(GizmoOperation::Rotate);
+            m_gizmoOperation = GizmoOperation::Rotate;
         }
         ImGui::SameLine();
-        if (toggle(std::string(Icons::Scale) + "  Scale", context.GetGizmoOperation() == GizmoOperation::Scale))
+        if (toggle(std::string(IconGlyph(Icon::Scaling)) + "  Scale", m_gizmoOperation == GizmoOperation::Scale))
         {
-            context.SetGizmoOperation(GizmoOperation::Scale);
+            m_gizmoOperation = GizmoOperation::Scale;
         }
         ImGui::SameLine();
-        if (ImGui::Button((std::string(Icons::Globe) + (context.GetGizmoLocal() ? "  Local" : "  World")).c_str()))
+        if (ImGui::Button((std::string(IconGlyph(Icon::Globe)) + (m_gizmoLocal ? "  Local" : "  World")).c_str()))
         {
-            context.SetGizmoLocal(!context.GetGizmoLocal());
+            m_gizmoLocal = !m_gizmoLocal;
         }
         ImGui::SameLine();
-        if (toggle(std::string(Icons::Magnet) + "  Snap", context.GetSnapping()))
+        if (toggle(std::string(IconGlyph(Icon::Magnet)) + "  Snap", m_snapping))
         {
-            context.SetSnapping(!context.GetSnapping());
+            m_snapping = !m_snapping;
         }
         ImGui::SameLine();
-        if (toggle(std::string(Icons::Grid) + "  Grid", m_showGrid))
+        if (toggle(std::string(IconGlyph(Icon::Grid)) + "  Grid", m_showGrid))
         {
             m_showGrid = !m_showGrid;
         }
         ImGui::SameLine();
-        static const char* modes[] = { "Lit", "Albedo", "Normals", "Metal/Rough", "Shadows", "AO" };
+        static const char* modes[] = { Text(EditorText::DebugModeLit), Text(EditorText::DebugModeAlbedo), Text(EditorText::DebugModeNormals), Text(EditorText::DebugModeMetallicRoughness), Text(EditorText::DebugModeShadows), Text(EditorText::DebugModeAmbientOcclusion) };
         ImGui::SetNextItemWidth(110.0f);
         int mode = static_cast<int>(m_debugMode);
         if (ImGui::Combo("##debugmode", &mode, modes, IM_ARRAYSIZE(modes)))
@@ -167,19 +169,19 @@ namespace BrightBox3D::Editor
         {
             m_camera.SetSpeed(speed);
         }
-        if (context.IsEditingLevelObject())
+        if (context.GetLevelObjectEditService().IsEditingLevelObject())
         {
             ImGui::SameLine();
-            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "Editing %s", context.GetEditLevel() ? context.GetEditLevel()->GetName().c_str() : "");
+            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(EditorText::EditingLevelObject, context.GetLevelService().GetEditLevel() ? context.GetLevelService().GetEditLevel()->GetName() : std::string()).c_str());
             ImGui::SameLine();
-            if (ImGui::Button("Save"))
+            if (ImGui::Button(Text(EditorText::Save)))
             {
-                context.SaveLevelObjectEditor();
+                context.GetLevelObjectEditService().SaveLevelObjectEditor();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Back to Level"))
+            if (ImGui::Button(Text(EditorText::BackToLevel)))
             {
-                context.CloseLevelObjectEditor(true);
+                context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
             }
         }
     }
@@ -187,14 +189,14 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::DrawSelectionOverlay()
     {
         EditorContext& context = m_application.GetContext();
-        for (Level::LevelObjectInstance* object : context.GetSelectedObjects())
+        for (Level::LevelObject* object : context.GetSelectionService().GetSelectedObjects())
         {
-            std::function<void(Level::LevelObjectInstance&)> visit = [&](Level::LevelObjectInstance& node)
+            std::function<void(Level::LevelObject&)> visit = [&](Level::LevelObject& node)
             {
                 if (auto* renderer = node.GetComponent<Rendering::MeshRenderer>())
                 {
                     auto model = renderer->GetModel().Load();
-                    if (const Rendering::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
+                    if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
                     {
                         Math::Matrix4 box = Math::Matrix4::Translation(mesh->bounds.Center()) * node.GetTransform().GetWorldMatrix();
                         Rendering::DebugDraw::WireBox(box, mesh->bounds.Extents(), EditorPreferences::Get().GetColor(EditorColor::Accent), 0.0f, false);
@@ -260,7 +262,7 @@ namespace BrightBox3D::Editor
                     Math::Matrix4 limited = Math::Matrix4::PerspectiveFovLH(view.verticalFov * Math::DegreesToRadians, 16.0f / 9.0f, view.nearPlane, std::min(view.farPlane, 3.0f));
                     Rendering::DebugDraw::Frustum((view.view * limited).Inverse(), EditorPreferences::Get().GetColor(EditorColor::CameraGizmo), false);
                 }
-                for (Level::LevelObjectInstance* child : node.GetChildren())
+                for (Level::LevelObject* child : node.GetChildren())
                 {
                     visit(*child);
                 }
@@ -272,14 +274,14 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::DrawIcons(const Math::Matrix4& viewProjection, const ImVec2& origin, const ImVec2& size)
     {
         m_iconHovered = false;
-        Level::Level* level = m_application.GetContext().GetActiveLevel();
+        Level::Level* level = m_application.GetContext().GetLevelService().GetActiveLevel();
         if (!level)
         {
             return;
         }
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         EditorContext& context = m_application.GetContext();
-        level->ForEachObject([&](Level::LevelObjectInstance& object)
+        level->ForEachObject([&](Level::LevelObject& object)
         {
             if (object.GetHideInLevelContents() || !object.IsActiveInHierarchy())
             {
@@ -289,17 +291,17 @@ namespace BrightBox3D::Editor
             ImU32 color = 0;
             if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
             {
-                glyph = light->GetLightType() == Rendering::LightType::Directional ? Icons::Sun : Icons::Lightbulb;
+                glyph = light->GetLightType() == Rendering::LightType::Directional ? IconGlyph(Icon::Sun) : IconGlyph(Icon::Lightbulb);
                 color = EditorColorU32(EditorColor::LightGizmo);
             }
             else if (object.IsA<Framework::Camera>())
             {
-                glyph = Icons::Video;
+                glyph = IconGlyph(Icon::Video);
                 color = EditorColorU32(EditorColor::CameraGizmo);
             }
             else if (object.IsA<Framework::PlayerStart>())
             {
-                glyph = Icons::Flag;
+                glyph = IconGlyph(Icon::Flag);
                 color = EditorColorU32(EditorColor::PlayerStartGizmo);
             }
             if (!glyph)
@@ -314,7 +316,7 @@ namespace BrightBox3D::Editor
             ImVec2 screen(origin.x + (clip.x / clip.w * 0.5f + 0.5f) * size.x, origin.y + (0.5f - clip.y / clip.w * 0.5f) * size.y);
             float radius = 12.0f;
             bool hovered = ImGui::IsWindowHovered() && std::abs(ImGui::GetIO().MousePos.x - screen.x) < radius && std::abs(ImGui::GetIO().MousePos.y - screen.y) < radius;
-            bool selected = context.IsSelected(object.GetId());
+            bool selected = context.GetSelectionService().IsSelected(object.GetId());
             drawList->AddCircleFilled(screen, radius, hovered ? EditorColorU32(EditorColor::ControlHovered) : EditorColorU32(EditorColor::GizmoBackground));
             drawList->AddCircle(screen, radius, selected ? EditorColorU32(EditorColor::Accent) : color, 0, selected ? 2.5f : 1.5f);
             ImVec2 textSize = ImGui::CalcTextSize(glyph);
@@ -324,7 +326,7 @@ namespace BrightBox3D::Editor
                 m_iconHovered = true;
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver())
                 {
-                    context.Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper);
+                    context.GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper);
                 }
             }
         });
@@ -333,7 +335,7 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::DrawGizmo(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size)
     {
         EditorContext& context = m_application.GetContext();
-        Level::LevelObjectInstance* object = context.GetPrimarySelection();
+        Level::LevelObject* object = context.GetSelectionService().GetPrimarySelection();
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(origin.x, origin.y, size.x, size.y);
@@ -342,13 +344,13 @@ namespace BrightBox3D::Editor
             m_gizmoActive = false;
             return;
         }
-        bool lockedChild = object->IsLinked() && !object->GetLink().isRoot && !context.IsEditingLevelObject() && !context.IsPlaying();
+        bool lockedChild = object->IsLinked() && !object->GetLink().isRoot && !context.GetLevelObjectEditService().IsEditingLevelObject() && !context.GetLevelService().IsPlaying();
         if (lockedChild)
         {
             return;
         }
-        ImGuizmo::OPERATION operation = context.GetGizmoOperation() == GizmoOperation::Translate ? ImGuizmo::TRANSLATE : (context.GetGizmoOperation() == GizmoOperation::Rotate ? ImGuizmo::ROTATE : ImGuizmo::SCALE);
-        ImGuizmo::MODE mode = context.GetGizmoLocal() || operation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
+        ImGuizmo::OPERATION operation = m_gizmoOperation == GizmoOperation::Translate ? ImGuizmo::TRANSLATE : (m_gizmoOperation == GizmoOperation::Rotate ? ImGuizmo::ROTATE : ImGuizmo::SCALE);
+        ImGuizmo::MODE mode = m_gizmoLocal || operation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
         Math::Matrix4 world = object->GetTransform().GetWorldMatrix();
         float snapValues[3] = { 0.5f, 0.5f, 0.5f };
         if (operation == ImGuizmo::ROTATE)
@@ -359,7 +361,7 @@ namespace BrightBox3D::Editor
         {
             snapValues[0] = snapValues[1] = snapValues[2] = 0.1f;
         }
-        bool snap = context.GetSnapping() != ImGui::GetIO().KeyCtrl;
+        bool snap = m_snapping != ImGui::GetIO().KeyCtrl;
         bool changed = ImGuizmo::Manipulate(view.Data(), projection.Data(), operation, mode, &world.m[0][0], nullptr, snap ? snapValues : nullptr);
         bool using_ = ImGuizmo::IsUsing();
         if (using_ && !m_gizmoActive)
@@ -367,7 +369,7 @@ namespace BrightBox3D::Editor
             m_gizmoActive = true;
             m_gizmoObject = object->GetId();
             m_gizmoBefore.SetNull();
-            EditorContext::Snapshot(*object, m_gizmoBefore);
+            ObjectEditService::Snapshot(*object, m_gizmoBefore);
         }
         if (changed)
         {
@@ -376,9 +378,9 @@ namespace BrightBox3D::Editor
         if (!using_ && m_gizmoActive)
         {
             m_gizmoActive = false;
-            if (!context.IsPlaying())
+            if (!context.GetLevelService().IsPlaying())
             {
-                context.RecordObjectChange(m_gizmoObject, m_gizmoBefore, "Transform");
+                context.GetUndoService().RecordObjectChange(m_gizmoObject, m_gizmoBefore, Text(EditorText::UndoTransform));
             }
         }
     }
@@ -395,7 +397,7 @@ namespace BrightBox3D::Editor
             return;
         }
         EditorContext& context = m_application.GetContext();
-        Level::Level* level = context.GetActiveLevel();
+        Level::Level* level = context.GetLevelService().GetActiveLevel();
         if (!level)
         {
             return;
@@ -406,22 +408,22 @@ namespace BrightBox3D::Editor
         {
             if (!additive)
             {
-                context.ClearSelection();
+                context.GetSelectionService().ClearSelection();
             }
             return;
         }
-        Level::LevelObjectInstance* target = hit.object;
-        if (!context.IsEditingLevelObject())
+        Level::LevelObject* target = hit.object;
+        if (!context.GetLevelObjectEditService().IsEditingLevelObject())
         {
-            if (Level::LevelObjectInstance* linkRoot = target->GetLinkRoot())
+            if (Level::LevelObject* linkRoot = target->GetLinkRoot())
             {
-                if (!context.IsSelected(linkRoot->GetId()))
+                if (!context.GetSelectionService().IsSelected(linkRoot->GetId()))
                 {
                     target = linkRoot;
                 }
             }
         }
-        context.Select(target->GetId(), additive);
+        context.GetSelectionService().Select(target->GetId(), additive);
     }
 
     void LevelViewPanel::HandleDrop(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size)
@@ -442,34 +444,34 @@ namespace BrightBox3D::Editor
                 std::string name = record->name.substr(0, record->name.find('.'));
                 if (record->type == Assets::AssetType::Model)
                 {
-                    context.CreateModelObject(guid, name, point);
+                    context.GetObjectEditService().CreateModelObject(guid, name, point);
                 }
-                else if (record->type == Assets::AssetType::LevelObject)
+                else if (record->type == Assets::AssetType::LevelObjectVariant)
                 {
-                    context.InstantiateLevelObject(guid, point);
+                    context.GetObjectEditService().InstantiateLevelObject(guid, point);
                 }
                 else if (record->type == Assets::AssetType::LevelObjectTemplate)
                 {
-                    Core::Log::Warning("LevelObjectTemplates cannot be placed; create a LevelObject from it first");
+                    Core::Log::Warning(Text(EditorText::CreateVariantFirst));
                 }
                 else if (record->type == Assets::AssetType::Material)
                 {
-                    Level::Level* level = context.GetActiveLevel();
+                    Level::Level* level = context.GetLevelService().GetActiveLevel();
                     PickResult hit = level ? PickObject(*level, ray) : PickResult{};
                     if (hit.object)
                     {
                         if (auto* renderer = hit.object->GetComponent<Rendering::MeshRenderer>())
                         {
                             Serialization::JsonDocument before;
-                            EditorContext::Snapshot(*hit.object, before);
+                            ObjectEditService::Snapshot(*hit.object, before);
                             renderer->SetMaterial(0, Assets::AssetReference<Rendering::MaterialAsset>(guid));
-                            context.RecordObjectChange(hit.object->GetId(), before, "Assign Material");
+                            context.GetUndoService().RecordObjectChange(hit.object->GetId(), before, Text(EditorText::UndoAssignMaterial));
                         }
                     }
                 }
                 else if (record->type == Assets::AssetType::Level)
                 {
-                    context.OpenLevel(guid);
+                    context.GetLevelService().OpenLevel(guid);
                 }
             }
         }
@@ -479,7 +481,7 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::Draw(float deltaTime)
     {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        bool open = ImGui::Begin("Level View", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        bool open = ImGui::Begin(WindowTitle(EditorWindow::LevelView).c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::PopStyleVar();
         if (!open)
         {
@@ -492,7 +494,7 @@ namespace BrightBox3D::Editor
         EditorContext& context = m_application.GetContext();
         ImVec2 origin = ImGui::GetCursorScreenPos();
         ImVec2 size = ImGui::GetContentRegionAvail();
-        if (size.x < 8.0f || size.y < 8.0f || !context.GetActiveLevel())
+        if (size.x < 8.0f || size.y < 8.0f || !context.GetLevelService().GetActiveLevel())
         {
             ImGui::End();
             return;
@@ -526,7 +528,7 @@ namespace BrightBox3D::Editor
         DrawSelectionOverlay();
 
         ViewRenderRequest request;
-        request.level = context.GetActiveLevel();
+        request.level = context.GetLevelService().GetActiveLevel();
         request.target = m_target.get();
         request.view.id = LevelViewId;
         request.view.width = width;
@@ -556,11 +558,11 @@ namespace BrightBox3D::Editor
         DrawGizmo(view, projection, origin, size);
         HandlePicking(view, projection, origin, size);
 
-        if (context.IsPlaying())
+        if (context.GetLevelService().IsPlaying())
         {
             ImDrawList* drawList = ImGui::GetWindowDrawList();
             drawList->AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), EditorColorU32(EditorColor::PlayMode, 0.8f), 0.0f, 0, 2.0f);
-            const char* banner = "PlayMode - editing live objects (changes revert on stop)";
+            const char* banner = Text(EditorText::PlayModeBanner);
             ImVec2 textSize = ImGui::CalcTextSize(banner);
             drawList->AddRectFilled(ImVec2(origin.x + 6.0f, origin.y + 6.0f), ImVec2(origin.x + 18.0f + textSize.x, origin.y + 12.0f + textSize.y), EditorColorU32(EditorColor::PlayMode, 0.85f), 4.0f);
             drawList->AddText(ImVec2(origin.x + 12.0f, origin.y + 9.0f), EditorColorU32(EditorColor::Text), banner);
@@ -570,15 +572,15 @@ namespace BrightBox3D::Editor
         {
             if (ImGui::IsKeyPressed(ImGuiKey_W))
             {
-                context.SetGizmoOperation(GizmoOperation::Translate);
+                m_gizmoOperation = GizmoOperation::Translate;
             }
             if (ImGui::IsKeyPressed(ImGuiKey_E))
             {
-                context.SetGizmoOperation(GizmoOperation::Rotate);
+                m_gizmoOperation = GizmoOperation::Rotate;
             }
             if (ImGui::IsKeyPressed(ImGuiKey_R))
             {
-                context.SetGizmoOperation(GizmoOperation::Scale);
+                m_gizmoOperation = GizmoOperation::Scale;
             }
             if (ImGui::IsKeyPressed(ImGuiKey_F))
             {

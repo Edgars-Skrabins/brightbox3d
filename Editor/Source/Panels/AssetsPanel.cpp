@@ -5,7 +5,10 @@
 #include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
+#include "EditorText.h"
+#include "EditorWindows.h"
 #include "ImGui/ImGuiRenderer.h"
+#include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/LevelViewPanel.h"
 #include "Rendering/MaterialAsset.h"
@@ -38,7 +41,7 @@ namespace BrightBox3D::Editor
                 return EditorColorU32(EditorColor::AssetLevel);
             case Assets::AssetType::LevelCollection:
                 return EditorColorU32(EditorColor::AssetCollection);
-            case Assets::AssetType::LevelObject:
+            case Assets::AssetType::LevelObjectVariant:
                 return EditorColorU32(EditorColor::AssetLevelObject);
             case Assets::AssetType::LevelObjectTemplate:
                 return EditorColorU32(EditorColor::AssetTemplate);
@@ -63,31 +66,31 @@ namespace BrightBox3D::Editor
             switch (type)
             {
             case Assets::AssetType::Folder:
-                return "DIR";
+                return Text(EditorText::AssetBadgeFolder);
             case Assets::AssetType::Level:
-                return "LVL";
+                return Text(EditorText::AssetBadgeLevel);
             case Assets::AssetType::LevelCollection:
-                return "COL";
-            case Assets::AssetType::LevelObject:
-                return "OBJ";
+                return Text(EditorText::AssetBadgeLevelCollection);
+            case Assets::AssetType::LevelObjectVariant:
+                return Text(EditorText::AssetBadgeLevelObjectVariant);
             case Assets::AssetType::LevelObjectTemplate:
-                return "TPL";
+                return Text(EditorText::AssetBadgeLevelObjectTemplate);
             case Assets::AssetType::Material:
-                return "MAT";
+                return Text(EditorText::AssetBadgeMaterial);
             case Assets::AssetType::Model:
-                return "FBX";
+                return Text(EditorText::AssetBadgeModel);
             case Assets::AssetType::Texture:
-                return "TEX";
+                return Text(EditorText::AssetBadgeTexture);
             case Assets::AssetType::Screen:
-                return "SCR";
+                return Text(EditorText::AssetBadgeScreen);
             case Assets::AssetType::Widget:
-                return "WGT";
+                return Text(EditorText::AssetBadgeWidget);
             case Assets::AssetType::StyleSheet:
-                return "CSS";
+                return Text(EditorText::AssetBadgeStyleSheet);
             case Assets::AssetType::Font:
-                return "FNT";
+                return Text(EditorText::AssetBadgeFont);
             default:
-                return "?";
+                return Text(EditorText::AssetBadgeUnknown);
             }
         }
     }
@@ -98,7 +101,7 @@ namespace BrightBox3D::Editor
 
     std::string AssetsPanel::CurrentFolder() const
     {
-        return m_application.GetContext().GetAssetsFolder();
+        return m_application.GetContext().GetAssetCreationService().GetAssetsFolder();
     }
 
     void AssetsPanel::ImportFiles(const std::vector<std::filesystem::path>& files)
@@ -127,11 +130,11 @@ namespace BrightBox3D::Editor
             }
             if (error)
             {
-                Core::Log::Error("Import failed for '" + file.generic_string() + "': " + error.message());
+                Core::Log::Error(Text(EditorText::ImportFailed, file.generic_string(), error.message()));
             }
             else
             {
-                Core::Log::Info("Imported '" + destination.filename().string() + "'");
+                Core::Log::Info(Text(EditorText::Imported, destination.filename().string()));
             }
         }
         database.Refresh();
@@ -149,14 +152,14 @@ namespace BrightBox3D::Editor
         switch (record->type)
         {
         case Assets::AssetType::Folder:
-            context.SetAssetsFolder(record->path);
+            context.GetAssetCreationService().SetAssetsFolder(record->path);
             break;
         case Assets::AssetType::Level:
-            context.OpenLevel(guid);
+            context.GetLevelService().OpenLevel(guid);
             break;
-        case Assets::AssetType::LevelObject:
+        case Assets::AssetType::LevelObjectVariant:
         case Assets::AssetType::LevelObjectTemplate:
-            context.OpenLevelObjectEditor(guid);
+            context.GetLevelObjectEditService().OpenLevelObjectEditor(guid);
             break;
         case Assets::AssetType::Screen:
         case Assets::AssetType::Widget:
@@ -164,7 +167,7 @@ namespace BrightBox3D::Editor
             m_application.OpenFileInEditor(database.GetAbsolutePath(*record).string(), 0);
             break;
         default:
-            context.SelectAsset(guid);
+            context.GetSelectionService().SelectAsset(guid);
             break;
         }
     }
@@ -174,55 +177,55 @@ namespace BrightBox3D::Editor
         EditorContext& context = m_application.GetContext();
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         std::string prefix = CurrentFolder().empty() ? "" : CurrentFolder() + "/";
-        if (ImGui::MenuItem("Folder"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeFolder)))
         {
-            std::string path = database.MakeUniquePath(prefix + "New Folder");
+            std::string path = database.MakeUniquePath(prefix + Text(EditorText::NewFolderName) + Assets::AssetTypeExtension(Assets::AssetType::Folder));
             Core::FileSystem::EnsureDirectory(database.GetAssetsDirectory() / path);
             database.Refresh();
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("Level"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevel)))
         {
-            Core::Guid guid = Level::LevelSerializer::CreateLevelAsset(prefix + "New Level.level");
-            context.SelectAsset(guid);
+            Core::Guid guid = Level::LevelSerializer::CreateLevelAsset(prefix + Text(EditorText::NewLevelName) + Assets::AssetTypeExtension(Assets::AssetType::Level));
+            context.GetSelectionService().SelectAsset(guid);
         }
-        if (ImGui::MenuItem("LevelCollection"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelCollection)))
         {
             Serialization::JsonDocument document;
             document.SetObject();
             document.AddMember("$asset", "LevelCollection", document.GetAllocator());
             document.AddMember("version", 1, document.GetAllocator());
-            document.AddMember("name", "New Collection", document.GetAllocator());
+            document.AddMember("name", Serialization::JsonValue(Text(EditorText::NewCollectionName), document.GetAllocator()), document.GetAllocator());
             document.AddMember("objects", Serialization::JsonValue(rapidjson::kArrayType), document.GetAllocator());
-            context.SelectAsset(database.CreateJsonAsset(database.MakeUniquePath(prefix + "New Collection.collection"), document));
+            context.GetSelectionService().SelectAsset(database.CreateJsonAsset(database.MakeUniquePath(prefix + Text(EditorText::NewCollectionName) + Assets::AssetTypeExtension(Assets::AssetType::LevelCollection)), document));
         }
-        if (ImGui::MenuItem("LevelObjectTemplate"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelObjectTemplate)))
         {
-            context.SelectAsset(context.CreateTemplateAsset(nullptr, CurrentFolder()));
+            context.GetSelectionService().SelectAsset(context.GetAssetCreationService().CreateTemplateAsset(nullptr, CurrentFolder()));
         }
-        if (ImGui::MenuItem("Material"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeMaterial)))
         {
             Rendering::MaterialAsset material;
             Serialization::JsonDocument document;
             Serialization::SerializeProperties(material, document, document.GetAllocator());
-            context.SelectAsset(database.CreateJsonAsset(database.MakeUniquePath(prefix + "New Material.material"), document));
+            context.GetSelectionService().SelectAsset(database.CreateJsonAsset(database.MakeUniquePath(prefix + Text(EditorText::NewMaterialName) + Assets::AssetTypeExtension(Assets::AssetType::Material)), document));
         }
         ImGui::Separator();
-        if (ImGui::MenuItem("UI Screen"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeScreen)))
         {
-            std::string path = database.MakeUniquePath(prefix + "New Screen.screen.xml");
+            std::string path = database.MakeUniquePath(prefix + Text(EditorText::NewScreenName) + Assets::AssetTypeExtension(Assets::AssetType::Screen));
             Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, "<Screen>\n    <Panel class=\"root\">\n        <Label text=\"Hello BrightBox3D\" />\n    </Panel>\n</Screen>\n");
             database.Refresh();
         }
-        if (ImGui::MenuItem("UI Widget"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeWidget)))
         {
-            std::string path = database.MakeUniquePath(prefix + "New Widget.widget.xml");
+            std::string path = database.MakeUniquePath(prefix + Text(EditorText::NewWidgetName) + Assets::AssetTypeExtension(Assets::AssetType::Widget));
             Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, "<Widget>\n    <Panel class=\"widget\">\n        <Label text=\"Widget\" />\n    </Panel>\n</Widget>\n");
             database.Refresh();
         }
-        if (ImGui::MenuItem("UI StyleSheet"))
+        if (ImGui::MenuItem(Text(EditorText::AssetTypeStyleSheet)))
         {
-            std::string path = database.MakeUniquePath(prefix + "New Style.css");
+            std::string path = database.MakeUniquePath(prefix + Text(EditorText::NewStyleSheetName) + Assets::AssetTypeExtension(Assets::AssetType::StyleSheet));
             Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, ".root {\n    width: 100%;\n    height: 100%;\n    padding: 16px;\n}\n");
             database.Refresh();
         }
@@ -237,38 +240,38 @@ namespace BrightBox3D::Editor
             return;
         }
         bool builtin = database.IsBuiltin(guid);
-        if (ImGui::MenuItem("Open"))
+        if (ImGui::MenuItem(Text(EditorText::Open)))
         {
             OpenAsset(guid);
         }
         ImGui::BeginDisabled(builtin);
-        if (ImGui::MenuItem("Rename"))
+        if (ImGui::MenuItem(Text(EditorText::Rename)))
         {
             m_renaming = guid;
             std::string name = record->name;
             m_renameBuffer = record->type == Assets::AssetType::Folder ? name : name.substr(0, name.find('.'));
             m_focusRename = true;
         }
-        if (ImGui::MenuItem("Delete"))
+        if (ImGui::MenuItem(Text(EditorText::Delete)))
         {
             m_pendingDelete = guid;
         }
         ImGui::EndDisabled();
-        if (record->type == Assets::AssetType::Level && ImGui::MenuItem("Set as Startup Level"))
+        if (record->type == Assets::AssetType::Level && ImGui::MenuItem(Text(EditorText::SetStartupLevel)))
         {
-            m_application.GetContext().GetProject().SetStartupLevel(guid);
-            m_application.GetContext().GetProject().Save();
+            m_application.GetContext().GetProjectService().GetProject().SetStartupLevel(guid);
+            m_application.GetContext().GetProjectService().GetProject().Save();
         }
-        if (record->type == Assets::AssetType::LevelObjectTemplate && ImGui::MenuItem("Create LevelObject"))
+        if (record->type == Assets::AssetType::LevelObjectTemplate && ImGui::MenuItem(Text(EditorText::CreateVariant)))
         {
-            m_application.GetContext().CreateLevelObjectFromTemplate(guid);
+            m_application.GetContext().GetAssetCreationService().CreateVariantFromTemplate(guid);
         }
         ImGui::Separator();
-        if (!builtin && ImGui::MenuItem("Reveal in File Browser"))
+        if (!builtin && ImGui::MenuItem(Text(EditorText::RevealInFileBrowser)))
         {
             m_application.RevealInFileBrowser(database.GetAbsolutePath(*record));
         }
-        if (!builtin && record->type != Assets::AssetType::Folder && ImGui::MenuItem("Reimport"))
+        if (!builtin && record->type != Assets::AssetType::Folder && ImGui::MenuItem(Text(EditorText::Reimport)))
         {
             std::string error;
             database.Unload(guid);
@@ -278,7 +281,7 @@ namespace BrightBox3D::Editor
             }
             else
             {
-                Core::Log::Error("Reimport failed: " + error);
+                Core::Log::Error(Text(EditorText::ReimportFailed, error));
             }
         }
     }
@@ -303,14 +306,14 @@ namespace BrightBox3D::Editor
         {
             flags |= ImGuiTreeNodeFlags_DefaultOpen;
         }
-        if (context.GetAssetsFolder() == folder)
+        if (context.GetAssetCreationService().GetAssetsFolder() == folder)
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
         bool open = ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", label.c_str());
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
-            context.SetAssetsFolder(folder);
+            context.GetAssetCreationService().SetAssetsFolder(folder);
         }
         if (ImGui::BeginDragDropTarget())
         {
@@ -336,7 +339,7 @@ namespace BrightBox3D::Editor
 
     void AssetsPanel::Draw()
     {
-        if (!ImGui::Begin("Assets"))
+        if (!ImGui::Begin(WindowTitle(EditorWindow::Assets).c_str()))
         {
             ImGui::End();
             return;
@@ -345,7 +348,7 @@ namespace BrightBox3D::Editor
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         if (!database.IsOpen())
         {
-            ImGui::TextDisabled("No project open");
+            ImGui::TextDisabled("%s", Text(EditorText::NoProjectOpen));
             ImGui::End();
             return;
         }
@@ -358,11 +361,11 @@ namespace BrightBox3D::Editor
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::BeginChild("FolderTree");
-            DrawFolderTree("", "Assets");
-            bool showBuiltin = context.GetAssetsFolder() == "Builtin";
-            if (ImGui::Selectable("Built-in", showBuiltin))
+            DrawFolderTree("", Text(EditorText::AssetsTitle));
+            bool showBuiltin = context.GetAssetCreationService().GetAssetsFolder() == "Builtin";
+            if (ImGui::Selectable(Text(EditorText::BuiltinAssets), showBuiltin))
             {
-                context.SetAssetsFolder("Builtin");
+                context.GetAssetCreationService().SetAssetsFolder("Builtin");
             }
             ImGui::EndChild();
 
@@ -377,12 +380,12 @@ namespace BrightBox3D::Editor
                 ImGui::EndPopup();
             }
             ImGui::SameLine();
-            if (!CurrentFolder().empty() && ImGui::Button("Up"))
+            if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
             {
-                context.SetAssetsFolder(CurrentFolder() == "Builtin" ? "" : Parent(CurrentFolder()));
+                context.GetAssetCreationService().SetAssetsFolder(CurrentFolder() == "Builtin" ? "" : Parent(CurrentFolder()));
             }
             ImGui::SameLine();
-            ImGui::TextDisabled("Assets/%s", CurrentFolder().c_str());
+            ImGui::TextDisabled("%s", Text(EditorText::AssetsFolderPath, CurrentFolder()).c_str());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(160.0f);
             ImGui::InputTextWithHint("##filter", "Search", &m_filter);
@@ -448,10 +451,10 @@ namespace BrightBox3D::Editor
                 ImGui::PushID(record.guid.ToString().c_str());
                 ImGui::BeginGroup();
                 ImVec2 cursor = ImGui::GetCursorScreenPos();
-                bool selected = context.GetFocus() == SelectionFocus::Asset && context.GetSelectedAsset() == record.guid;
+                bool selected = context.GetSelectionService().GetFocus() == SelectionFocus::Asset && context.GetSelectionService().GetSelectedAsset() == record.guid;
                 if (ImGui::Selectable("##tile", selected, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(m_tileSize, m_tileSize + ImGui::GetTextLineHeightWithSpacing() * 2.0f)))
                 {
-                    context.SelectAsset(record.guid);
+                    context.GetSelectionService().SelectAsset(record.guid);
                     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                     {
                         OpenAsset(record.guid);
@@ -477,7 +480,7 @@ namespace BrightBox3D::Editor
                 }
                 if (ImGui::BeginPopupContextItem("ItemContext"))
                 {
-                    context.SelectAsset(record.guid);
+                    context.GetSelectionService().SelectAsset(record.guid);
                     DrawItemContextMenu(record.guid);
                     ImGui::EndPopup();
                 }
@@ -519,7 +522,7 @@ namespace BrightBox3D::Editor
                         std::string target = (Parent(record.path).empty() ? "" : Parent(record.path) + "/") + m_renameBuffer + extension;
                         if (!database.MoveAsset(record.guid, target))
                         {
-                            Core::Log::Error("Rename failed: '" + target + "' already exists or cannot be written");
+                            Core::Log::Error(Text(EditorText::RenameFailed, target));
                         }
                         m_renaming = {};
                     }
@@ -558,11 +561,11 @@ namespace BrightBox3D::Editor
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
                 {
                     Core::Guid id = *static_cast<const Core::Guid*>(payload->Data);
-                    if (Level::Level* level = context.GetActiveLevel(); level && !context.IsPlaying())
+                    if (Level::Level* level = context.GetLevelService().GetActiveLevel(); level && !context.GetLevelService().IsPlaying())
                     {
-                        if (Level::LevelObjectInstance* object = level->FindObject(id))
+                        if (Level::LevelObject* object = level->FindObject(id))
                         {
-                            context.CreateLevelObjectAsset(*object, CurrentFolder());
+                            context.GetAssetCreationService().CreateVariantAsset(*object, CurrentFolder());
                         }
                     }
                 }
@@ -574,24 +577,24 @@ namespace BrightBox3D::Editor
 
         if (m_pendingDelete.IsValid())
         {
-            ImGui::OpenPopup("Delete Asset?");
+            ImGui::OpenPopup(LabelWithId(EditorText::DeleteAssetQuestion, "DeleteAsset").c_str());
         }
-        if (ImGui::BeginPopupModal("Delete Asset?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(LabelWithId(EditorText::DeleteAssetQuestion, "DeleteAsset").c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
             const Assets::AssetRecord* record = database.FindRecord(m_pendingDelete);
-            ImGui::Text("Delete '%s'? This cannot be undone.", record ? record->path.c_str() : "?");
-            if (ImGui::Button("Delete", ImVec2(120, 0)))
+            ImGui::TextUnformatted(Text(EditorText::DeleteAssetConfirm, record ? record->path : std::string(Text(EditorText::AssetBadgeUnknown))).c_str());
+            if (ImGui::Button(Text(EditorText::Delete), ImVec2(120, 0)))
             {
                 database.DeleteAsset(m_pendingDelete);
-                if (context.GetSelectedAsset() == m_pendingDelete)
+                if (context.GetSelectionService().GetSelectedAsset() == m_pendingDelete)
                 {
-                    context.SelectAsset({});
+                    context.GetSelectionService().SelectAsset({});
                 }
                 m_pendingDelete = {};
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            if (ImGui::Button(Text(EditorText::Cancel), ImVec2(120, 0)))
             {
                 m_pendingDelete = {};
                 ImGui::CloseCurrentPopup();
