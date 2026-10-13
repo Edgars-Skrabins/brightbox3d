@@ -1,5 +1,7 @@
 #include "EditorPreferences.h"
 
+#include "Commands/CommandRegistry.h"
+#include "Commands/ShortcutBindings.h"
 #include "Core/Log.h"
 #include "Serialization/Json.h"
 
@@ -15,6 +17,9 @@ namespace BrightBox3D::Editor
         {
             return { ((rgb >> 16) & 0xFF) / 255.0f, ((rgb >> 8) & 0xFF) / 255.0f, (rgb & 0xFF) / 255.0f, alpha };
         }
+
+        constexpr const char* ColorsSection = "colors";
+        constexpr const char* ShortcutsSection = "shortcuts";
 
         const EditorColorInfo ColorInfos[] = {
             { "Accent", EditorText::ColorAccent, EditorColorCategory::Interface, Hex(0xFF8A3D) },
@@ -131,7 +136,7 @@ namespace BrightBox3D::Editor
             Core::Log::Warning(Text(EditorText::PreferencesLoadFailed, error));
             return;
         }
-        if (const Serialization::JsonValue* colors = Serialization::FindMember(document, "colors"); colors && colors->IsObject())
+        if (const Serialization::JsonValue* colors = Serialization::FindMember(document, ColorsSection); colors && colors->IsObject())
         {
             for (size_t i = 0; i < m_colors.size(); ++i)
             {
@@ -141,6 +146,10 @@ namespace BrightBox3D::Editor
                     m_colors[i] = value;
                 }
             }
+        }
+        if (const Serialization::JsonValue* shortcuts = Serialization::FindMember(document, ShortcutsSection))
+        {
+            ReadShortcutBindings(CommandRegistry::Get(), *shortcuts);
         }
         ++m_revision;
     }
@@ -161,7 +170,8 @@ namespace BrightBox3D::Editor
                 Serialization::SetMember(colors, ColorInfos[i].key, Serialization::MakeString(ToHex(m_colors[i]), document.GetAllocator()), document.GetAllocator());
             }
         }
-        Serialization::SetMember(document, "colors", std::move(colors), document.GetAllocator());
+        Serialization::SetMember(document, ColorsSection, std::move(colors), document.GetAllocator());
+        Serialization::SetMember(document, ShortcutsSection, WriteShortcutBindings(CommandRegistry::Get(), document.GetAllocator()), document.GetAllocator());
         Serialization::SaveJsonFile(m_path, document);
     }
 
