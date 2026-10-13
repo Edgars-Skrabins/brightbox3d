@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/EngineInfo.h"
 #include "Core/Event.h"
 #include "Math/Vector2.h"
 #include "Platform/InputState.h"
@@ -14,7 +15,7 @@ namespace BrightBox3D::Platform
 {
     struct WindowDesc
     {
-        std::string title = "BrightBox3D";
+        std::string title = Core::EngineName;
         int width = 1280;
         int height = 720;
         bool resizable = true;

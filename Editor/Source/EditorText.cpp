@@ -1,0 +1,388 @@
+#include "EditorText.h"
+
+#include "Core/Log.h"
+#include "Serialization/Json.h"
+
+namespace BrightBox3D::Editor
+{
+    namespace
+    {
+        const EditorTextInfo TextInfos[] = {
+            { "ColorCategoryInterface", "Interface", 0 },
+            { "ColorCategoryStatus", "Status", 0 },
+            { "ColorCategoryLevelView", "Level View", 0 },
+            { "LevelViewTitle", "Level View", 0 },
+            { "ColorCategoryAssetTypes", "Asset Types", 0 },
+            { "ColorAccent", "Accent", 0 },
+            { "ColorBackground", "Background", 0 },
+            { "ColorPanel", "Panel", 0 },
+            { "ColorField", "Input Field", 0 },
+            { "ColorControl", "Button", 0 },
+            { "ColorControlHovered", "Button Hovered", 0 },
+            { "ColorBorder", "Border", 0 },
+            { "ColorText", "Text", 0 },
+            { "ColorTextDim", "Dim Text", 0 },
+            { "ColorRowStripe", "Row Stripe", 0 },
+            { "ColorRowHovered", "Row Hovered", 0 },
+            { "ColorTreeLines", "Hierarchy Lines", 0 },
+            { "ColorLinked", "Linked LevelObject", 0 },
+            { "ColorMissing", "Missing Type", 0 },
+            { "ColorOverride", "Property Override", 0 },
+            { "ColorPlayMode", "PlayMode", 0 },
+            { "ColorSuccess", "Success", 0 },
+            { "ColorWarning", "Warning", 0 },
+            { "ColorError", "Error", 0 },
+            { "ColorGridMinor", "Grid", 0 },
+            { "ColorGridMajor", "Grid Major Lines", 0 },
+            { "ColorAxisX", "X Axis", 0 },
+            { "ColorAxisZ", "Z Axis", 0 },
+            { "ColorLightGizmo", "Light", 0 },
+            { "ColorCameraGizmo", "Camera", 0 },
+            { "ColorPlayerStartGizmo", "PlayerStart", 0 },
+            { "ColorCollider", "Collider", 0 },
+            { "ColorTrigger", "Trigger", 0 },
+            { "ColorGizmoBackground", "Icon Background", 0 },
+            { "ColorAssetFolder", "Folder", 0 },
+            { "ColorAssetLevel", "Level", 0 },
+            { "ColorAssetCollection", "LevelCollection", 0 },
+            { "ColorAssetLevelObject", "LevelObject", 0 },
+            { "ColorAssetTemplate", "LevelObject Template", 0 },
+            { "ColorAssetMaterial", "Material", 0 },
+            { "ColorAssetModel", "Model", 0 },
+            { "ColorAssetTexture", "Texture", 0 },
+            { "ColorAssetUI", "Screen / Widget", 0 },
+            { "ColorAssetStyleSheet", "StyleSheet", 0 },
+            { "ColorAssetOther", "Other", 0 },
+            { "ResetToDefault", "Reset to default", 0 },
+            { "PreferencesTitle", "Preferences", 0 },
+            { "AccentColorHint", "Used for selection, active controls, tabs and highlights.", 0 },
+            { "ResetAllColors", "Reset All Colors", 0 },
+            { "ResetAllColorsQuestion", "Reset All Colors?", 0 },
+            { "ResetAllColorsWarning", "Every editor color will return to its default.", 0 },
+            { "Reset", "Reset", 0 },
+            { "Cancel", "Cancel", 0 },
+            { "PreferencesLoadFailed", "Could not read editor preferences: {}", 1 },
+            { "EditorStarting", "{} Editor starting", 1 },
+            { "NoGraphicsDevice", "No graphics device available", 0 },
+            { "GraphicsDevice", "Graphics: {}", 1 },
+            { "PlayModeStoppedByCompileError", "Stopping PlayMode because game code failed to compile", 0 },
+            { "CreateProjectFailed", "Could not create project: {}", 1 },
+            { "OpenProjectFailed", "Could not open project: {}", 1 },
+            { "OpenedProject", "Opened project '{}'", 1 },
+            { "PlayModeTitleSuffix", " [PlayMode]", 0 },
+            { "LauncherSubtitle", "Create or open a project", 0 },
+            { "RecentProjects", "Recent Projects", 0 },
+            { "NoRecentProjects", "No recent projects", 0 },
+            { "NewProject", "New Project", 0 },
+            { "Name", "Name", 0 },
+            { "Location", "Location", 0 },
+            { "CreateProject", "Create Project", 0 },
+            { "EnterProjectName", "Enter a project name", 0 },
+            { "OpenProject", "Open Project", 0 },
+            { "OpenProjectHint", "Path to a folder containing {}", 1 },
+            { "Open", "Open", 0 },
+            { "StatusBar", "{} | {} objects | {} draws | {} lights | {:.1f} fps", 5 },
+            { "StatusBarErrors", "| {} errors", 1 },
+            { "NewLevelTitle", "New Level", 0 },
+            { "Create", "Create", 0 },
+            { "SavedScreenshot", "Saved screenshot '{}'", 1 },
+            { "SavingBeforeExit", "Saving unsaved changes before exit", 0 },
+            { "BuildFailed", "Build failed: {}", 1 },
+            { "LevelContentsTitle", "Level Contents", 0 },
+            { "InspectorTitle", "Inspector", 0 },
+            { "AssetsTitle", "Assets", 0 },
+            { "TerminalTitle", "Terminal", 0 },
+            { "ProjectSettingsTitle", "Project Settings", 0 },
+            { "UndoEditProperty", "Edit Property", 0 },
+            { "UndoRevertProperty", "Revert Property", 0 },
+            { "ClassRowLabel", "{} Class", 1 },
+            { "None", "None", 0 },
+            { "ClassNotLoaded", "{} class '{}' is not loaded", 2 },
+            { "MissingComponentTitle", "{} (missing)", 1 },
+            { "RemoveComponent", "Remove Component", 0 },
+            { "MoveUp", "Move Up", 0 },
+            { "MoveDown", "Move Down", 0 },
+            { "MissingComponentExplanation", "The component class '{}' is not loaded. Its data is preserved and will be restored when the class exists again.", 1 },
+            { "Position", "Position", 0 },
+            { "Rotation", "Rotation", 0 },
+            { "Scale", "Scale", 0 },
+            { "AddComponent", "Add Component", 0 },
+            { "EngineCategory", "Engine", 0 },
+            { "GameCategory", "Game", 0 },
+            { "UndoAddComponent", "Add {}", 1 },
+            { "MissingTypeLabel", "{} (missing type)", 1 },
+            { "LinkedTemplate", "Template: {}", 1 },
+            { "LinkedVariant", "Variant: {}", 1 },
+            { "MissingLink", "missing", 0 },
+            { "Select", "Select", 0 },
+            { "ApplyToTemplate", "Apply to Template", 0 },
+            { "ApplyAll", "Apply All", 0 },
+            { "RevertToTemplate", "Revert to Template", 0 },
+            { "RevertAll", "Revert All", 0 },
+            { "UndoRevertOverrides", "Revert Overrides", 0 },
+            { "DetachFromTemplate", "Detach from Template", 0 },
+            { "Unlink", "Unlink", 0 },
+            { "KeepPlayModeChanges", "Keep changes after PlayMode", 0 },
+            { "UnlinkToAddComponents", "Unlink or open the LevelObject to add components", 0 },
+            { "ImportSettings", "Import Settings", 0 },
+            { "Apply", "Apply", 0 },
+            { "Revert", "Revert", 0 },
+            { "AssetNotFound", "Asset not found", 0 },
+            { "OpenLevel", "Open Level", 0 },
+            { "SetStartupLevel", "Set as Startup Level", 0 },
+            { "OpenLevelObject", "Open LevelObject", 0 },
+            { "TemplateExplanation", "Templates are only used to create LevelObjects. They cannot be placed or spawned.", 0 },
+            { "EditTemplate", "Edit Template", 0 },
+            { "CreateVariant", "Create Variant", 0 },
+            { "OpenInCodeEditor", "Open in Code Editor", 0 },
+            { "NothingSelected", "Nothing selected", 0 },
+            { "AssetPath", "Asset: {}", 1 },
+            { "NotSavedYet", "(not saved yet)", 0 },
+            { "SetActive", "Set Active", 0 },
+            { "RemoveFromLevel", "Remove From Level", 0 },
+            { "LevelName", "Level: {}", 1 },
+            { "LevelCollections", "LevelCollections", 0 },
+            { "NewCollection", "New Collection", 0 },
+            { "DefaultCollectionName", "Collection {}", 1 },
+            { "SelectObjectOrAsset", "Select an object or asset", 0 },
+            { "PlaceInLevel", "Place in Level", 0 },
+            { "UndoMenuItem", "Undo {}", 1 },
+            { "RedoMenuItem", "Redo {}", 1 },
+            { "AssetBadgeFolder", "DIR", 0 },
+            { "AssetBadgeLevel", "LVL", 0 },
+            { "AssetBadgeLevelCollection", "COL", 0 },
+            { "AssetBadgeLevelObjectVariant", "OBJ", 0 },
+            { "AssetBadgeLevelObjectTemplate", "TPL", 0 },
+            { "AssetBadgeMaterial", "MAT", 0 },
+            { "AssetBadgeModel", "FBX", 0 },
+            { "AssetBadgeTexture", "TEX", 0 },
+            { "AssetBadgeScreen", "SCR", 0 },
+            { "AssetBadgeWidget", "WGT", 0 },
+            { "AssetBadgeStyleSheet", "CSS", 0 },
+            { "AssetBadgeFont", "FNT", 0 },
+            { "AssetBadgeUnknown", "?", 0 },
+            { "ImportFailed", "Import failed for '{}': {}", 2 },
+            { "Imported", "Imported '{}'", 1 },
+            { "NewFolderName", "New Folder", 0 },
+            { "AssetTypeLevelObjectTemplate", "LevelObjectTemplate", 0 },
+            { "NewMaterialName", "New Material", 0 },
+            { "AssetTypeScreen", "UI Screen", 0 },
+            { "NewScreenName", "New Screen", 0 },
+            { "AssetTypeWidget", "UI Widget", 0 },
+            { "NewWidgetName", "New Widget", 0 },
+            { "AssetTypeStyleSheet", "UI StyleSheet", 0 },
+            { "NewStyleSheetName", "New Style", 0 },
+            { "Rename", "Rename", 0 },
+            { "Delete", "Delete", 0 },
+            { "RevealInFileBrowser", "Reveal in File Browser", 0 },
+            { "Reimport", "Reimport", 0 },
+            { "ReimportFailed", "Reimport failed: {}", 1 },
+            { "NoProjectOpen", "No project open", 0 },
+            { "BuiltinAssets", "Built-in", 0 },
+            { "FolderUp", "Up", 0 },
+            { "AssetsFolderPath", "Assets/{}", 1 },
+            { "RenameFailed", "Rename failed: '{}' already exists or cannot be written", 1 },
+            { "DeleteAssetQuestion", "Delete Asset?", 0 },
+            { "DeleteAssetConfirm", "Delete '{}'? This cannot be undone.", 1 },
+            { "EmptyLevelObject", "Empty LevelObject", 0 },
+            { "CreateMenu3DObject", "3D Object", 0 },
+            { "DirectionalLight", "Directional Light", 0 },
+            { "PointLight", "Point Light", 0 },
+            { "SpotLight", "Spot Light", 0 },
+            { "CreateMenuGameplay", "Gameplay", 0 },
+            { "PlayerStart", "Player Start", 0 },
+            { "CreateMenuGameClasses", "Game Classes", 0 },
+            { "Duplicate", "Duplicate", 0 },
+            { "Focus", "Focus", 0 },
+            { "CreateChild", "Create Child", 0 },
+            { "SelectLevelObjectAsset", "Select LevelObject Asset", 0 },
+            { "ApplyAllOverrides", "Apply All Overrides", 0 },
+            { "RevertAllOverrides", "Revert All Overrides", 0 },
+            { "CreateLevelObjectVariant", "Create LevelObjectVariant", 0 },
+            { "CreateLevelObjectTemplate", "Create LevelObjectTemplate", 0 },
+            { "KeepChanges", "Keep Changes", 0 },
+            { "MissingTypeSuffix", "(missing {})", 1 },
+            { "KeepChangesSuffix", "(keep changes)", 0 },
+            { "CreateVariantFirst", "Create a Variant from this Template first", 0 },
+            { "ActiveSuffix", "(active)", 0 },
+            { "CollectionTag", "Collection", 0 },
+            { "SetActiveCollection", "Set Active Collection", 0 },
+            { "NoLevelOpen", "No level open", 0 },
+            { "PlayModeSuffix", "(PlayMode)", 0 },
+            { "PrimitiveCube", "Cube", 0 },
+            { "PrimitiveSphere", "Sphere", 0 },
+            { "PrimitiveCapsule", "Capsule", 0 },
+            { "PrimitiveCylinder", "Cylinder", 0 },
+            { "PrimitivePlane", "Plane", 0 },
+            { "PrimitiveQuad", "Quad", 0 },
+            { "MissingAsset", "Missing ({})", 1 },
+            { "NoneOfType", "None ({})", 1 },
+            { "MissingObject", "Missing Object", 0 },
+            { "Clear", "Clear", 0 },
+            { "ArraySize", "Size", 0 },
+            { "ArrayElement", "Element {}", 1 },
+            { "AddElement", "Add Element", 0 },
+            { "RevertToLevelObject", "Revert to LevelObject", 0 },
+            { "ApplyToLevelObject", "Apply to LevelObject", 0 },
+            { "DebugModeLit", "Lit", 0 },
+            { "DebugModeAlbedo", "Albedo", 0 },
+            { "DebugModeNormals", "Normals", 0 },
+            { "DebugModeMetallicRoughness", "Metal/Rough", 0 },
+            { "DebugModeShadows", "Shadows", 0 },
+            { "DebugModeAmbientOcclusion", "AO", 0 },
+            { "EditingLevelObject", "Editing {}", 1 },
+            { "Save", "Save", 0 },
+            { "BackToLevel", "Back to Level", 0 },
+            { "UndoTransform", "Transform", 0 },
+            { "UndoAssignMaterial", "Assign Material", 0 },
+            { "PlayModeBanner", "PlayMode - editing live objects (changes revert on stop)", 0 },
+            { "AutoScroll", "Auto-scroll", 0 },
+            { "LogInfoCount", "Info {}", 1 },
+            { "LogWarningCount", "Warnings {}", 1 },
+            { "LogErrorCount", "Errors {}", 1 },
+            { "OpenLogSourceTooltip", "Double-click to open {}:{}", 2 },
+            { "Copy", "Copy", 0 },
+            { "ProjectName", "Project: {}", 1 },
+            { "GameModuleName", "Game module: {}", 1 },
+            { "SettingsStartup", "Startup", 0 },
+            { "StartupLevel", "Startup Level", 0 },
+            { "SettingsSimulation", "Simulation", 0 },
+            { "FixedUpdateRate", "Fixed Update Rate (Hz)", 0 },
+            { "SettingsHotReload", "Hot Reload", 0 },
+            { "CompileOnSave", "Compile on save", 0 },
+            { "NoModuleProduced", "the build produced no module at {}", 1 },
+            { "CMakeListsNotGenerated", "CMakeLists.txt was not generated by {}; leaving it untouched", 1 },
+            { "GameCodeLoaded", "Game code loaded", 0 },
+            { "GameModuleLoadFailed", "Failed to load game module: {}", 1 },
+            { "GameCodeLoadFailed", "Game code failed to load", 0 },
+            { "CompileCancelled", "Compile cancelled", 0 },
+            { "SourceChanged", "Source changed - compile to reload", 0 },
+            { "CMakeNotFoundError", "CMake was not found; install CMake to compile game code", 0 },
+            { "CMakeNotFound", "CMake not found", 0 },
+            { "CMakeListsWriteFailed", "Could not write the project CMakeLists.txt", 0 },
+            { "Compiling", "Compiling...", 0 },
+            { "CompilingGameCode", "Compiling game code...", 0 },
+            { "CompileFailed", "Compile failed", 0 },
+            { "GameCodeCompileFailed", "Game code compilation failed", 0 },
+            { "ModulePromoteFailed", "Game module could not be moved into place: {}", 1 },
+            { "GameModuleReloadFailed", "Game module load failed: {}", 1 },
+            { "Reloaded", "Reloaded ({:.1f}s)", 1 },
+            { "NoGameCode", "No game code", 0 },
+            { "ReloadFailed", "Reload failed", 0 },
+            { "CopyFailed", "copy '{}' failed: {}", 2 },
+            { "NoStartupLevel", "the project has no startup level", 0 },
+            { "SavingLevelFailed", "saving the level failed", 0 },
+            { "BuildingGame", "Building '{}' into {}", 2 },
+            { "CookFailed", "Some assets failed to cook:\n{}", 1 },
+            { "PlayerNotFound", "BrightPlayer was not found next to the editor", 0 },
+            { "ManifestWriteFailed", "writing Game.json failed", 0 },
+            { "BuildFinished", "Build finished: {}", 1 },
+            { "PlayModeStarted", "PlayMode started", 0 },
+            { "PlayModeStopped", "PlayMode stopped", 0 },
+            { "KeepChangesMissingObject", "Keep changes: object no longer exists in both levels", 0 },
+            { "UndoKeepPlayModeChanges", "Keep PlayMode Changes", 0 },
+            { "KeptPlayModeChanges", "Kept PlayMode changes for '{}'", 1 },
+            { "PlayModeWindowFailed", "Could not create the PlayMode window", 0 },
+            { "PlayModeWindowTitle", "{} - PlayMode", 1 },
+            { "CreatedVariant", "Created LevelObjectVariant '{}'", 1 },
+            { "NewTemplateName", "New Template", 0 },
+            { "CreatedVariantFromTemplate", "Created LevelObjectVariant '{}' from template", 1 },
+            { "CannotOpenAssetForEditing", "Cannot open asset for editing", 0 },
+            { "Saved", "Saved '{}'", 1 },
+            { "OpenLevelFailed", "Failed to open level: {}", 1 },
+            { "OpenedLevel", "Opened level '{}'", 1 },
+            { "CreateLevelFailed", "Failed to create level: {}", 1 },
+            { "GroundName", "Ground", 0 },
+            { "StopPlayModeBeforeSaving", "Stop PlayMode before saving", 0 },
+            { "SavedLevel", "Saved level '{}'", 1 },
+            { "SaveLevelFailed", "Saving level '{}' failed", 1 },
+            { "UndoCreate", "Create {}", 1 },
+            { "DefaultNodeName", "Node", 0 },
+            { "UndoPlace", "Place {}", 1 },
+            { "CannotMoveInstanceChild", "Objects inside a LevelObject instance cannot be moved; unlink the instance or edit the LevelObject", 0 },
+            { "LevelCollection", "LevelCollection", 0 },
+            { "CreateMenuLight", "Light", 0 },
+            { "Camera", "Camera", 0 },
+            { "AssetTypeLevel", "Level", 0 },
+            { "AssetTypeFolder", "Folder", 0 },
+            { "AssetTypeLevelCollection", "LevelCollection", 0 },
+            { "AssetTypeMaterial", "Material", 0 },
+            { "NewLevelName", "New Level", 0 },
+            { "NewCollectionName", "New Collection", 0 },
+            { "TextFileNotObject", "the text file is not a JSON object", 0 },
+            { "TextOverrideArgumentMismatch", "Ignoring text override '{}': it must contain {} placeholders", 2 },
+            { "UndoReparent", "Reparent", 0 },
+        };
+
+        static_assert(std::size(TextInfos) == static_cast<size_t>(EditorText::Count));
+    }
+
+    const EditorTextInfo& GetTextInfo(EditorText text)
+    {
+        return TextInfos[static_cast<size_t>(text)];
+    }
+
+    int CountTextArguments(std::string_view text)
+    {
+        int count = 0;
+        for (size_t index = 0; index < text.size(); ++index)
+        {
+            if (text[index] == '{' && index + 1 < text.size() && text[index + 1] == '{')
+            {
+                ++index;
+            }
+            else if (text[index] == '{')
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    EditorTextTable& EditorTextTable::Get()
+    {
+        static EditorTextTable* table = new EditorTextTable();
+        return *table;
+    }
+
+    EditorTextTable::EditorTextTable()
+    {
+        Reset();
+    }
+
+    void EditorTextTable::Reset()
+    {
+        for (size_t index = 0; index < m_texts.size(); ++index)
+        {
+            m_texts[index] = TextInfos[index].english;
+        }
+    }
+
+    bool EditorTextTable::LoadOverrides(const std::filesystem::path& path, std::string& error)
+    {
+        Serialization::JsonDocument document;
+        if (!Serialization::LoadJsonFile(path, document, &error) || !document.IsObject())
+        {
+            if (error.empty())
+            {
+                error = Lookup(EditorText::TextFileNotObject);
+            }
+            return false;
+        }
+        for (size_t index = 0; index < m_texts.size(); ++index)
+        {
+            const Serialization::JsonValue* value = Serialization::FindMember(document, TextInfos[index].key);
+            if (!value || !value->IsString())
+            {
+                continue;
+            }
+            if (CountTextArguments(value->GetString()) != TextInfos[index].argumentCount)
+            {
+                Core::Log::Warning(std::vformat(Lookup(EditorText::TextOverrideArgumentMismatch), std::make_format_args(TextInfos[index].key, TextInfos[index].argumentCount)));
+                continue;
+            }
+            m_texts[index] = value->GetString();
+        }
+        return true;
+    }
+}
