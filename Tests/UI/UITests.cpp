@@ -1,13 +1,12 @@
 #include "Level/Level.h"
-#include "Rendering/GpuResourceCache.h"
-#include "Rendering/ShaderLibrary.h"
+#include "Rendering/TextureCapture.h"
+#include "Runtime/RenderContext.h"
+#include "UI/CssValues.h"
 #include "UI/Document.h"
 #include "UI/ScreenRenderer.h"
 #include "UI/UITestTypes.h"
 
 #include <gtest/gtest.h>
-
-#include <stb_image_write.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -110,29 +109,25 @@ TEST(UITests, BindingsLayoutInputAndRendering)
     document.Update(roots, input, 640.0f, 360.0f, 0.016f);
     EXPECT_NEAR(player->m_volume, 0.75f, 0.02f);
 
-    std::unique_ptr<RHI::Device> device = RHI::Device::Create();
-    ASSERT_NE(device, nullptr);
-    Rendering::ShaderLibrary shaders(*device, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
-    Rendering::GpuResourceCache resources(*device);
-    ScreenRenderer::Get().Initialize(*device, shaders, resources);
+    std::unique_ptr<Runtime::RenderContext> renderContext = Runtime::RenderContext::Create(nullptr, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
+    ASSERT_NE(renderContext, nullptr);
+    RHI::Device& device = renderContext->GetDevice();
     RHI::TextureDesc desc;
     desc.width = 640;
     desc.height = 360;
     desc.format = RHI::Format::RGBA8Unorm;
     desc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-    auto target = device->CreateTexture(desc);
-    RHI::CommandList& commands = device->BeginFrame();
+    auto target = device.CreateTexture(desc);
+    RHI::CommandList& commands = device.BeginFrame();
     RHI::RenderPassDesc clear;
     clear.colors.push_back({ target.get(), 0, 0, RHI::LoadAction::Clear, { 0.18f, 0.32f, 0.45f, 1.0f } });
     commands.BeginRenderPass(clear);
     commands.EndRenderPass();
     ScreenRenderer::Get().RenderDocument(commands, document, target.get(), 1.0f);
-    device->EndFrame({});
+    device.EndFrame({});
     std::vector<uint8_t> pixels;
-    ASSERT_TRUE(device->ReadTexture(target.get(), pixels));
-    ScreenRenderer::Get().Shutdown();
-    std::filesystem::path path = OutputDirectory() / "BrightBox3D_UITest.png";
-    stbi_write_png(path.string().c_str(), 640, 360, 4, pixels.data(), 640 * 4);
+    ASSERT_TRUE(Rendering::ReadbackRGBA(device, *target, pixels));
+    Rendering::SavePng(device, *target, OutputDirectory() / "BrightBox3D_UITest.png");
     size_t index = (static_cast<size_t>(cy) * 640 + static_cast<size_t>(cx - leave->GetWidth() * 0.45f)) * 4;
     EXPECT_GT(pixels[index], pixels[index + 2]);
 }
