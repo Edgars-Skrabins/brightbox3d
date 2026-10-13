@@ -6,6 +6,14 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <optional>
+#include <thread>
+
+#if !defined(_WIN32)
+#include <csignal>
+#endif
+
 using namespace BrightBox3D::Core;
 
 TEST(GuidTests, RoundTripsThroughString)
@@ -61,5 +69,40 @@ TEST(ProcessTests, CapturesOutputAndExitCode)
     EXPECT_TRUE(result.started);
     EXPECT_EQ(result.exitCode, 3);
     EXPECT_EQ(result.output, "hello\n");
+}
+
+TEST(ProcessTests, TerminateKillsTheWholeProcessTree)
+{
+    auto directory = std::filesystem::temp_directory_path() / "BrightBox3DTests" / "Terminate";
+    std::filesystem::remove_all(directory);
+    std::filesystem::create_directories(directory);
+    auto pidFile = directory / "child.pid";
+
+    AsyncProcess process;
+    process.Start({ { "sh", "-c", "sleep 30 & echo $! > \"" + pidFile.string() + "\"; wait" } });
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    std::optional<std::string> pidText;
+    while (std::chrono::steady_clock::now() < deadline && !(pidText = FileSystem::ReadText(pidFile)).has_value())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    ASSERT_TRUE(pidText.has_value());
+    pid_t child = static_cast<pid_t>(std::stoi(Trim(*pidText)));
+
+    auto start = std::chrono::steady_clock::now();
+    EXPECT_TRUE(process.Terminate(std::chrono::seconds(2)));
+    EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(3));
+    EXPECT_FALSE(process.IsRunning());
+    ProcessResult result = process.TakeResult();
+    EXPECT_TRUE(result.terminated);
+
+    bool childGone = false;
+    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(3) && !childGone)
+    {
+        childGone = kill(child, 0) != 0;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    EXPECT_TRUE(childGone);
+    std::filesystem::remove_all(directory);
 }
 #endif
