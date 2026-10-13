@@ -9,6 +9,7 @@
 #include "Rendering/GpuResourceCache.h"
 #include "UI/CssProperties.h"
 #include "UI/DrawList.h"
+#include "UI/Markup.h"
 #include "UI/Font.h"
 #include "UI/SelectorMatching.h"
 #include "UI/StyleSheet.h"
@@ -72,7 +73,7 @@ Image { width: 64px; height: 64px; }
         {
             if (element.GetElementType() == ElementType::TextField && element.GetText().empty() && !element.IsFocused())
             {
-                return element.GetAttribute("placeholder");
+                return element.GetPlaceholder();
             }
             return element.GetText();
         }
@@ -211,9 +212,10 @@ Image { width: 64px; height: 64px; }
             return nullptr;
         }
         std::string name = node.name();
-        if (name == "Style")
+        std::optional<MarkupElement> markup = FindMarkupElement(name);
+        if (markup == MarkupElement::Style)
         {
-            if (const char* source = node.attribute("src").value(); source && *source)
+            if (const char* source = node.attribute(MarkupAttributeName(MarkupAttribute::Src)).value(); source && *source)
             {
                 LoadStyleSheet(source);
             }
@@ -232,9 +234,9 @@ Image { width: 64px; height: 64px; }
 
         pugi::xml_document widgetDocument;
         pugi::xml_node source = node;
-        if (name == "Use")
+        if (markup == MarkupElement::Use)
         {
-            Core::Guid guid = ResolveAsset(node.attribute("widget").value(), "widget");
+            Core::Guid guid = ResolveAsset(node.attribute(MarkupAttributeName(MarkupAttribute::Widget)).value(), "widget");
             auto widget = Assets::AssetDatabase::Get().Load<WidgetAsset>(guid);
             if (!widget)
             {
@@ -249,79 +251,36 @@ Image { width: 64px; height: 64px; }
             source = widgetDocument.document_element();
         }
 
-        bool valid = false;
-        ElementType type = Element::TypeFromName(source.name(), valid);
-        if (!valid)
+        std::optional<MarkupElement> sourceMarkup = FindMarkupElement(source.name());
+        if (!sourceMarkup)
         {
             Core::Log::Warning(std::string("Unknown UI element <") + source.name() + ">; treating it as a Panel");
         }
-        auto element = std::make_unique<Element>(type, valid ? std::string(source.name()) : std::string("Panel"));
-        auto applyAttributes = [&](const pugi::xml_node& from)
+        const MarkupElementInfo& info = GetMarkupElementInfo(sourceMarkup.value_or(MarkupElement::Panel));
+        ElementType type = info.type;
+        auto element = std::make_unique<Element>(type, sourceMarkup ? std::string(source.name()) : std::string(info.name));
+        MarkupValues values;
+        auto readAttributes = [&](const pugi::xml_node& from)
         {
             for (pugi::xml_attribute attribute : from.attributes())
             {
-                std::string key = attribute.name();
-                std::string value = attribute.value();
-                if (key == "name" || key == "id")
+                std::optional<MarkupAttribute> key = FindMarkupAttribute(attribute.name());
+                if (!key)
                 {
-                    element->SetName(value);
+                    Core::Log::Warning(std::string("Unknown UI attribute '") + attribute.name() + "' on <" + from.name() + ">");
+                    continue;
                 }
-                else if (key == "class")
-                {
-                    for (const std::string& part : Core::Split(value, ' '))
-                    {
-                        element->AddClass(Core::Trim(part));
-                    }
-                }
-                else if (key == "style")
-                {
-                    std::vector<std::string> warnings;
-                    element->GetInlineStyle() = ParseDeclarations(value, warnings);
-                    LogStyleWarnings(element->GetTypeName(), warnings);
-                }
-                else if (key != "widget")
-                {
-                    element->SetAttribute(key, value);
-                }
+                values[static_cast<size_t>(*key)] = attribute.value();
             }
         };
-        applyAttributes(source);
+        readAttributes(source);
         if (source != node)
         {
-            applyAttributes(node);
+            readAttributes(node);
         }
+        ApplyAttributes(*element, values, source);
 
-        if (!element->HasAttribute("text"))
-        {
-            std::string content = Core::Trim(source.child_value());
-            if (!content.empty())
-            {
-                element->SetAttribute("text", content);
-            }
-        }
-        element->SetText(element->HasAttribute("text") && !TextTemplate::Parse(element->GetAttribute("text")).HasBindings() ? element->GetAttribute("text") : "");
-        if (element->HasAttribute("min") || element->HasAttribute("max"))
-        {
-            element->SetRange(static_cast<float>(std::atof(element->GetAttribute("min").c_str())), element->HasAttribute("max") ? static_cast<float>(std::atof(element->GetAttribute("max").c_str())) : 1.0f);
-        }
-        if (element->HasAttribute("value") && element->GetAttribute("value").find('{') == std::string::npos)
-        {
-            element->SetValue(static_cast<float>(std::atof(element->GetAttribute("value").c_str())));
-        }
-        if (element->HasAttribute("checked") && element->GetAttribute("checked").find('{') == std::string::npos)
-        {
-            element->SetBool(element->GetAttribute("checked") == "true");
-        }
-        if (element->HasAttribute("disabled"))
-        {
-            element->SetDisabled(element->GetAttribute("disabled") == "true");
-        }
-        if (type == ElementType::Image && element->HasAttribute("src"))
-        {
-            element->SetImage(ResolveAsset(element->GetAttribute("src"), "image"));
-        }
-
-        if (const char* controllerName = source.attribute("controller").value(); controllerName && *controllerName)
+        if (const char* controllerName = source.attribute(MarkupAttributeName(MarkupAttribute::Controller)).value(); controllerName && *controllerName)
         {
             const Reflection::TypeInfo* controllerType = Reflection::TypeRegistry::Find(controllerName);
             if (controllerType && controllerType->IsA(WidgetController::StaticType()) && !controllerType->IsAbstract())
@@ -354,6 +313,73 @@ Image { width: 64px; height: 64px; }
             }
         }
         return element;
+    }
+
+    void Document::ApplyAttributes(Element& element, const MarkupValues& values, const pugi::xml_node& source)
+    {
+        auto value = [&](MarkupAttribute attribute) -> const std::optional<std::string>&
+        {
+            return values[static_cast<size_t>(attribute)];
+        };
+        auto bindOrApply = [&](MarkupAttribute attribute, const std::string& text, auto apply)
+        {
+            TextTemplate parsed = TextTemplate::Parse(text);
+            if (parsed.HasBindings())
+            {
+                element.SetBinding(*BindingTargetFor(attribute), std::move(parsed));
+                return;
+            }
+            apply(text);
+        };
+        auto bindOrApplyIfSet = [&](MarkupAttribute attribute, auto apply)
+        {
+            if (value(attribute))
+            {
+                bindOrApply(attribute, *value(attribute), apply);
+            }
+        };
+        if (const std::optional<std::string>& name = value(MarkupAttribute::Name) ? value(MarkupAttribute::Name) : value(MarkupAttribute::Id))
+        {
+            element.SetName(*name);
+        }
+        if (value(MarkupAttribute::Class))
+        {
+            for (const std::string& part : Core::Split(*value(MarkupAttribute::Class), ' '))
+            {
+                element.AddClass(Core::Trim(part));
+            }
+        }
+        if (value(MarkupAttribute::Style))
+        {
+            std::vector<std::string> warnings;
+            element.GetInlineStyle() = ParseDeclarations(*value(MarkupAttribute::Style), warnings);
+            LogStyleWarnings(element.GetTypeName(), warnings);
+        }
+        if (value(MarkupAttribute::Placeholder))
+        {
+            element.SetPlaceholder(*value(MarkupAttribute::Placeholder));
+        }
+        std::string text = value(MarkupAttribute::Text).value_or(Core::Trim(source.child_value()));
+        if (!text.empty())
+        {
+            bindOrApply(MarkupAttribute::Text, text, [&](const std::string& content) { element.SetText(content); });
+        }
+        if (value(MarkupAttribute::Min) || value(MarkupAttribute::Max))
+        {
+            float minimum = value(MarkupAttribute::Min) ? ParseMarkupNumber(*value(MarkupAttribute::Min)) : 0.0f;
+            float maximum = 1.0f;
+            bindOrApplyIfSet(MarkupAttribute::Max, [&](const std::string& number) { maximum = ParseMarkupNumber(number); });
+            element.SetRange(minimum, maximum);
+        }
+        bindOrApplyIfSet(MarkupAttribute::Value, [&](const std::string& number) { element.SetValue(ParseMarkupNumber(number)); });
+        bindOrApplyIfSet(MarkupAttribute::Checked, [&](const std::string& flag) { element.SetBool(ParseMarkupBool(flag)); });
+        bindOrApplyIfSet(MarkupAttribute::Disabled, [&](const std::string& flag) { element.SetDisabled(ParseMarkupBool(flag)); });
+        bindOrApplyIfSet(MarkupAttribute::Visible, [&](const std::string& flag) { element.SetMarkupHidden(flag == MarkupFalse); });
+        bindOrApplyIfSet(MarkupAttribute::OnClick, [](const std::string&) {});
+        if (element.GetElementType() == ElementType::Image && value(MarkupAttribute::Src))
+        {
+            element.SetImage(ResolveAsset(*value(MarkupAttribute::Src), "image"));
+        }
     }
 
     bool Document::LoadFromText(const std::string& markup, std::string& error)
@@ -430,7 +456,7 @@ Image { width: 64px; height: 64px; }
         {
             declaration.apply(style);
         }
-        if ((element.HasAttribute("visible") && element.GetAttribute("visible") == "false") || element.IsBindingHidden())
+        if (element.IsMarkupHidden() || element.IsBindingHidden())
         {
             style.display = Display::None;
         }
@@ -573,36 +599,32 @@ Image { width: 64px; height: 64px; }
     void Document::UpdateBindings(Element& element)
     {
         std::string error;
-        if (element.HasAttribute("text") && !(element.GetElementType() == ElementType::TextField && element.IsFocused()))
+        const TextTemplate* text = element.GetBinding(BindingTarget::Text);
+        if (text && !(element.GetElementType() == ElementType::TextField && element.IsFocused()))
         {
-            TextTemplate text = TextTemplate::Parse(element.GetAttribute("text"));
-            if (text.HasBindings())
+            if (element.GetElementType() == ElementType::TextField && text->IsSingleBinding())
             {
-                if (element.GetElementType() == ElementType::TextField && text.IsSingleBinding())
+                BoundProperty bound = ResolveBinding(text->segments[0].text, m_roots, BindingAccess::Write, error);
+                if (bound)
                 {
-                    BoundProperty bound = ResolveBinding(text.segments[0].text, m_roots, BindingAccess::Write, error);
-                    if (bound)
-                    {
-                        element.SetText(bound.Format(text.segments[0].decimals));
-                    }
+                    element.SetText(bound.Format(text->segments[0].decimals));
                 }
-                else
-                {
-                    element.SetText(text.Evaluate(m_roots, error));
-                }
-                ReportBindingError(error);
-                error.clear();
             }
+            else
+            {
+                element.SetText(text->Evaluate(m_roots, error));
+            }
+            ReportBindingError(error);
+            error.clear();
         }
-        auto readNumber = [&](const char* attribute, auto apply, BindingAccess access)
+        auto readNumber = [&](BindingTarget target, auto apply, BindingAccess access)
         {
-            const std::string& value = element.GetAttribute(attribute);
-            TextTemplate parsed = TextTemplate::Parse(value);
-            if (!parsed.IsSingleBinding())
+            const TextTemplate* binding = element.GetBinding(target);
+            if (!binding || !binding->IsSingleBinding())
             {
                 return;
             }
-            BoundProperty bound = ResolveBinding(parsed.segments[0].text, m_roots, access, error);
+            BoundProperty bound = ResolveBinding(binding->segments[0].text, m_roots, access, error);
             ReportBindingError(error);
             error.clear();
             float number = 0.0f;
@@ -613,67 +635,64 @@ Image { width: 64px; height: 64px; }
         };
         if (element.GetElementType() == ElementType::ProgressBar)
         {
-            readNumber("value", [&](float number) { element.SetValue(number); }, BindingAccess::Read);
-            readNumber("max", [&](float number) { element.SetRange(element.GetMinimum(), number); }, BindingAccess::Read);
+            readNumber(BindingTarget::Value, [&](float number) { element.SetValue(number); }, BindingAccess::Read);
+            readNumber(BindingTarget::Max, [&](float number) { element.SetRange(element.GetMinimum(), number); }, BindingAccess::Read);
         }
         else if (element.GetElementType() == ElementType::Slider && !element.IsPressed())
         {
-            readNumber("value", [&](float number) { element.SetValue(number); }, BindingAccess::Write);
+            readNumber(BindingTarget::Value, [&](float number) { element.SetValue(number); }, BindingAccess::Write);
         }
         if (element.GetElementType() == ElementType::Toggle)
         {
-            readNumber("checked", [&](float number) { element.SetBool(number != 0.0f); }, BindingAccess::Write);
+            readNumber(BindingTarget::Checked, [&](float number) { element.SetBool(number != 0.0f); }, BindingAccess::Write);
         }
-        if (element.HasAttribute("visible") && element.GetAttribute("visible").find('{') != std::string::npos)
+        if (element.GetBinding(BindingTarget::Visible))
         {
             bool visible = true;
-            readNumber("visible", [&](float number) { visible = number != 0.0f; }, BindingAccess::Read);
+            readNumber(BindingTarget::Visible, [&](float number) { visible = number != 0.0f; }, BindingAccess::Read);
             element.SetBindingHidden(!visible);
             if (!visible)
             {
                 element.GetStyle().display = Display::None;
             }
         }
-        if (element.HasAttribute("disabled") && element.GetAttribute("disabled").find('{') != std::string::npos)
-        {
-            readNumber("disabled", [&](float number) { element.SetDisabled(number != 0.0f); }, BindingAccess::Read);
-        }
+        readNumber(BindingTarget::Disabled, [&](float number) { element.SetDisabled(number != 0.0f); }, BindingAccess::Read);
         for (const auto& child : element.GetChildren())
         {
             UpdateBindings(*child);
         }
     }
 
-    void Document::WriteBinding(Element& element, const char* attribute)
+    void Document::WriteBinding(Element& element, BindingTarget target)
     {
-        TextTemplate parsed = TextTemplate::Parse(element.GetAttribute(attribute));
-        if (!parsed.IsSingleBinding())
+        const TextTemplate* binding = element.GetBinding(target);
+        if (!binding || !binding->IsSingleBinding())
         {
             return;
         }
         std::string error;
-        BoundProperty bound = ResolveBinding(parsed.segments[0].text, m_roots, BindingAccess::Write, error);
+        BoundProperty bound = ResolveBinding(binding->segments[0].text, m_roots, BindingAccess::Write, error);
         ReportBindingError(error);
         if (!bound)
         {
             return;
         }
-        std::string name = attribute;
-        if (name == "onClick")
+        switch (target)
         {
+        case BindingTarget::OnClick:
             bound.Trigger();
-        }
-        else if (name == "checked")
-        {
+            break;
+        case BindingTarget::Checked:
             bound.WriteBool(element.GetBool());
-        }
-        else if (name == "value")
-        {
+            break;
+        case BindingTarget::Value:
             bound.WriteNumber(element.GetValue());
-        }
-        else if (name == "text")
-        {
+            break;
+        case BindingTarget::Text:
             bound.WriteString(element.GetText());
+            break;
+        default:
+            break;
         }
     }
 
@@ -724,7 +743,7 @@ Image { width: 64px; height: 64px; }
             if (m_focused && m_focused != hovered)
             {
                 m_focused->SetFocused(false);
-                WriteBinding(*m_focused, "text");
+                WriteBinding(*m_focused, BindingTarget::Text);
                 NotifyValueChanged(*m_focused);
                 m_focused = nullptr;
             }
@@ -748,7 +767,7 @@ Image { width: 64px; height: 64px; }
             if (value != m_pressed->GetValue())
             {
                 m_pressed->SetValue(value);
-                WriteBinding(*m_pressed, "value");
+                WriteBinding(*m_pressed, BindingTarget::Value);
                 NotifyValueChanged(*m_pressed);
             }
         }
@@ -762,7 +781,7 @@ Image { width: 64px; height: 64px; }
             {
                 if (released->GetElementType() == ElementType::Button)
                 {
-                    WriteBinding(*released, "onClick");
+                    WriteBinding(*released, BindingTarget::OnClick);
                     if (WidgetController* controller = released->FindController())
                     {
                         controller->OnClicked(*released);
@@ -771,7 +790,7 @@ Image { width: 64px; height: 64px; }
                 else if (released->GetElementType() == ElementType::Toggle)
                 {
                     released->SetBool(!released->GetBool());
-                    WriteBinding(*released, "checked");
+                    WriteBinding(*released, BindingTarget::Checked);
                     NotifyValueChanged(*released);
                 }
             }
@@ -801,7 +820,7 @@ Image { width: 64px; height: 64px; }
             if (input.enter || input.escape)
             {
                 m_focused->SetFocused(false);
-                WriteBinding(*m_focused, "text");
+                WriteBinding(*m_focused, BindingTarget::Text);
                 NotifyValueChanged(*m_focused);
                 m_focused = nullptr;
             }

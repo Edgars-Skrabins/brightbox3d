@@ -7,7 +7,9 @@
 #include "UI/Style.h"
 #include "UI/StyleSheet.h"
 
+#include <array>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -68,7 +70,10 @@ namespace BrightBox3D::UI
         bool HasFocus() const { return m_focused != nullptr; }
 
     private:
+        using MarkupValues = std::array<std::optional<std::string>, static_cast<size_t>(MarkupAttribute::Count)>;
+
         std::unique_ptr<Element> BuildElement(const pugi::xml_node& node, int depth, std::string& error);
+        void ApplyAttributes(Element& element, const MarkupValues& values, const pugi::xml_node& source);
         bool LoadStyleSheet(const std::string& reference);
         Core::Guid ResolveAsset(const std::string& reference, const char* expectedType);
         void ComputeStyles(Element& element, const ComputedStyle* parent);
@@ -79,7 +84,7 @@ namespace BrightBox3D::UI
         Element* HitTest(Element& element, float x, float y);
         void DrawElement(const Element& element, DrawList& drawList, RHI::Device& device, Rendering::GpuResourceCache& resources, float opacity) const;
         void ReportBindingError(const std::string& error);
-        void WriteBinding(Element& element, const char* attribute);
+        void WriteBinding(Element& element, BindingTarget target);
         void NotifyValueChanged(Element& element);
 
         std::unique_ptr<Element> m_root;

@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "UI/Binding.h"
+#include "UI/Markup.h"
 #include "UI/Style.h"
 
+#include <array>
 #include <memory>
+#include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 struct YGNode;
@@ -13,18 +16,6 @@ struct YGNode;
 namespace BrightBox3D::UI
 {
     class WidgetController;
-
-    enum class ElementType
-    {
-        Panel,
-        Label,
-        Button,
-        Image,
-        TextField,
-        ProgressBar,
-        Slider,
-        Toggle
-    };
 
     class Element
     {
@@ -49,10 +40,12 @@ namespace BrightBox3D::UI
         Element* AddChild(std::unique_ptr<Element> child);
         Element* FindByName(const std::string& name);
 
-        const std::string& GetAttribute(const std::string& name) const;
-        bool HasAttribute(const std::string& name) const { return m_attributes.count(name) > 0; }
-        void SetAttribute(const std::string& name, const std::string& value) { m_attributes[name] = value; }
-        const std::unordered_map<std::string, std::string>& GetAttributes() const { return m_attributes; }
+        const TextTemplate* GetBinding(BindingTarget target) const;
+        void SetBinding(BindingTarget target, TextTemplate binding) { m_bindings[static_cast<size_t>(target)] = std::move(binding); }
+        const std::string& GetPlaceholder() const { return m_placeholder; }
+        void SetPlaceholder(const std::string& placeholder) { m_placeholder = placeholder; }
+        bool IsMarkupHidden() const { return m_markupHidden; }
+        void SetMarkupHidden(bool hidden) { m_markupHidden = hidden; }
 
         const std::string& GetText() const { return m_text; }
         void SetText(const std::string& text) { m_text = text; }
@@ -104,14 +97,14 @@ namespace BrightBox3D::UI
         void SetController(WidgetController* controller) { m_controller = controller; }
         WidgetController* FindController() const;
 
-        static ElementType TypeFromName(const std::string& name, bool& valid);
-
     private:
         ElementType m_type;
         std::string m_typeName;
         std::string m_name;
         std::vector<std::string> m_classes;
-        std::unordered_map<std::string, std::string> m_attributes;
+        std::array<std::optional<TextTemplate>, static_cast<size_t>(BindingTarget::Count)> m_bindings;
+        std::string m_placeholder;
+        bool m_markupHidden = false;
         std::vector<CssDeclaration> m_inlineStyle;
         bool m_bindingHidden = false;
         Element* m_parent = nullptr;

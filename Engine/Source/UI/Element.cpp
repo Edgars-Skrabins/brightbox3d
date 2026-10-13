@@ -63,11 +63,10 @@ namespace BrightBox3D::UI
         return nullptr;
     }
 
-    const std::string& Element::GetAttribute(const std::string& name) const
+    const TextTemplate* Element::GetBinding(BindingTarget target) const
     {
-        static const std::string empty;
-        auto it = m_attributes.find(name);
-        return it == m_attributes.end() ? empty : it->second;
+        const std::optional<TextTemplate>& binding = m_bindings[static_cast<size_t>(target)];
+        return binding ? &*binding : nullptr;
     }
 
     bool Element::IsInteractive() const
@@ -85,44 +84,5 @@ namespace BrightBox3D::UI
             }
         }
         return nullptr;
-    }
-
-    ElementType Element::TypeFromName(const std::string& name, bool& valid)
-    {
-        valid = true;
-        if (name == "Panel" || name == "Screen" || name == "Widget" || name == "Use")
-        {
-            return ElementType::Panel;
-        }
-        if (name == "Label")
-        {
-            return ElementType::Label;
-        }
-        if (name == "Button")
-        {
-            return ElementType::Button;
-        }
-        if (name == "Image")
-        {
-            return ElementType::Image;
-        }
-        if (name == "TextField")
-        {
-            return ElementType::TextField;
-        }
-        if (name == "ProgressBar")
-        {
-            return ElementType::ProgressBar;
-        }
-        if (name == "Slider")
-        {
-            return ElementType::Slider;
-        }
-        if (name == "Toggle")
-        {
-            return ElementType::Toggle;
-        }
-        valid = false;
-        return ElementType::Panel;
     }
 }
