@@ -14,4 +14,5 @@ namespace BrightBox3D::Runtime::ProjectLayout
     inline constexpr const char* CompileCacheFolder = "Build";
     inline constexpr const char* HotReloadCacheFolder = "HotReload";
     inline constexpr const char* GitIgnoreFileName = ".gitignore";
+    inline constexpr const char* CMakeListsFileName = "CMakeLists.txt";
 }

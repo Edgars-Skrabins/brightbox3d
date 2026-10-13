@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.24)
+project(@NAME@ LANGUAGES C CXX)
+
+set(BRIGHT_SDK "@SDK@" CACHE FILEPATH "")
+include(${BRIGHT_SDK})
+include(${BRIGHT_ENGINE_SOURCE_DIR}/cmake/BrightGame.cmake)
+
+bright_add_game_module(@NAME@ ${CMAKE_CURRENT_SOURCE_DIR}/@SOURCE@ ${CMAKE_CURRENT_SOURCE_DIR}/@STAGING@)

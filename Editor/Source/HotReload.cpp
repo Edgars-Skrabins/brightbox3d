@@ -6,27 +6,30 @@
 #include "Core/StringUtils.h"
 #include "EditorContext.h"
 #include "EditorText.h"
+#include "Runtime/ProjectLayout.h"
+#include "Runtime/ProjectTemplates.h"
 
 #include <regex>
-#include <sstream>
 #include <thread>
 
 namespace BrightBox3D::Editor
 {
     namespace
     {
-        std::filesystem::path SdkPath()
-        {
-            return Core::FileSystem::ExecutableDirectory() / "BrightBox3DSDK.cmake";
-        }
-
+        constexpr const char* SdkFileName = "BrightBox3DSDK.cmake";
+        constexpr const char* CMakeCacheFileName = "CMakeCache.txt";
         constexpr const char* NinjaGenerator = "Ninja";
         constexpr std::chrono::milliseconds CancelTimeout(2000);
         constexpr const char* GeneratorCacheEntry = "CMAKE_GENERATOR:INTERNAL=";
 
+        std::filesystem::path SdkPath()
+        {
+            return Core::FileSystem::ExecutableDirectory() / SdkFileName;
+        }
+
         std::string CachedGenerator(const std::filesystem::path& buildDirectory)
         {
-            auto cache = Core::FileSystem::ReadText(buildDirectory / "CMakeCache.txt");
+            auto cache = Core::FileSystem::ReadText(buildDirectory / CMakeCacheFileName);
             if (!cache)
             {
                 return {};
@@ -146,24 +149,21 @@ namespace BrightBox3D::Editor
     {
         Runtime::Project& project = m_context.GetProjectService().GetProject();
         std::filesystem::path root = project.GetRoot();
-        std::filesystem::path cmakeLists = root / "CMakeLists.txt";
-        std::string name = project.GetGameModuleName();
-        std::ostringstream content;
-        content << "cmake_minimum_required(VERSION 3.24)\n";
-        content << "project(" << name << " LANGUAGES C CXX)\n\n";
-        content << "set(BRIGHT_SDK \"" << Core::FileSystem::ToGenericString(SdkPath()) << "\" CACHE FILEPATH \"\")\n";
-        content << "include(${BRIGHT_SDK})\n";
-        content << "include(${BRIGHT_ENGINE_SOURCE_DIR}/cmake/BrightGame.cmake)\n\n";
-        content << "bright_add_game_module(" << name << " ${CMAKE_CURRENT_SOURCE_DIR}/Source ${CMAKE_CURRENT_SOURCE_DIR}/Binaries/Staging)\n";
-        auto existing = Core::FileSystem::ReadText(cmakeLists);
-        if (!existing || *existing != content.str())
+        std::filesystem::path cmakeLists = root / Runtime::ProjectLayout::CMakeListsFileName;
+        std::optional<std::string> content = Runtime::ProjectTemplates::GameCMakeLists(project.GetGameModuleName(), SdkPath());
+        if (!content)
         {
-            if (existing && existing->find("bright_add_game_module") == std::string::npos)
+            return false;
+        }
+        auto existing = Core::FileSystem::ReadText(cmakeLists);
+        if (!existing || *existing != *content)
+        {
+            if (existing && existing->find(Runtime::ProjectTemplates::GeneratedMarker) == std::string::npos)
             {
                 Core::Log::Warning(Text(EditorText::CMakeListsNotGenerated, Core::EngineName));
                 return true;
             }
-            if (!Core::FileSystem::WriteText(cmakeLists, content.str()))
+            if (!Core::FileSystem::WriteText(cmakeLists, *content))
             {
                 return false;
             }
@@ -291,13 +291,13 @@ namespace BrightBox3D::Editor
         Runtime::Project& project = m_context.GetProjectService().GetProject();
         std::filesystem::path buildDirectory = project.GetCompileDirectory();
         std::filesystem::path ninja = FindNinja();
-        if (!ninja.empty() && std::filesystem::exists(buildDirectory / "CMakeCache.txt") && CachedGenerator(buildDirectory) != NinjaGenerator)
+        if (!ninja.empty() && std::filesystem::exists(buildDirectory / CMakeCacheFileName) && CachedGenerator(buildDirectory) != NinjaGenerator)
         {
             std::error_code error;
             std::filesystem::remove_all(buildDirectory, error);
         }
         std::vector<std::vector<std::string>> commands;
-        if (!std::filesystem::exists(buildDirectory / "CMakeCache.txt"))
+        if (!std::filesystem::exists(buildDirectory / CMakeCacheFileName))
         {
             std::vector<std::string> configure = { cmake.string(), "-S", project.GetRoot().string(), "-B", buildDirectory.string(), "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DBRIGHT_SDK=" + Core::FileSystem::ToGenericString(SdkPath()) };
             if (!ninja.empty())

@@ -4,6 +4,7 @@
 #include "Core/FileSystem.h"
 #include "Core/SharedLibrary.h"
 #include "Core/StringUtils.h"
+#include "Runtime/ProjectTemplates.h"
 #include "Serialization/ObjectSerializer.h"
 
 namespace BrightBox3D::Runtime
@@ -88,7 +89,10 @@ namespace BrightBox3D::Runtime
             error = "Cannot write the project file";
             return false;
         }
-        Core::FileSystem::WriteText(directory / ProjectLayout::GitIgnoreFileName, "Cache/\nBuild/\nBinaries/\nCMakeLists.txt\n.DS_Store\n");
+        if (std::optional<std::string> gitIgnore = ProjectTemplates::GitIgnore())
+        {
+            Core::FileSystem::WriteText(directory / ProjectLayout::GitIgnoreFileName, *gitIgnore);
+        }
         return true;
     }
 
