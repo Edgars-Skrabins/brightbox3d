@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <format>
 #include <string>
-#include <string_view>
 
 namespace BrightBox3D::Editor
 {
@@ -388,7 +387,6 @@ namespace BrightBox3D::Editor
     };
 
     const EditorTextInfo& GetTextInfo(EditorText text);
-    int CountTextArguments(std::string_view text);
 
     class EditorTextTable
     {

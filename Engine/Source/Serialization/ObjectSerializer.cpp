@@ -1,5 +1,6 @@
 #include "Serialization/ObjectSerializer.h"
 
+#include "Core/EngineText.h"
 #include "Core/Guid.h"
 #include "Math/Color.h"
 #include "Math/Quaternion.h"
@@ -353,7 +354,7 @@ namespace BrightBox3D::Serialization
         {
             if (error)
             {
-                *error = "Unknown type '" + typeName + "'";
+                *error = Core::Text(Core::EngineText::UnknownType, typeName);
             }
             return nullptr;
         }
@@ -362,7 +363,7 @@ namespace BrightBox3D::Serialization
         {
             if (error)
             {
-                *error = "Type '" + typeName + "' cannot be instantiated";
+                *error = Core::Text(Core::EngineText::TypeNotInstantiable, typeName);
             }
             return nullptr;
         }

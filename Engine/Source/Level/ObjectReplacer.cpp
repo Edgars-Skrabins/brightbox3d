@@ -1,5 +1,6 @@
 #include "Level/ObjectReplacer.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Level/MissingComponent.h"
 #include "Reflection/TypeRegistry.h"
@@ -65,7 +66,7 @@ namespace BrightBox3D::Level
             }
             else
             {
-                Core::Log::Warning("Component type '" + entry.typeName + "' no longer exists after reload; its data is preserved");
+                Core::Log::Warning(Core::Text(Core::EngineText::ReloadComponentMissing, entry.typeName));
                 auto missing = std::make_unique<MissingComponent>();
                 missing->SetMissing(entry.typeName, entry.data);
                 component = std::move(missing);
@@ -85,7 +86,7 @@ namespace BrightBox3D::Level
             Level::SetRuntimeState(object->GetTransform(), record.transformState);
             if (missing)
             {
-                Core::Log::Warning("Type '" + record.typeName + "' no longer exists after reload; '" + record.state.object.name + "' keeps its data as a missing type");
+                Core::Log::Warning(Core::Text(Core::EngineText::ReloadObjectTypeMissing, record.typeName, record.state.object.name));
                 object->SetMissingType(record.typeName, record.brainData);
             }
             else
@@ -111,12 +112,12 @@ namespace BrightBox3D::Level
                 }
                 else
                 {
-                    Core::Log::Warning("Type '" + record.typeNames.front() + "' no longer exists after reload; it continues as '" + typeName + "'");
+                    Core::Log::Warning(Core::Text(Core::EngineText::ReloadTypeFallback, record.typeNames.front(), typeName));
                 }
                 Level::SetRuntimeState(*object, record.state);
                 return object;
             }
-            Core::Log::Warning("Type '" + record.typeNames.front() + "' no longer exists after reload and has no loaded base class; it was removed");
+            Core::Log::Warning(Core::Text(Core::EngineText::ReloadTypeRemoved, record.typeNames.front()));
             return nullptr;
         }
 

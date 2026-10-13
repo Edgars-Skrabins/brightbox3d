@@ -1,5 +1,6 @@
 #include "Runtime/GameManifest.h"
 
+#include "Core/EngineText.h"
 #include "Runtime/Project.h"
 #include "Serialization/Json.h"
 #include "Serialization/ObjectSerializer.h"
@@ -21,7 +22,7 @@ namespace BrightBox3D::Runtime
         {
             if (error.empty())
             {
-                error = "invalid game manifest";
+                error = Core::Text(Core::EngineText::ManifestInvalid);
             }
             return false;
         }

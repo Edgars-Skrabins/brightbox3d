@@ -1,5 +1,6 @@
 #include "Framework/GameSession.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Framework/GameModeBase.h"
 #include "Framework/PlayableLevelObject.h"
@@ -25,7 +26,7 @@ namespace BrightBox3D::Framework
         const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(className);
         if (!type || !type->IsA(base) || type->IsAbstract())
         {
-            Core::Log::Warning("'" + className + "' is not a loaded " + base.GetName() + " class");
+            Core::Log::Warning(Core::Text(Core::EngineText::ClassNotLoaded, className, base.GetName()));
             if (LevelGameplaySettings::IsOptional(slot))
             {
                 return nullptr;
@@ -61,7 +62,7 @@ namespace BrightBox3D::Framework
             }
         });
         level.BeginPlay();
-        Core::Log::Info("Game started with GameMode '" + gameMode->GetType().GetName() + "'");
+        Core::Log::Info(Core::Text(Core::EngineText::GameStarted, gameMode->GetType().GetName()));
         return gameMode;
     }
 }

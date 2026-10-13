@@ -1,6 +1,7 @@
 #include "Geometry/ModelImporter.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Geometry/ModelAsset.h"
 #include "Serialization/Json.h"
 
@@ -208,7 +209,7 @@ namespace BrightBox3D::Geometry
 
         if (model.GetMeshes().empty())
         {
-            error = "the file contains no meshes";
+            error = Core::Text(Core::EngineText::ModelHasNoMeshes);
             return false;
         }
         output = model.Serialize();
@@ -220,7 +221,7 @@ namespace BrightBox3D::Geometry
         auto model = std::make_shared<ModelAsset>();
         if (!model->Deserialize(data, size))
         {
-            error = "corrupt cooked model";
+            error = Core::Text(Core::EngineText::CorruptCookedModel);
             return nullptr;
         }
         return model;

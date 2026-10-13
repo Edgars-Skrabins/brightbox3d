@@ -1,5 +1,6 @@
 #include "Framework/GameModeBase.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Framework/PlayableLevelObject.h"
 #include "Framework/PlayerStart.h"
@@ -21,7 +22,7 @@ namespace BrightBox3D::Framework
         const Reflection::TypeInfo* type = m_gameStateClass.Resolve();
         if (!type)
         {
-            Core::Log::Warning("GameState class '" + m_gameStateClass.typeName + "' is not loaded; using GameStateBase");
+            Core::Log::Warning(Core::Text(Core::EngineText::ClassNotLoadedFallback, GameStateBase::StaticType().GetName(), m_gameStateClass.typeName, GameStateBase::StaticType().GetName()));
             type = &GameStateBase::StaticType();
         }
         m_gameState = Reflection::Cast<GameStateBase>(level->CreateEngineObject(*type));
@@ -37,7 +38,7 @@ namespace BrightBox3D::Framework
         const Reflection::TypeInfo* type = m_playerControllerClass.Resolve();
         if (!type)
         {
-            Core::Log::Warning("PlayerController class '" + m_playerControllerClass.typeName + "' is not loaded; using PlayerController");
+            Core::Log::Warning(Core::Text(Core::EngineText::ClassNotLoadedFallback, PlayerController::StaticType().GetName(), m_playerControllerClass.typeName, PlayerController::StaticType().GetName()));
             type = &PlayerController::StaticType();
         }
         for (int32_t index = 0; index < std::max(m_playerCount, 1); ++index)
@@ -76,7 +77,7 @@ namespace BrightBox3D::Framework
         Level::Level* level = GetLevel();
         if (!m_defaultPlayable.IsSet())
         {
-            Core::Log::Warning("GameMode has no DefaultPlayable; player " + std::to_string(controller.GetPlayerIndex()) + " was not spawned");
+            Core::Log::Warning(Core::Text(Core::EngineText::NoDefaultPlayable, controller.GetPlayerIndex()));
             return;
         }
         PlayerStart* start = ChoosePlayerStart(controller);
@@ -86,7 +87,7 @@ namespace BrightBox3D::Framework
         auto* playable = Reflection::Cast<PlayableLevelObject>(spawned);
         if (!playable)
         {
-            Core::Log::Error("The DefaultPlayable LevelObjectVariant must be a PlayableLevelObject");
+            Core::Log::Error(Core::Text(Core::EngineText::DefaultPlayableWrongType, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), PlayableLevelObject::StaticType().GetName()));
             if (spawned)
             {
                 level->DestroyObjectImmediate(spawned);

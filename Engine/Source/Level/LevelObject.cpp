@@ -1,5 +1,6 @@
 #include "Level/LevelObject.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Level/LevelCollection.h"
@@ -54,12 +55,12 @@ namespace BrightBox3D::Level
     {
         if (parent == this || (parent && parent->IsDescendantOf(this)))
         {
-            Core::Log::Warning("Cannot parent '" + m_state.name + "' to itself or one of its descendants");
+            Core::Log::Warning(Core::Text(Core::EngineText::ParentCycle, m_state.name));
             return;
         }
         if (parent && parent->GetLevel() != GetLevel())
         {
-            Core::Log::Warning("Cannot parent '" + m_state.name + "' to an object in another level");
+            Core::Log::Warning(Core::Text(Core::EngineText::ParentOtherLevel, m_state.name));
             return;
         }
 
@@ -200,13 +201,13 @@ namespace BrightBox3D::Level
     {
         if (!type.IsA(LevelObjectComponent::StaticType()) || type.IsA(Transform::StaticType()))
         {
-            Core::Log::Error("'" + type.GetName() + "' cannot be added as a component");
+            Core::Log::Error(Core::Text(Core::EngineText::NotAComponent, type.GetName()));
             return nullptr;
         }
         std::unique_ptr<Reflection::EngineObject> object(type.CreateInstance());
         if (!object)
         {
-            Core::Log::Error("Component type '" + type.GetName() + "' is abstract");
+            Core::Log::Error(Core::Text(Core::EngineText::ComponentAbstract, type.GetName()));
             return nullptr;
         }
         std::unique_ptr<LevelObjectComponent> component(static_cast<LevelObjectComponent*>(object.release()));

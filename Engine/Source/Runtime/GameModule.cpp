@@ -1,5 +1,6 @@
 #include "Runtime/GameModule.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Level/LevelSerializer.h"
@@ -25,7 +26,7 @@ namespace BrightBox3D::Runtime
         std::filesystem::copy_file(library, copy, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec)
         {
-            error = "cannot copy module: " + ec.message();
+            error = Core::Text(Core::EngineText::ModuleCopyFailed, ec.message());
             return false;
         }
         bool loaded = m_library.Load(copy);
@@ -49,7 +50,7 @@ namespace BrightBox3D::Runtime
         m_shadowDirectory = shadowDirectory;
         if (!std::filesystem::exists(library))
         {
-            error = "module '" + library.generic_string() + "' does not exist";
+            error = Core::Text(Core::EngineText::ModuleMissing, library.generic_string());
             return false;
         }
         if (!LoadCopy(library, error))
@@ -57,7 +58,7 @@ namespace BrightBox3D::Runtime
             return false;
         }
         size_t count = Reflection::TypeRegistry::GetFromModule(m_name).size();
-        Core::Log::Info("Loaded game module '" + m_name + "' (" + std::to_string(count) + " reflected types)");
+        Core::Log::Info(Core::Text(Core::EngineText::GameModuleLoaded, m_name, count));
         return true;
     }
 
@@ -80,10 +81,10 @@ namespace BrightBox3D::Runtime
         if (restored)
         {
             m_loadedCopy = previous;
-            Core::Log::Error("Hot reload failed to load the new module; the previous module was restored");
+            Core::Log::Error(Core::Text(Core::EngineText::ModuleRestored));
             return;
         }
-        Core::Log::Error("Hot reload failed to load the new module, and the previous module could not be restored: " + m_library.LastError());
+        Core::Log::Error(Core::Text(Core::EngineText::ModuleRestoreFailed, m_library.LastError()));
         std::error_code ec;
         std::filesystem::remove(previous, ec);
         m_loadedCopy.clear();
@@ -105,7 +106,7 @@ namespace BrightBox3D::Runtime
     {
         if (!std::filesystem::exists(library))
         {
-            error = "module '" + library.generic_string() + "' does not exist";
+            error = Core::Text(Core::EngineText::ModuleMissing, library.generic_string());
             return false;
         }
         Level::ReplacementBatch batch;
@@ -121,7 +122,7 @@ namespace BrightBox3D::Runtime
         Level::ObjectReplacer::Restore(batch);
         if (loaded)
         {
-            Core::Log::Info("Hot reloaded '" + m_name + "' (generation " + std::to_string(m_generation) + ", " + std::to_string(restored) + " objects preserved)");
+            Core::Log::Info(Core::Text(Core::EngineText::GameModuleReloaded, m_name, m_generation, restored));
         }
         return loaded;
     }

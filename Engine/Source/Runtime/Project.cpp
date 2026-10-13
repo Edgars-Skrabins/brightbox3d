@@ -1,6 +1,7 @@
 #include "Runtime/Project.h"
 
 #include "Core/EngineInfo.h"
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/SharedLibrary.h"
 #include "Core/StringUtils.h"
@@ -73,12 +74,12 @@ namespace BrightBox3D::Runtime
     {
         if (std::filesystem::exists(directory / FileName))
         {
-            error = "A project already exists in this folder";
+            error = Core::Text(Core::EngineText::ProjectExists);
             return false;
         }
         if (!Core::FileSystem::EnsureDirectory(directory / ProjectLayout::AssetsFolder) || !Core::FileSystem::EnsureDirectory(directory / ProjectLayout::SourceFolder))
         {
-            error = "Cannot create the project folders";
+            error = Core::Text(Core::EngineText::ProjectFoldersFailed);
             return false;
         }
         ProjectSettings settings;
@@ -86,7 +87,7 @@ namespace BrightBox3D::Runtime
         settings.gameModule = SanitizeModuleName(name);
         if (!WriteSettings(directory / FileName, settings))
         {
-            error = "Cannot write the project file";
+            error = Core::Text(Core::EngineText::ProjectWriteFailed);
             return false;
         }
         if (std::optional<std::string> gitIgnore = ProjectTemplates::GitIgnore())
@@ -103,7 +104,7 @@ namespace BrightBox3D::Runtime
         {
             if (error.empty())
             {
-                error = "Invalid project file";
+                error = Core::Text(Core::EngineText::ProjectInvalid);
             }
             return false;
         }

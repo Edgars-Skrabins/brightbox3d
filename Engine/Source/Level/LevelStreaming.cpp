@@ -1,6 +1,7 @@
 #include "Level/LevelStreaming.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Level/LevelAssets.h"
@@ -100,7 +101,7 @@ namespace BrightBox3D::Level
         LevelCollection* collection = nullptr;
         if (!asset)
         {
-            Core::Log::Error("Streaming failed: LevelCollection " + request.collection.ToString() + " could not be loaded");
+            Core::Log::Error(Core::Text(Core::EngineText::StreamingFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), request.collection.ToString()));
         }
         else if (!(collection = GetLevel()->FindCollection(request.collection)))
         {

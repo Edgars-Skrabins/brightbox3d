@@ -1,4 +1,5 @@
 #include "Core/FileSystem.h"
+#include "Core/StringUtils.h"
 #include "EditorText.h"
 
 #include <gtest/gtest.h>
@@ -46,7 +47,7 @@ TEST_F(EditorTextTests, PlaceholderCountMatchesArgumentCount)
     for (size_t index = 0; index < static_cast<size_t>(EditorText::Count); ++index)
     {
         const Editor::EditorTextInfo& info = Editor::GetTextInfo(static_cast<EditorText>(index));
-        EXPECT_EQ(Editor::CountTextArguments(info.english), info.argumentCount) << info.key;
+        EXPECT_EQ(Core::CountFormatPlaceholders(info.english), info.argumentCount) << info.key;
     }
 }
 

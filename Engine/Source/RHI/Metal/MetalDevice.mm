@@ -1,5 +1,6 @@
 #include "RHI/Device.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Platform/Window.h"
 #include "RHI/ShaderCompiler.h"
@@ -800,7 +801,7 @@ namespace BrightBox3D::RHI
                 auto texture = std::make_unique<MetalTexture>(m_device, desc);
                 if (!texture->Get())
                 {
-                    Core::Log::Error("Metal: failed to create texture '" + desc.debugName + "'");
+                    Core::Log::Error(Core::Text(Core::EngineText::MetalTextureFailed, desc.debugName));
                     return nullptr;
                 }
                 return texture;
@@ -846,13 +847,13 @@ namespace BrightBox3D::RHI
                 id<MTLLibrary> library = [m_device newLibraryWithSource:[NSString stringWithUTF8String:compiled.metalSource.c_str()] options:options error:&nsError];
                 if (!library)
                 {
-                    error = std::string("MSL compile failed: ") + (nsError ? [[nsError localizedDescription] UTF8String] : "unknown") + "\n" + compiled.metalSource;
+                    error = Core::Text(Core::EngineText::MslCompileFailed, nsError ? [[nsError localizedDescription] UTF8String] : Core::Text(Core::EngineText::UnknownError), compiled.metalSource);
                     return nullptr;
                 }
                 id<MTLFunction> function = [library newFunctionWithName:[NSString stringWithUTF8String:compiled.metalEntryPoint.c_str()]];
                 if (!function)
                 {
-                    error = "entry point '" + compiled.metalEntryPoint + "' not found";
+                    error = Core::Text(Core::EngineText::EntryPointMissing, compiled.metalEntryPoint);
                     return nullptr;
                 }
                 if (!desc.debugName.empty())
@@ -941,7 +942,7 @@ namespace BrightBox3D::RHI
                 id<MTLRenderPipelineState> state = [m_device newRenderPipelineStateWithDescriptor:descriptor error:&nsError];
                 if (!state)
                 {
-                    error = std::string("pipeline '") + desc.debugName + "' failed: " + (nsError ? [[nsError localizedDescription] UTF8String] : "unknown");
+                    error = Core::Text(Core::EngineText::PipelineCreateFailed, desc.debugName, nsError ? [[nsError localizedDescription] UTF8String] : Core::Text(Core::EngineText::UnknownError));
                     return nullptr;
                 }
 
@@ -1043,7 +1044,7 @@ namespace BrightBox3D::RHI
         auto device = std::make_unique<MetalDevice>();
         if (!device->IsValid())
         {
-            Core::Log::Error("Metal is not available on this machine");
+            Core::Log::Error(Core::Text(Core::EngineText::MetalUnavailable));
             return nullptr;
         }
         return device;

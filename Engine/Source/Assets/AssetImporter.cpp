@@ -2,6 +2,7 @@
 
 #include "Assets/JsonAsset.h"
 #include "Assets/TextAsset.h"
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Serialization/BinaryJson.h"
 
@@ -23,7 +24,7 @@ namespace BrightBox3D::Assets
         Serialization::JsonDocument document;
         if (!Serialization::DecodeBinaryJson(data, size, document))
         {
-            error = "corrupt cooked JSON data";
+            error = Core::Text(Core::EngineText::CorruptCookedJson);
             return nullptr;
         }
         return CreateAsset(std::move(document), error);
@@ -41,7 +42,7 @@ namespace BrightBox3D::Assets
         auto text = Core::FileSystem::ReadText(source);
         if (!text)
         {
-            error = "cannot read file";
+            error = Core::Text(Core::EngineText::CannotReadFile);
             return false;
         }
         output.assign(text->begin(), text->end());

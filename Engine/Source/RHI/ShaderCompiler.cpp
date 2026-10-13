@@ -1,5 +1,6 @@
 #include "RHI/ShaderCompiler.h"
 
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/StringUtils.h"
 
@@ -26,7 +27,7 @@ namespace BrightBox3D::RHI
         {
             if (depth > 32)
             {
-                error = "include depth limit exceeded";
+                error = Core::Text(Core::EngineText::ShaderIncludeDepth);
                 return false;
             }
             std::istringstream stream(source);
@@ -40,7 +41,7 @@ namespace BrightBox3D::RHI
                     size_t close = trimmed.rfind('"');
                     if (open == std::string::npos || close <= open)
                     {
-                        error = "malformed include: " + trimmed;
+                        error = Core::Text(Core::EngineText::ShaderMalformedInclude, trimmed);
                         return false;
                     }
                     std::string name = trimmed.substr(open + 1, close - open - 1);
@@ -54,7 +55,7 @@ namespace BrightBox3D::RHI
                     auto text = Core::FileSystem::ReadText(path);
                     if (!text)
                     {
-                        error = "cannot open include '" + key + "'";
+                        error = Core::Text(Core::EngineText::ShaderIncludeMissing, key);
                         return false;
                     }
                     if (!PreprocessRecursive(*text, path.parent_path(), included, output, error, depth + 1))
@@ -81,7 +82,7 @@ namespace BrightBox3D::RHI
         auto text = Core::FileSystem::ReadText(file);
         if (!text)
         {
-            error = "cannot open shader '" + file.generic_string() + "'";
+            error = Core::Text(Core::EngineText::ShaderFileMissing, file.generic_string());
             return false;
         }
         return PreprocessSource(*text, file.parent_path(), output, error);
@@ -179,7 +180,7 @@ namespace BrightBox3D::RHI
         }
         catch (const std::exception& exception)
         {
-            result.error = std::string("SPIRV-Cross: ") + exception.what();
+            result.error = Core::Text(Core::EngineText::SpirvCrossError, exception.what());
         }
         return result;
     }
@@ -187,7 +188,7 @@ namespace BrightBox3D::RHI
     ShaderCompileResult ShaderCompiler::CompileToMetal(const ShaderDesc& desc)
     {
         ShaderCompileResult result;
-        result.error = "Metal shader compilation is only available on Apple platforms";
+        result.error = Core::Text(Core::EngineText::MetalOnlyOnApple);
         return result;
     }
 #endif

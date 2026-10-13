@@ -1,5 +1,6 @@
 #include "Reflection/TypeRegistry.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Reflection/TypeRedirects.h"
 
@@ -33,7 +34,7 @@ namespace BrightBox3D::Reflection
         auto it = state.types.find(type.GetName());
         if (it != state.types.end() && it->second != &type)
         {
-            Core::Log::Warning("Reflected type '" + type.GetName() + "' is registered twice; the newest registration wins");
+            Core::Log::Warning(Core::Text(Core::EngineText::TypeRegisteredTwice, type.GetName()));
         }
         state.types[type.GetName()] = &type;
         state.revision++;

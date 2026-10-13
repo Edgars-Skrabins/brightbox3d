@@ -111,4 +111,20 @@ namespace BrightBox3D::Core
         }
         return result;
     }
+
+    int CountFormatPlaceholders(std::string_view text)
+    {
+        int count = 0;
+        for (size_t index = 0; index < text.size(); ++index)
+        {
+            bool escaped = text[index] == '{' && index + 1 < text.size() && text[index + 1] == '{';
+            if (escaped)
+            {
+                ++index;
+                continue;
+            }
+            count += text[index] == '{' ? 1 : 0;
+        }
+        return count;
+    }
 }

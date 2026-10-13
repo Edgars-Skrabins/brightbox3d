@@ -1,6 +1,7 @@
 #include "Level/LevelSerializer.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Hash.h"
 #include "Core/Log.h"
 #include "Level/LevelAssets.h"
@@ -365,14 +366,14 @@ namespace BrightBox3D::Level
             }
             else if (type && !type->IsA(LevelObjectComponent::StaticType()))
             {
-                Core::Log::Info("Dropped the '" + typeName + "' component: '" + type->GetName() + "' is no longer a component");
+                Core::Log::Info(Core::Text(Core::EngineText::ComponentDropped, typeName, type->GetName()));
                 return nullptr;
             }
             else
             {
                 auto missing = std::make_unique<MissingComponent>();
                 missing->SetMissing(typeName, properties ? Serialization::WriteJson(*properties, false) : "{}");
-                Core::Log::Warning("Missing component type '" + typeName + "'; its data is preserved");
+                Core::Log::Warning(Core::Text(Core::EngineText::MissingComponentType, typeName));
                 component = std::move(missing);
             }
             Core::Guid localId = Core::Guid::Parse(GetString(entry, "id"));
@@ -392,7 +393,7 @@ namespace BrightBox3D::Level
             LevelObject* root = InstantiateAsset(level, asset, collection, parent, id, false, true);
             if (!root)
             {
-                Core::Log::Warning("LevelObject asset " + asset.ToString() + " is missing; the instance is preserved as a placeholder");
+                Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString()));
                 std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
                 placeholder->SetName(GetString(node, "name", "Missing LevelObject"));
                 placeholder->SetMissingType(MissingLevelObjectType, Serialization::WriteJson(node, false));
@@ -477,7 +478,7 @@ namespace BrightBox3D::Level
             const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(parentAsset);
             if (!record || record->type != Assets::AssetType::LevelObjectTemplate)
             {
-                Core::Log::Error("A LevelObjectVariant can only be based on a LevelObjectTemplate");
+                Core::Log::Error(Core::Text(Core::EngineText::VariantParentInvalid, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)));
                 return nullptr;
             }
             LevelObject* root = ReadLinkedNode(level, collection, parent, node, context.derivedRoot, false);
@@ -531,7 +532,7 @@ namespace BrightBox3D::Level
             if (missing)
             {
                 object->SetMissingType(typeName, properties ? Serialization::WriteJson(*properties, false) : "{}");
-                Core::Log::Warning("Missing LevelObject type '" + typeName + "' for '" + object->GetName() + "'; its data is preserved");
+                Core::Log::Warning(Core::Text(Core::EngineText::MissingObjectType, LevelObject::StaticType().GetName(), typeName, object->GetName()));
             }
             else if (properties)
             {
@@ -585,7 +586,7 @@ namespace BrightBox3D::Level
             }
             if (templateAsset)
             {
-                Core::Log::Error("LevelObjectTemplates cannot be placed or spawned; create a Variant from this Template first");
+                Core::Log::Error(Core::Text(Core::EngineText::TemplateNotPlaceable, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)));
             }
             return nullptr;
         }
@@ -788,7 +789,7 @@ namespace BrightBox3D::Level
         auto asset = Assets::AssetDatabase::Get().Load<LevelCollectionAsset>(collectionAsset);
         if (!asset)
         {
-            Core::Log::Error("LevelCollection " + collectionAsset.ToString() + " could not be loaded");
+            Core::Log::Error(Core::Text(Core::EngineText::CollectionLoadFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), collectionAsset.ToString()));
             return false;
         }
         LevelCollection* collection = level.AddCollection(GetString(asset->GetDocument(), "name", asset->GetName()), collectionAsset);
@@ -808,7 +809,7 @@ namespace BrightBox3D::Level
         {
             if (error)
             {
-                *error = "Level asset not found";
+                *error = Core::Text(Core::EngineText::LevelAssetNotFound);
             }
             return nullptr;
         }
@@ -912,7 +913,7 @@ namespace BrightBox3D::Level
         Core::Guid guid = database.CreateJsonAsset(path, level);
         if (!guid.IsValid() && error)
         {
-            *error = "could not write level asset";
+            *error = Core::Text(Core::EngineText::LevelWriteFailed);
         }
         return guid;
     }

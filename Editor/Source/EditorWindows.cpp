@@ -1,6 +1,7 @@
 #include "EditorWindows.h"
 
 #include "Core/FileSystem.h"
+#include "Core/StringUtils.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -34,14 +35,6 @@ namespace BrightBox3D::Editor
         {
             return std::string("###") + info.id;
         }
-
-        void ReplaceAll(std::string& text, const std::string& from, const std::string& to)
-        {
-            for (size_t position = text.find(from); position != std::string::npos; position = text.find(from, position + to.size()))
-            {
-                text.replace(position, from.size(), to);
-            }
-        }
     }
 
     const EditorWindowInfo& GetWindowInfo(EditorWindow window)
@@ -70,8 +63,8 @@ namespace BrightBox3D::Editor
         for (const EditorWindowInfo& info : WindowInfos)
         {
             std::string identity = Identity(info);
-            ReplaceAll(migrated, std::string("[Window][") + info.legacyTitle + "]\n", std::string("[Window][") + info.legacyTitle + identity + "]\n");
-            ReplaceAll(migrated, WindowHash(info.legacyTitle), WindowHash(identity));
+            migrated = Core::ReplaceAll(migrated, std::string("[Window][") + info.legacyTitle + "]\n", std::string("[Window][") + info.legacyTitle + identity + "]\n");
+            migrated = Core::ReplaceAll(migrated, WindowHash(info.legacyTitle), WindowHash(identity));
         }
         if (migrated != *text)
         {

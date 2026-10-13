@@ -1,6 +1,7 @@
 #include "Runtime/LevelObjectAssetMigration.h"
 
 #include "Assets/AssetType.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Runtime/Project.h"
 #include "Serialization/Json.h"
@@ -46,7 +47,7 @@ namespace BrightBox3D::Runtime
             std::filesystem::rename(path, renamed, error);
             if (error)
             {
-                Core::Log::Error("Could not convert '" + path.generic_string() + "' into a LevelObjectVariant: " + error.message());
+                Core::Log::Error(Core::Text(Core::EngineText::VariantMigrationFailed, path.generic_string(), Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), error.message()));
                 continue;
             }
             std::filesystem::path meta = path.string() + MetaExtension;
@@ -57,7 +58,7 @@ namespace BrightBox3D::Runtime
                 SetString(renamedMeta, MetaTypeKey, variantName);
             }
             SetString(renamed, AssetKindKey, variantName);
-            Core::Log::Info("Converted '" + path.filename().string() + "' into the LevelObjectVariant '" + renamed.filename().string() + "'");
+            Core::Log::Info(Core::Text(Core::EngineText::VariantMigrated, path.filename().string(), Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), renamed.filename().string()));
         }
         return static_cast<int>(legacy.size());
     }

@@ -1,6 +1,7 @@
 #include "UI/UIAssets.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 
 namespace BrightBox3D::UI
@@ -40,7 +41,7 @@ namespace BrightBox3D::UI
                 auto asset = std::make_shared<FontAsset>();
                 if (!asset->GetData().Deserialize(data, size))
                 {
-                    error = "corrupt cooked font";
+                    error = Core::Text(Core::EngineText::CorruptCookedFont);
                     return nullptr;
                 }
                 return asset;

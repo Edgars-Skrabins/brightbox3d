@@ -1,5 +1,6 @@
 #include "UI/CssProperties.h"
 
+#include "Core/EngineText.h"
 #include "Core/StringUtils.h"
 #include "UI/CssValues.h"
 
@@ -200,12 +201,12 @@ namespace BrightBox3D::UI
 
         std::string UnknownPropertyWarning(std::string_view name)
         {
-            return "unknown CSS property '" + std::string(name) + "'";
+            return Core::Text(Core::EngineText::CssUnknownProperty, name);
         }
 
         std::string InvalidValueWarning(std::string_view name, std::string_view value)
         {
-            return "invalid value '" + std::string(value) + "' for CSS property '" + std::string(name) + "'";
+            return Core::Text(Core::EngineText::CssInvalidValue, value, name);
         }
     }
 

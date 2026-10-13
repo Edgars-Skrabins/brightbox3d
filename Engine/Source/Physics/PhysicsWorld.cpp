@@ -1,5 +1,6 @@
 #include "Physics/PhysicsWorld.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Geometry/ModelAsset.h"
 #include "Level/Level.h"
@@ -39,6 +40,10 @@ namespace BrightBox3D::Physics
 {
     namespace
     {
+        constexpr float MinimumShapeExtent = 0.001f;
+        constexpr float MinimumMass = 0.001f;
+        constexpr float ScaleChangeEpsilon = 1.0e-8f;
+        constexpr float FallbackBodyRadius = 0.05f;
         constexpr JPH::ObjectLayer StaticLayer = 0;
         constexpr JPH::ObjectLayer MovingLayer = 1;
         const JPH::BroadPhaseLayer StaticBroadPhase(0);
@@ -305,18 +310,18 @@ namespace BrightBox3D::Physics
             if (auto* box = Reflection::Cast<BoxCollider>(&collider))
             {
                 JPH::Vec3 half = ToJolt(box->GetSize() * 0.5f).Abs();
-                half = JPH::Vec3::sMax(half, JPH::Vec3::sReplicate(0.001f));
+                half = JPH::Vec3::sMax(half, JPH::Vec3::sReplicate(MinimumShapeExtent));
                 float radius = std::min(JPH::cDefaultConvexRadius, half.ReduceMin() * 0.5f);
                 shape = new JPH::BoxShape(half, radius);
             }
             else if (auto* sphere = Reflection::Cast<SphereCollider>(&collider))
             {
-                shape = new JPH::SphereShape(std::max(sphere->GetRadius(), 0.001f));
+                shape = new JPH::SphereShape(std::max(sphere->GetRadius(), MinimumShapeExtent));
             }
             else if (auto* capsule = Reflection::Cast<CapsuleCollider>(&collider))
             {
-                float radius = std::max(capsule->GetRadius(), 0.001f);
-                float halfHeight = std::max(capsule->GetHeight() * 0.5f - radius, 0.001f);
+                float radius = std::max(capsule->GetRadius(), MinimumShapeExtent);
+                float halfHeight = std::max(capsule->GetHeight() * 0.5f - radius, MinimumShapeExtent);
                 shape = new JPH::CapsuleShape(halfHeight, radius);
             }
             else if (auto* mesh = Reflection::Cast<MeshCollider>(&collider))
@@ -330,7 +335,7 @@ namespace BrightBox3D::Physics
                 bool convex = mesh->IsConvex() || dynamic;
                 if (!mesh->IsConvex() && dynamic)
                 {
-                    Core::Log::Warning("Dynamic bodies need convex MeshColliders; using a convex hull for '" + collider.GetOwner()->GetName() + "'");
+                    Core::Log::Warning(Core::Text(Core::EngineText::ConvexHullFallback, collider.GetOwner()->GetName()));
                 }
                 if (convex)
                 {
@@ -344,7 +349,7 @@ namespace BrightBox3D::Physics
                     JPH::ShapeSettings::ShapeResult result = settings.Create();
                     if (result.HasError())
                     {
-                        Core::Log::Error("Convex hull creation failed: " + std::string(result.GetError().c_str()));
+                        Core::Log::Error(Core::Text(Core::EngineText::ConvexHullFailed, result.GetError().c_str()));
                         return nullptr;
                     }
                     shape = result.Get();
@@ -367,7 +372,7 @@ namespace BrightBox3D::Physics
                     JPH::ShapeSettings::ShapeResult result = settings.Create();
                     if (result.HasError())
                     {
-                        Core::Log::Error("Mesh collider creation failed: " + std::string(result.GetError().c_str()));
+                        Core::Log::Error(Core::Text(Core::EngineText::MeshColliderFailed, result.GetError().c_str()));
                         return nullptr;
                     }
                     shape = result.Get();
@@ -432,7 +437,7 @@ namespace BrightBox3D::Physics
                 continue;
             }
             Math::Vector3 scale = object->GetTransform().GetLossyScale();
-            if ((scale - record.scale).LengthSquared() > 1.0e-8f)
+            if ((scale - record.scale).LengthSquared() > ScaleChangeEpsilon)
             {
                 implementation.dirty.insert(id);
             }
@@ -493,7 +498,7 @@ namespace BrightBox3D::Physics
             {
                 if (rigidbody && motion == MotionType::Dynamic)
                 {
-                    solids.push_back(new JPH::SphereShape(0.05f));
+                    solids.push_back(new JPH::SphereShape(FallbackBodyRadius));
                 }
                 else
                 {
@@ -518,7 +523,7 @@ namespace BrightBox3D::Physics
                 if (rigidbody)
                 {
                     settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
-                    settings.mMassPropertiesOverride.mMass = std::max(rigidbody->GetMass(), 0.001f);
+                    settings.mMassPropertiesOverride.mMass = std::max(rigidbody->GetMass(), MinimumMass);
                     settings.mGravityFactor = rigidbody->GetGravityScale();
                     settings.mLinearDamping = rigidbody->GetLinearDamping();
                     settings.mAngularDamping = rigidbody->GetAngularDamping();

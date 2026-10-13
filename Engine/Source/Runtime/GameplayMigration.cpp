@@ -1,6 +1,7 @@
 #include "Runtime/GameplayMigration.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Framework/LevelGameplaySettings.h"
 #include "Runtime/Project.h"
@@ -31,7 +32,7 @@ namespace BrightBox3D::Runtime
             if (Framework::LevelGameplaySettings::MigrateLegacySettings(document[LevelSettingsKey], project.GetLegacyGameMode(), allocator))
             {
                 database.SaveJsonAsset(record.guid, document);
-                Core::Log::Info("Moved the GameMode setting into level '" + record.name + "'");
+                Core::Log::Info(Core::Text(Core::EngineText::GameModeMigrated, record.name));
                 migrated = true;
             }
         }

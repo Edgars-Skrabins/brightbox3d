@@ -1,6 +1,7 @@
 #include "EditorText.h"
 
 #include "Core/Log.h"
+#include "Core/StringUtils.h"
 #include "Serialization/Json.h"
 
 namespace BrightBox3D::Editor
@@ -383,23 +384,6 @@ namespace BrightBox3D::Editor
         return TextInfos[static_cast<size_t>(text)];
     }
 
-    int CountTextArguments(std::string_view text)
-    {
-        int count = 0;
-        for (size_t index = 0; index < text.size(); ++index)
-        {
-            if (text[index] == '{' && index + 1 < text.size() && text[index + 1] == '{')
-            {
-                ++index;
-            }
-            else if (text[index] == '{')
-            {
-                ++count;
-            }
-        }
-        return count;
-    }
-
     EditorTextTable& EditorTextTable::Get()
     {
         static EditorTextTable* table = new EditorTextTable();
@@ -437,7 +421,7 @@ namespace BrightBox3D::Editor
             {
                 continue;
             }
-            if (CountTextArguments(value->GetString()) != TextInfos[index].argumentCount)
+            if (Core::CountFormatPlaceholders(value->GetString()) != TextInfos[index].argumentCount)
             {
                 Core::Log::Warning(std::vformat(Lookup(EditorText::TextOverrideArgumentMismatch), std::make_format_args(TextInfos[index].key, TextInfos[index].argumentCount)));
                 continue;

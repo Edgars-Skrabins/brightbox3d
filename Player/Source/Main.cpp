@@ -1,5 +1,8 @@
 #include "Assets/AssetDatabase.h"
+
 #include "Core/CommandLine.h"
+#include "Core/EngineInfo.h"
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
 #include "Framework/Camera.h"
@@ -28,6 +31,7 @@ using namespace BrightBox3D;
 namespace
 {
     constexpr uint64_t PlayerViewId = 0x504C5952;
+    constexpr const char* ShadowModulePrefix = "Player_";
 }
 
 int main(int argc, char** argv)
@@ -53,7 +57,7 @@ int main(int argc, char** argv)
         Runtime::Project project;
         if (!project.Open(projectPath, error))
         {
-            Core::Log::Error("Cannot open project: " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotOpenProject, error));
             return 1;
         }
         manifest.AssignFromProject(project);
@@ -68,7 +72,7 @@ int main(int argc, char** argv)
         root = Core::FileSystem::ExecutableDirectory();
         if (!manifest.Load(Runtime::BuildLayout::GetManifestPath(root), error))
         {
-            Core::Log::Error("Cannot read " + std::string(Runtime::GameManifest::FileName) + ": " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotReadManifest, Runtime::GameManifest::FileName, error));
             return 1;
         }
         modulePath = Runtime::BuildLayout::GetGameModulePath(root, manifest.gameModule);
@@ -95,17 +99,17 @@ int main(int argc, char** argv)
     Runtime::GameModule module;
     if (!manifest.gameModule.empty() && std::filesystem::exists(modulePath))
     {
-        std::filesystem::path shadow = std::filesystem::temp_directory_path() / "BrightBox3D" / ("Player_" + manifest.gameModule);
+        std::filesystem::path shadow = std::filesystem::temp_directory_path() / Core::EngineName / (ShadowModulePrefix + manifest.gameModule);
         if (!module.Load(modulePath, manifest.gameModule, shadow, error))
         {
-            Core::Log::Error("Game module failed to load: " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerModuleLoadFailed, error));
         }
     }
 
     std::unique_ptr<Level::Level> level = Level::LevelSerializer::LoadLevel(manifest.startupLevel, &error);
     if (!level)
     {
-        Core::Log::Error("Startup level could not be loaded: " + error);
+        Core::Log::Error(Core::Text(Core::EngineText::PlayerStartupLevelFailed, error));
         return 1;
     }
     level->SetFixedDeltaTime(manifest.fixedTimeStep);
@@ -165,7 +169,7 @@ int main(int argc, char** argv)
             device.EndFrame({ &swapchain });
             if (Rendering::SavePng(device, *copy, screenshotPath))
             {
-                Core::Log::Info("Saved screenshot '" + screenshotPath.string() + "'");
+                Core::Log::Info(Core::Text(Core::EngineText::SavedScreenshot, screenshotPath.string()));
             }
             break;
         }

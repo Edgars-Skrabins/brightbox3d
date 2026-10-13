@@ -1,6 +1,8 @@
 #include "UI/Font.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineInfo.h"
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Hash.h"
 #include "Core/Log.h"
@@ -10,6 +12,12 @@
 
 namespace BrightBox3D::UI
 {
+    namespace
+    {
+        constexpr const char* DefaultFontCachePrefix = "DefaultFont_";
+        constexpr const char* FontCacheExtension = ".bin";
+    }
+
     RHI::Texture* Font::GetTexture(RHI::Device& device)
     {
         if (!m_texture && m_data.atlasWidth > 0)
@@ -98,12 +106,12 @@ namespace BrightBox3D::UI
         auto bytes = Core::FileSystem::ReadBinary(source);
         if (!bytes)
         {
-            Core::Log::Error("Default UI font is missing: " + source.generic_string());
+            Core::Log::Error(Core::Text(Core::EngineText::DefaultFontMissing, source.generic_string()));
             m_defaultFailed = true;
             return nullptr;
         }
         uint64_t hash = Core::HashBytes(bytes->data(), bytes->size());
-        std::filesystem::path cache = std::filesystem::temp_directory_path() / "BrightBox3D" / ("DefaultFont_" + std::to_string(hash) + ".bin");
+        std::filesystem::path cache = std::filesystem::temp_directory_path() / Core::EngineName / (DefaultFontCachePrefix + std::to_string(hash) + FontCacheExtension);
         FontData data;
         bool loaded = false;
         if (auto cached = Core::FileSystem::ReadBinary(cache))
@@ -115,7 +123,7 @@ namespace BrightBox3D::UI
             std::string error;
             if (!GenerateFontData(source, data, error))
             {
-                Core::Log::Error("Default UI font generation failed: " + error);
+                Core::Log::Error(Core::Text(Core::EngineText::DefaultFontFailed, error));
                 m_defaultFailed = true;
                 return nullptr;
             }
@@ -154,7 +162,7 @@ namespace BrightBox3D::UI
         auto asset = database.Load<FontAsset>(guid);
         if (!asset)
         {
-            Core::Log::Warning("UI font '" + family + "' was not found; using the default font");
+            Core::Log::Warning(Core::Text(Core::EngineText::FontNotFound, family));
             m_fonts[family] = nullptr;
             return GetDefault();
         }

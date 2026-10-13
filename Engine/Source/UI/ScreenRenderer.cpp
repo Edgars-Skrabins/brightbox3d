@@ -1,6 +1,7 @@
 #include "UI/ScreenRenderer.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Math/Matrix4.h"
 #include "Platform/Window.h"
@@ -99,7 +100,7 @@ namespace BrightBox3D::UI
             else
             {
                 entry.failed = true;
-                Core::Log::Error("UI Screen failed to load: " + error);
+                Core::Log::Error(Core::Text(Core::EngineText::UIScreenLoadFailed, error));
             }
         }
         if (!entry.document)

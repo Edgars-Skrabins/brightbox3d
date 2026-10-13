@@ -1,5 +1,7 @@
 #include "Core/SharedLibrary.h"
 
+#include "Core/EngineText.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -20,14 +22,14 @@ namespace BrightBox3D::Core
         m_handle = LoadLibraryW(path.wstring().c_str());
         if (!m_handle)
         {
-            m_lastError = "LoadLibrary failed with error " + std::to_string(GetLastError());
+            m_lastError = Text(EngineText::LoadLibraryFailed, GetLastError());
         }
 #else
         m_handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!m_handle)
         {
             const char* error = dlerror();
-            m_lastError = error ? error : "dlopen failed";
+            m_lastError = error ? error : Text(EngineText::DlopenFailed);
         }
 #endif
         return m_handle != nullptr;

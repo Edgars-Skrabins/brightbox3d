@@ -1,5 +1,6 @@
 #include "UI/Binding.h"
 
+#include "Core/EngineText.h"
 #include "Core/StringUtils.h"
 #include "Level/Level.h"
 #include "Serialization/ObjectSerializer.h"
@@ -196,13 +197,13 @@ namespace BrightBox3D::UI
         std::vector<std::string> segments = Core::Split(Core::Trim(path), '.');
         if (segments.size() < 2)
         {
-            error = "binding '" + path + "' must start with one of " + BindingRootList() + " and name a property";
+            error = Core::Text(Core::EngineText::BindingNeedsRootAndProperty, path, BindingRootList());
             return {};
         }
         BindingRoot root;
         if (!FindBindingRoot(segments[0], root))
         {
-            error = "unknown binding source '" + segments[0] + "' (use one of " + BindingRootList() + ")";
+            error = Core::Text(Core::EngineText::BindingUnknownSource, segments[0], BindingRootList());
             return {};
         }
         Reflection::EngineObject* current = roots.Get(root);
@@ -219,19 +220,19 @@ namespace BrightBox3D::UI
             {
                 if (!property->IsUIProperty())
                 {
-                    error = "'" + path + "' is not a BrightUIProperty";
+                    error = Core::Text(Core::EngineText::BindingNotUIProperty, path);
                     return {};
                 }
                 if (access == BindingAccess::Write && !property->HasFlag(PropertyFlagUIWrite))
                 {
-                    error = "'" + path + "' is a Read BrightUIProperty and cannot be written by the UI";
+                    error = Core::Text(Core::EngineText::BindingReadOnly, path);
                     return {};
                 }
                 return { current, property };
             }
             if (!owner)
             {
-                error = "cannot resolve '" + segment + "' in '" + path + "'";
+                error = Core::Text(Core::EngineText::BindingCannotResolve, segment, path);
                 return {};
             }
             Reflection::EngineObject* next = nullptr;
@@ -253,13 +254,13 @@ namespace BrightBox3D::UI
             }
             if (!next)
             {
-                error = "'" + segment + "' is neither a property nor a component in '" + path + "'";
+                error = Core::Text(Core::EngineText::BindingNotPropertyOrComponent, segment, path);
                 return {};
             }
             current = next;
             owner = nullptr;
         }
-        error = "'" + path + "' does not name a property";
+        error = Core::Text(Core::EngineText::BindingNoProperty, path);
         return {};
     }
 

@@ -1,5 +1,6 @@
 #include "Assets/AssetDatabase.h"
 
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Hash.h"
 #include "Core/Log.h"
@@ -173,7 +174,7 @@ namespace BrightBox3D::Assets
                 {
                     return true;
                 }
-                Core::Log::Warning("Duplicate asset guid in '" + metaPath.generic_string() + "'; assigning a new guid");
+                Core::Log::Warning(Core::Text(Core::EngineText::DuplicateAssetGuid, metaPath.generic_string()));
             }
         }
         else
@@ -446,7 +447,7 @@ namespace BrightBox3D::Assets
         AssetImporter* importer = GetImporter(record.type);
         if (!importer)
         {
-            error = std::string("no importer for asset type ") + AssetTypeName(record.type);
+            error = Core::Text(Core::EngineText::NoImporter, AssetTypeName(record.type));
             return false;
         }
         Serialization::JsonDocument settings;
@@ -476,7 +477,7 @@ namespace BrightBox3D::Assets
         writer.WriteBytes(payload.data(), payload.size());
         if (!Core::FileSystem::WriteBinary(CookedPathFor(record.guid), writer.GetBuffer().data(), writer.GetBuffer().size()))
         {
-            error = "cannot write cooked file";
+            error = Core::Text(Core::EngineText::CookedWriteFailed);
             return false;
         }
         if (output)
@@ -559,7 +560,7 @@ namespace BrightBox3D::Assets
         {
             if (m_mode == AssetDatabaseMode::Cooked || !CookAsset(record, &payload, error))
             {
-                Core::Log::Error("Failed to load asset '" + record.path + "': " + (error.empty() ? "missing cooked data" : error));
+                Core::Log::Error(Core::Text(Core::EngineText::AssetLoadFailed, record.path, error.empty() ? std::string(Core::Text(Core::EngineText::MissingCookedData)) : error));
                 return nullptr;
             }
         }
@@ -567,7 +568,7 @@ namespace BrightBox3D::Assets
         std::shared_ptr<Asset> asset = importer->Load(record, payload.data(), payload.size(), error);
         if (!asset)
         {
-            Core::Log::Error("Failed to load asset '" + record.path + "': " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::AssetLoadFailed, record.path, error));
             return nullptr;
         }
         std::filesystem::path path(record.path);
@@ -643,7 +644,7 @@ namespace BrightBox3D::Assets
         Serialization::JsonDocument manifest;
         if (!Serialization::LoadJsonFile(GetCookedDirectory() / CookedManifestFileName, manifest) || !manifest.IsArray())
         {
-            Core::Log::Error("Cooked asset manifest is missing");
+            Core::Log::Error(Core::Text(Core::EngineText::CookedManifestMissing));
             return;
         }
         for (const Serialization::JsonValue& entry : manifest.GetArray())
@@ -687,7 +688,7 @@ namespace BrightBox3D::Assets
         std::filesystem::path absolute = GetAssetsDirectory() / relativePath;
         if (!Serialization::SaveJsonFile(absolute, content))
         {
-            Core::Log::Error("Failed to write asset '" + relativePath + "'");
+            Core::Log::Error(Core::Text(Core::EngineText::AssetWriteFailed, relativePath));
             return {};
         }
         return ImportOrRegister(absolute);

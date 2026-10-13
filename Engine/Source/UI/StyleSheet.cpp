@@ -1,5 +1,6 @@
 #include "UI/StyleSheet.h"
 
+#include "Core/EngineText.h"
 #include "Core/StringUtils.h"
 #include "UI/CssProperties.h"
 
@@ -41,7 +42,7 @@ namespace BrightBox3D::UI
 
         std::string UnknownPseudoClassWarning(std::string_view name)
         {
-            return "unknown CSS pseudo-class ':" + std::string(name) + "'";
+            return Core::Text(Core::EngineText::CssUnknownPseudoClass, name);
         }
 
         SimpleSelector ParseSimple(const std::string& text, int& specificity, std::vector<std::string>& warnings)
@@ -119,7 +120,7 @@ namespace BrightBox3D::UI
             size_t close = text.find('}', open);
             if (close == std::string::npos)
             {
-                error = "missing '}'";
+                error = Core::Text(Core::EngineText::CssMissingBrace);
                 return false;
             }
             StyleRule rule;

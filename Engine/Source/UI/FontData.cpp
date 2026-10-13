@@ -1,5 +1,6 @@
 #include "UI/FontData.h"
 
+#include "Core/EngineText.h"
 #include "Serialization/BinaryStream.h"
 
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
@@ -96,14 +97,14 @@ namespace BrightBox3D::UI
         msdfgen::FreetypeHandle* freetype = msdfgen::initializeFreetype();
         if (!freetype)
         {
-            error = "FreeType initialization failed";
+            error = Core::Text(Core::EngineText::FreeTypeInitFailed);
             return false;
         }
         msdfgen::FontHandle* font = msdfgen::loadFont(freetype, file.string().c_str());
         if (!font)
         {
             msdfgen::deinitializeFreetype(freetype);
-            error = "cannot load font '" + file.generic_string() + "'";
+            error = Core::Text(Core::EngineText::FontLoadFailed, file.generic_string());
             return false;
         }
 
@@ -139,7 +140,7 @@ namespace BrightBox3D::UI
         {
             msdfgen::destroyFont(font);
             msdfgen::deinitializeFreetype(freetype);
-            error = "glyph packing failed";
+            error = Core::Text(Core::EngineText::GlyphPackingFailed);
             return false;
         }
         int width = 0;

@@ -1,5 +1,6 @@
 #include "Serialization/Json.h"
 
+#include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 
 #include <rapidjson/error/en.h>
@@ -28,7 +29,7 @@ namespace BrightBox3D::Serialization
                         ++line;
                     }
                 }
-                *error = std::string(rapidjson::GetParseError_En(document.GetParseError())) + " (line " + std::to_string(line) + ")";
+                *error = Core::Text(Core::EngineText::JsonParseError, rapidjson::GetParseError_En(document.GetParseError()), line);
             }
             return false;
         }
@@ -42,7 +43,7 @@ namespace BrightBox3D::Serialization
         {
             if (error)
             {
-                *error = "cannot read file";
+                *error = Core::Text(Core::EngineText::CannotReadFile);
             }
             return false;
         }

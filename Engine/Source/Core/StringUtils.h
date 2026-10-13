@@ -13,4 +13,5 @@ namespace BrightBox3D::Core
     bool EndsWith(std::string_view text, std::string_view suffix);
     std::string ReplaceAll(std::string text, std::string_view from, std::string_view to);
     std::string PrettifyName(std::string_view name);
+    int CountFormatPlaceholders(std::string_view text);
 }

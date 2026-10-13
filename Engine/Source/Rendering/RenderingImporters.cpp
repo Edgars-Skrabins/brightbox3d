@@ -1,6 +1,7 @@
 #include "Rendering/RenderingImporters.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Math/Color.h"
 #include "Reflection/PropertyTraits.h"
@@ -206,7 +207,7 @@ namespace BrightBox3D::Rendering
         auto texture = std::make_shared<TextureAsset>();
         if (!texture->Deserialize(data, size))
         {
-            error = "corrupt cooked texture";
+            error = Core::Text(Core::EngineText::CorruptCookedTexture);
             return nullptr;
         }
         return texture;

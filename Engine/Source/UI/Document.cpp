@@ -1,6 +1,7 @@
 #include "UI/Document.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
 #include "Core/Utf8.h"
@@ -9,8 +10,8 @@
 #include "Rendering/GpuResourceCache.h"
 #include "UI/CssProperties.h"
 #include "UI/DrawList.h"
-#include "UI/Markup.h"
 #include "UI/Font.h"
+#include "UI/Markup.h"
 #include "UI/SelectorMatching.h"
 #include "UI/StyleSheet.h"
 #include "UI/UIAssets.h"
@@ -65,7 +66,7 @@ Image { width: 64px; height: 64px; }
         {
             for (const std::string& warning : warnings)
             {
-                Core::Log::Warning("UI style '" + source + "': " + warning);
+                Core::Log::Warning(Core::Text(Core::EngineText::UIStyleWarning, source, warning));
             }
         }
 
@@ -179,7 +180,7 @@ Image { width: 64px; height: 64px; }
         }
         else
         {
-            Core::Log::Warning(std::string("UI ") + Assets::AssetTypeName(expectedType) + " '" + reference + "' was not found");
+            Core::Log::Warning(Core::Text(Core::EngineText::UIAssetNotFound, Assets::AssetTypeName(expectedType), reference));
         }
         return guid;
     }
@@ -196,7 +197,7 @@ Image { width: 64px; height: 64px; }
         std::string error;
         if (!sheet.Parse(asset->GetText(), error))
         {
-            Core::Log::Error("Stylesheet '" + reference + "': " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::StyleSheetFailed, reference, error));
             return false;
         }
         LogStyleWarnings(reference, sheet.GetWarnings());
@@ -208,7 +209,7 @@ Image { width: 64px; height: 64px; }
     {
         if (depth > 64)
         {
-            error = "UI nesting is too deep (recursive widget?)";
+            error = Core::Text(Core::EngineText::UINestingTooDeep);
             return nullptr;
         }
         std::string name = node.name();
@@ -245,7 +246,7 @@ Image { width: 64px; height: 64px; }
             pugi::xml_parse_result result = widgetDocument.load_string(widget->GetText().c_str());
             if (!result)
             {
-                Core::Log::Error("Widget '" + widget->GetPath() + "': " + result.description());
+                Core::Log::Error(Core::Text(Core::EngineText::WidgetParseFailed, widget->GetPath(), result.description()));
                 return nullptr;
             }
             source = widgetDocument.document_element();
@@ -254,7 +255,7 @@ Image { width: 64px; height: 64px; }
         std::optional<MarkupElement> sourceMarkup = FindMarkupElement(source.name());
         if (!sourceMarkup)
         {
-            Core::Log::Warning(std::string("Unknown UI element <") + source.name() + ">; treating it as a Panel");
+            Core::Log::Warning(Core::Text(Core::EngineText::UnknownUIElement, source.name()));
         }
         const MarkupElementInfo& info = GetMarkupElementInfo(sourceMarkup.value_or(MarkupElement::Panel));
         ElementType type = info.type;
@@ -267,7 +268,7 @@ Image { width: 64px; height: 64px; }
                 std::optional<MarkupAttribute> key = FindMarkupAttribute(attribute.name());
                 if (!key)
                 {
-                    Core::Log::Warning(std::string("Unknown UI attribute '") + attribute.name() + "' on <" + from.name() + ">");
+                    Core::Log::Warning(Core::Text(Core::EngineText::UnknownUIAttribute, attribute.name(), from.name()));
                     continue;
                 }
                 values[static_cast<size_t>(*key)] = attribute.value();
@@ -293,7 +294,7 @@ Image { width: 64px; height: 64px; }
             }
             else
             {
-                Core::Log::Warning(std::string("UI controller class '") + controllerName + "' is not loaded");
+                Core::Log::Warning(Core::Text(Core::EngineText::UIControllerNotLoaded, controllerName));
             }
         }
 
@@ -388,7 +389,7 @@ Image { width: 64px; height: 64px; }
         pugi::xml_parse_result result = document.load_string(markup.c_str());
         if (!result)
         {
-            error = std::string("XML error: ") + result.description() + " at offset " + std::to_string(result.offset);
+            error = Core::Text(Core::EngineText::UIXmlError, result.description(), result.offset);
             return false;
         }
         m_root = BuildElement(document.document_element(), 0, error);
@@ -396,7 +397,7 @@ Image { width: 64px; height: 64px; }
         {
             if (error.empty())
             {
-                error = "empty screen";
+                error = Core::Text(Core::EngineText::UIEmptyScreen);
             }
             return false;
         }
@@ -409,7 +410,7 @@ Image { width: 64px; height: 64px; }
         auto asset = Assets::AssetDatabase::Get().Load<ScreenAsset>(screen);
         if (!asset)
         {
-            error = "screen asset not found";
+            error = Core::Text(Core::EngineText::UIScreenNotFound);
             return false;
         }
         return LoadFromText(asset->GetText(), error);
@@ -592,7 +593,7 @@ Image { width: 64px; height: 64px; }
     {
         if (!error.empty() && m_reportedErrors.insert(error).second)
         {
-            Core::Log::Error("UI binding: " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::UIBindingError, error));
         }
     }
 

@@ -1,5 +1,6 @@
 #include "Platform/Window.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 
 #define GLFW_INCLUDE_NONE
@@ -25,7 +26,7 @@ namespace BrightBox3D::Platform
 
         void ErrorCallback(int code, const char* description)
         {
-            Core::Log::Error("GLFW error " + std::to_string(code) + ": " + description);
+            Core::Log::Error(Core::Text(Core::EngineText::GlfwError, code, description));
         }
     }
 
@@ -83,7 +84,7 @@ namespace BrightBox3D::Platform
     {
         if (!InitializePlatform())
         {
-            Core::Log::Error("Failed to initialize the platform layer");
+            Core::Log::Error(Core::Text(Core::EngineText::PlatformInitFailed));
             return;
         }
 
@@ -97,7 +98,7 @@ namespace BrightBox3D::Platform
         m_window = glfwCreateWindow(desc.width, desc.height, desc.title.c_str(), nullptr, nullptr);
         if (!m_window)
         {
-            Core::Log::Error("Failed to create window '" + desc.title + "'");
+            Core::Log::Error(Core::Text(Core::EngineText::WindowCreateFailed, desc.title));
             return;
         }
         glfwSetWindowUserPointer(m_window, this);

@@ -1,5 +1,7 @@
 #include "Core/Process.h"
 
+#include "Core/EngineText.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -134,7 +136,7 @@ namespace BrightBox3D::Core
         if (!created)
         {
             CloseHandle(readPipe);
-            result.output = "Failed to start process: " + arguments.front();
+            result.output = Text(EngineText::ProcessStartFailed, arguments.front());
             return result;
         }
         result.started = true;
@@ -244,7 +246,7 @@ namespace BrightBox3D::Core
         if (status != 0)
         {
             close(pipeDescriptors[0]);
-            result.output = "Failed to start process: " + arguments.front();
+            result.output = Text(EngineText::ProcessStartFailed, arguments.front());
             return result;
         }
         result.started = true;

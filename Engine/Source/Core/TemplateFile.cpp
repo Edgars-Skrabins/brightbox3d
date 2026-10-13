@@ -1,6 +1,7 @@
 #include "Core/TemplateFile.h"
 
 #include "Core/FileSystem.h"
+#include "Core/StringUtils.h"
 
 namespace BrightBox3D::Core
 {
@@ -14,11 +15,7 @@ namespace BrightBox3D::Core
         std::string result(text);
         for (const TemplateValue& value : values)
         {
-            std::string placeholder = PlaceholderMark + std::string(value.name) + PlaceholderMark;
-            for (size_t position = result.find(placeholder); position != std::string::npos; position = result.find(placeholder, position + value.value.size()))
-            {
-                result.replace(position, placeholder.size(), value.value);
-            }
+            result = ReplaceAll(std::move(result), PlaceholderMark + std::string(value.name) + PlaceholderMark, value.value);
         }
         return result;
     }

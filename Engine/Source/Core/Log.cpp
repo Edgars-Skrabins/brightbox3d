@@ -1,5 +1,7 @@
 #include "Core/Log.h"
 
+#include "Core/EngineText.h"
+
 #include <chrono>
 #include <cstdio>
 #include <ctime>
@@ -79,7 +81,7 @@ namespace BrightBox3D::Core
 
         if (state.echo)
         {
-            static const char* labels[] = { "Info", "Warning", "Error" };
+            const char* labels[] = { Text(EngineText::LogLevelInfo), Text(EngineText::LogLevelWarning), Text(EngineText::LogLevelError) };
             std::FILE* stream = level == LogLevel::Error ? stderr : stdout;
             if (file.empty())
             {

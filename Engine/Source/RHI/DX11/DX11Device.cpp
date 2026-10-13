@@ -1,5 +1,6 @@
 #include "RHI/Device.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Platform/Window.h"
 #include "RHI/ShaderCompiler.h"
@@ -794,7 +795,7 @@ namespace BrightBox3D::RHI
                 ComPtr<ID3D11Buffer> buffer;
                 if (FAILED(m_device->CreateBuffer(&dx, initialData ? &data : nullptr, &buffer)))
                 {
-                    Core::Log::Error("DX11: failed to create buffer '" + desc.debugName + "'");
+                    Core::Log::Error(Core::Text(Core::EngineText::DX11BufferFailed, desc.debugName));
                     return nullptr;
                 }
                 return std::make_unique<DX11Buffer>(desc, buffer);
@@ -851,7 +852,7 @@ namespace BrightBox3D::RHI
                 }
                 if (FAILED(m_device->CreateTexture2D(&dx, nullptr, &texture->texture)))
                 {
-                    Core::Log::Error("DX11: failed to create texture '" + desc.debugName + "'");
+                    Core::Log::Error(Core::Text(Core::EngineText::DX11TextureFailed, desc.debugName));
                     return nullptr;
                 }
                 if (desc.usage & TextureUsageSampled)
@@ -939,7 +940,7 @@ namespace BrightBox3D::RHI
                 HRESULT result = D3DCompile(desc.source.data(), desc.source.size(), desc.debugName.c_str(), macros.data(), nullptr, desc.entryPoint.c_str(), target, flags, 0, &bytecode, &errors);
                 if (FAILED(result))
                 {
-                    error = errors ? std::string(static_cast<const char*>(errors->GetBufferPointer()), errors->GetBufferSize()) : "D3DCompile failed";
+                    error = errors ? std::string(static_cast<const char*>(errors->GetBufferPointer()), errors->GetBufferSize()) : std::string(Core::Text(Core::EngineText::D3DCompileFailed));
                     return nullptr;
                 }
                 auto shader = std::make_unique<DX11Shader>(desc.stage, bytecode);
@@ -976,7 +977,7 @@ namespace BrightBox3D::RHI
                     }
                     if (FAILED(m_device->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), vertex->bytecode->GetBufferPointer(), vertex->bytecode->GetBufferSize(), &pipeline->inputLayout)))
                     {
-                        error = "input layout creation failed for '" + desc.debugName + "'";
+                        error = Core::Text(Core::EngineText::InputLayoutFailed, desc.debugName);
                         return nullptr;
                     }
                 }
@@ -1100,7 +1101,7 @@ namespace BrightBox3D::RHI
         auto device = std::make_unique<DX11Device>();
         if (!device->Initialize())
         {
-            Core::Log::Error("DirectX 11 device creation failed");
+            Core::Log::Error(Core::Text(Core::EngineText::DX11DeviceFailed));
             return nullptr;
         }
         return device;

@@ -1,5 +1,6 @@
 #include "Level/Level.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Level/LevelSerializer.h"
 
@@ -138,13 +139,13 @@ namespace BrightBox3D::Level
     {
         if (!type.IsA(LevelObject::StaticType()))
         {
-            Core::Log::Error("'" + type.GetName() + "' is not a LevelObject type");
+            Core::Log::Error(Core::Text(Core::EngineText::NotLevelObjectType, type.GetName(), LevelObject::StaticType().GetName()));
             return nullptr;
         }
         std::unique_ptr<Reflection::EngineObject> created(type.CreateInstance());
         if (!created)
         {
-            Core::Log::Error("'" + type.GetName() + "' is abstract and cannot be created");
+            Core::Log::Error(Core::Text(Core::EngineText::TypeAbstract, type.GetName()));
             return nullptr;
         }
         std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
@@ -160,7 +161,7 @@ namespace BrightBox3D::Level
     {
         if (m_index.count(object->GetId()))
         {
-            Core::Log::Warning("Object id collision for '" + object->GetName() + "'; assigning a new id");
+            Core::Log::Warning(Core::Text(Core::EngineText::ObjectIdCollision, object->GetName()));
             object->m_state.id = Core::Guid::Generate();
         }
         if (parent && parent->m_level != this)
@@ -993,13 +994,13 @@ namespace BrightBox3D::Level
     {
         if (type.IsA(LevelObject::StaticType()) || type.IsA(LevelObjectComponent::StaticType()))
         {
-            Core::Log::Error("'" + type.GetName() + "' lives in the world; create it as a LevelObject or component instead");
+            Core::Log::Error(Core::Text(Core::EngineText::WorldTypeAsEngineObject, type.GetName(), LevelObject::StaticType().GetName()));
             return nullptr;
         }
         std::unique_ptr<Reflection::EngineObject> object(type.CreateInstance());
         if (!object)
         {
-            Core::Log::Error("'" + type.GetName() + "' is abstract and cannot be created");
+            Core::Log::Error(Core::Text(Core::EngineText::TypeAbstract, type.GetName()));
             return nullptr;
         }
         Reflection::EngineObject* raw = object.get();

@@ -1,5 +1,6 @@
 #include "Rendering/ShaderLibrary.h"
 
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "RHI/ShaderCompiler.h"
 
@@ -45,7 +46,7 @@ namespace BrightBox3D::Rendering
             std::string error;
             if (!RHI::ShaderCompiler::Preprocess(m_directory / file, text, error))
             {
-                Core::Log::Error("Shader '" + file + "': " + error);
+                Core::Log::Error(Core::Text(Core::EngineText::ShaderLoadFailed, file, error));
                 m_shaders[key] = nullptr;
                 return nullptr;
             }
@@ -62,7 +63,7 @@ namespace BrightBox3D::Rendering
         std::unique_ptr<RHI::Shader> shader = m_device.CreateShader(desc, error);
         if (!shader)
         {
-            Core::Log::Write(Core::LogLevel::Error, "Shader compile failed for " + desc.debugName + ":\n" + error, "Shader", (m_directory / file).generic_string(), 0);
+            Core::Log::Write(Core::LogLevel::Error, Core::Text(Core::EngineText::ShaderCompileFailed, desc.debugName, error), "Shader", (m_directory / file).generic_string(), 0);
         }
         RHI::Shader* raw = shader.get();
         m_shaders[key] = std::move(shader);
@@ -87,7 +88,7 @@ namespace BrightBox3D::Rendering
         std::unique_ptr<RHI::Pipeline> pipeline = m_device.CreatePipeline(named, error);
         if (!pipeline)
         {
-            Core::Log::Error("Pipeline '" + named.debugName + "': " + error);
+            Core::Log::Error(Core::Text(Core::EngineText::PipelineFailed, named.debugName, error));
         }
         RHI::Pipeline* raw = pipeline.get();
         m_pipelines[key] = std::move(pipeline);
