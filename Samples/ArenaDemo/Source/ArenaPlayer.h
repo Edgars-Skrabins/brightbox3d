@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "ArenaCategories.h"
+#include "Framework/PlayableLevelObject.h"
 
-BrightClass(Category = "Arena")
-class ArenaPlayer : public BrightBox3D::Level::LevelObjectInstance
+BrightClass(.category = Arena)
+class ArenaPlayer : public BrightBox3D::Framework::PlayableLevelObject
 {
     BrightBody()
 public:
@@ -11,19 +12,19 @@ public:
     void OnGameUpdate(float deltaTime) override;
 
 private:
-    BrightProperty(EditDefaultsOnly, Category = "Movement")
+    BrightProperty(.edit = Edit::DefaultsOnly, .category = Movement)
     float m_moveSpeed = 6.0f;
 
-    BrightProperty(EditDefaultsOnly, Category = "Movement")
+    BrightProperty(.edit = Edit::DefaultsOnly, .category = Movement)
     float m_lookSensitivity = 0.15f;
 
-    BrightProperty(VisibleAnywhere, Category = "Stats")
-    BrightUIProperty(Read)
+    BrightProperty(.edit = Edit::Visible, .category = Stats)
+    BrightUIProperty(.access = UIAccess::Read)
     int m_health = 100;
 
-    BrightUIProperty(Read)
+    BrightUIProperty(.access = UIAccess::Read)
     float m_maxHealth = 100.0f;
 
-    BrightUIProperty(Write)
+    BrightUIProperty(.access = UIAccess::Write)
     std::string m_playerName = "Arena Hero";
 };

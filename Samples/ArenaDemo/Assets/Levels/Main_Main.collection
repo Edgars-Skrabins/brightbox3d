@@ -3,9 +3,9 @@
     "version": 1,
     "name": "Main",
     "objects": [{
-            "id": "841ca91ebca31625662dce9a89bbf7b1",
+            "id": "bfb2cdb0b178259684245fc4dfaf2b78",
             "name": "Directional Light",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -14,7 +14,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "4fdac19aa164b6d2d61b472ff1b84436",
+                    "id": "86a0c3dcdbe0edd73776eadecf686fae",
                     "$type": "Light",
                     "enabled": true,
                     "properties": {
@@ -29,9 +29,9 @@
                 }],
             "children": []
         }, {
-            "id": "3c30148cdceb883a8c7b70100ba53429",
+            "id": "1479c8b2ed5afb30f11cbaa0431239c7",
             "name": "Floor",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -40,7 +40,7 @@
                 "m_localScale": [3.0, 1.0, 3.0]
             },
             "components": [{
-                    "id": "7a70e4d4fe9c03c6c481309ecf5281d3",
+                    "id": "720755849c000c28a4b09108fd060a27",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -50,7 +50,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "f6a7618f8f94efcd865a96f12bca8011",
+                    "id": "699acaa489652a764b8425e38257f152",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -63,9 +63,9 @@
                 }],
             "children": []
         }, {
-            "id": "eef1775aec6a2267067aaad7dee3ea9e",
+            "id": "8358bf5ca004623f980848040fa7890a",
             "name": "Wall",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -74,7 +74,7 @@
                 "m_localScale": [30.0, 3.0, 0.5]
             },
             "components": [{
-                    "id": "96aaf1cd7b665679087dcdafe4ce962c",
+                    "id": "62b3eede6b418ea245878146ca69809f",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -84,7 +84,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "d37bdb1a1230f1163eb3771e4391e6c8",
+                    "id": "dcca03f01b3e91d40824620e7d9fe629",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -97,9 +97,9 @@
                 }],
             "children": []
         }, {
-            "id": "89254e72234156fa9e3adb037ec2915e",
+            "id": "af60730ad6f7434d4f66b4e505dad275",
             "name": "Wall",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -108,7 +108,7 @@
                 "m_localScale": [30.0, 3.0, 0.5]
             },
             "components": [{
-                    "id": "d38af3a6e963b858af87ea49f8cc4c09",
+                    "id": "34150227313af3f6064420599a0fc425",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -118,7 +118,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "8966dc290ae12e9d25ec73ced3fd542d",
+                    "id": "c9a18d1190e0f2fdce5a0d180ad9dc3d",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -131,9 +131,9 @@
                 }],
             "children": []
         }, {
-            "id": "2f028d5369a0e4c40d706a36b1046f45",
+            "id": "ece33c961cd0f4e4861ae11734d05f1a",
             "name": "Wall",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -142,7 +142,7 @@
                 "m_localScale": [30.0, 3.0, 0.5]
             },
             "components": [{
-                    "id": "b64414c4678bdd4d12d3507a7added2e",
+                    "id": "d0996ac06089c7f15d840226b339c331",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -152,7 +152,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "33eefa75fedec2416ce7f05ae0360f9e",
+                    "id": "4e8ee71d7a8d7a2fa8e7c478fdfc7d93",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -165,9 +165,9 @@
                 }],
             "children": []
         }, {
-            "id": "9f2b2ba4fa31ad94786e452d66b0ba30",
+            "id": "c3272417f6164fbb5236250a2124e52b",
             "name": "Wall",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -176,7 +176,7 @@
                 "m_localScale": [30.0, 3.0, 0.5]
             },
             "components": [{
-                    "id": "9f5c98ac7927b4940912bd2bb635deae",
+                    "id": "677269e68d5604cc823d5efb9ebbdc48",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -186,7 +186,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "79fb6036a78a30312fff0a6bb89d0174",
+                    "id": "45f133b9e3def34911ff74f061447b68",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -199,9 +199,9 @@
                 }],
             "children": []
         }, {
-            "id": "f703c3b2e13339025a723890ba852df7",
+            "id": "75df73d90b1bd488f9388b6059aa2af2",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -210,7 +210,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "6e6c003da65e6915ec990037bd6771e3",
+                    "id": "fab42f2b4581f9118bcf7f318feec4fe",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -220,7 +220,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "044dcfbe7b5e36dbaa43d475c2c93e7d",
+                    "id": "fe08af47c3a75511d7258db7da8874de",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -231,7 +231,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "45615acc57cfdba8f88a7db3dd503edf",
+                    "id": "b3c15e475a7267834c2bdf3bc2534201",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -246,9 +246,9 @@
                 }],
             "children": []
         }, {
-            "id": "2df3730a6ec0fff800e2561ceefc4c52",
+            "id": "99cb56d032a712129b8e1e752cbb8f95",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -257,7 +257,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "9f96f97fbb0b61b6334b110b7a7652be",
+                    "id": "a164804c485cb1dd2aeb4a49aee50da9",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -267,7 +267,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "8df106b7c5a323d63d539a24364c8237",
+                    "id": "0316d8685794862c503a39a0d317af29",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -278,7 +278,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "940c492534c3e7d7710ee2c1088be00d",
+                    "id": "bc5363416870c417f616597523e87dba",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -293,9 +293,9 @@
                 }],
             "children": []
         }, {
-            "id": "34f2b132cd23f73c32b9c3d39046f4f1",
+            "id": "199500d041fd3032511ab15e05288d5b",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -304,7 +304,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "9673bb785276b26cf6948c51163d4887",
+                    "id": "29f91d70e45c66afaa25b94700108fa0",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -314,7 +314,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "9efc4e82c6a8a832b3afca445a5d1f3c",
+                    "id": "aca421d8ec85661a0eba837ce8ed7977",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -325,7 +325,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "d91847d22c1d637f8cc645fe76b25b07",
+                    "id": "16095d9b161ee0f895bc9fe54b84222b",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -340,9 +340,9 @@
                 }],
             "children": []
         }, {
-            "id": "ea014fd53424ed995118b76c36258aa5",
+            "id": "6267b2738313b70268de3cdf39c1ea91",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -351,7 +351,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "09488139f61048659c0d15d3ebbf17e1",
+                    "id": "59ab60e4bc22b26a2b39abc3fee7ad33",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -361,7 +361,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "cd42f429d28ec5dbb01fe58e68a9a882",
+                    "id": "1b97b1151c7d17a2a62ef1fde3f6d339",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -372,7 +372,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "656fdf7eb78043291af4488d5b850af6",
+                    "id": "06ced9d1a09ddd99683e1948f3a6527e",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -387,9 +387,9 @@
                 }],
             "children": []
         }, {
-            "id": "b2ee195c4500fc739a61fcde57071bf6",
+            "id": "bc3bee28614b0e880cb0c1d4ce90f34c",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -398,7 +398,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "981a8714edcd8ffa4a762c0693866152",
+                    "id": "1a91c4417a43859b49ab45543e02dcfd",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -408,7 +408,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "b26da760aeae21265dde78ae80856170",
+                    "id": "f64ae995103879639c6477487b7d9ee9",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -419,7 +419,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "5c282970760d132592d416bb37c5b315",
+                    "id": "99448967b787c4997b57019b23a70fe7",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -434,9 +434,9 @@
                 }],
             "children": []
         }, {
-            "id": "8903e7dd36511a50892b429cd5fd38a1",
+            "id": "b601ab2fecfe857bb5f09a4cb6814ae2",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -445,7 +445,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "b5dda62dac8ec65c2f17caf0df929889",
+                    "id": "8c977c662b427b40d3672d536af9a117",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -455,7 +455,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "447572bd11a6d60f0fb39faf1838d078",
+                    "id": "ea85576ee9b9eae598bfb03cb5772735",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -466,7 +466,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "509bd2ed4ebdbb9cebdc829a08468234",
+                    "id": "41d1a6966fea822191ae7e57b2b761a1",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -481,9 +481,9 @@
                 }],
             "children": []
         }, {
-            "id": "3146bf2c4e630e61efe72752016689e0",
+            "id": "73cf45fdf0955418da0ca06cbb11a9b0",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -492,7 +492,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "5fd9958518d740088646c04ea0148928",
+                    "id": "52a2daeee2a24391e176c09326b8df17",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -502,7 +502,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "0f8ce709ece343e254d8c0aeb00ef135",
+                    "id": "781420ed2576ebd45ebf6e6ba1a0ce7e",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -513,7 +513,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "42cbe573c7df890a5055c61b0ee02422",
+                    "id": "813a9b07caeef90dacd5823da2689835",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -528,9 +528,9 @@
                 }],
             "children": []
         }, {
-            "id": "ce5f37fc5571a171e5b23c9944def929",
+            "id": "308796de3946e128728cb35106bccaeb",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -539,7 +539,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "6faee43a725b54c87270991eeff562aa",
+                    "id": "54e078668a390c2a1d84900792226f9d",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -549,7 +549,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "98af4c69b36d0251d857042ac377a9cf",
+                    "id": "63d4708cc8149b8cb998fc4000b38811",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -560,7 +560,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "2a2c5de8945111e7a685eaad651b6cb3",
+                    "id": "f23a2dc2a1fd5ff3880b37c141b20957",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -575,9 +575,9 @@
                 }],
             "children": []
         }, {
-            "id": "d3f4e1161f0e17cf57556b03017d04b8",
+            "id": "8b2a0b7d22ab469d130563d0221cc4b9",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -586,7 +586,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "0163330fd28659c9dfef391093f1f8d2",
+                    "id": "fd923080e16ae4b1aefa60ddec56881d",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -596,7 +596,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "f00ca79833ae65ff4657995fe45d11e3",
+                    "id": "ffc22e7d98925733922dfc482c3d433e",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -607,7 +607,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "1d8eb5f7317f2ae6e7ca850e1a7d27a7",
+                    "id": "c02857474223b42e7183d2df3272fca7",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -622,9 +622,9 @@
                 }],
             "children": []
         }, {
-            "id": "d6c536a353f5d9090c0bec2be330eb39",
+            "id": "89a8e18d6a5eea1dd0033828d88fce81",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -633,7 +633,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "2f09665299c231ce846c42a2d35e8711",
+                    "id": "4ee310ff030737f486e9c31d0267e945",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -643,7 +643,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "153558668530467741641d2b97be6725",
+                    "id": "656564d9f6162a4a6c28f89c5262e7fd",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -654,7 +654,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "2829b069b820d9f4bc87f1149fac51b2",
+                    "id": "d1ff39463fc55456b7f53817b16ac626",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -669,9 +669,9 @@
                 }],
             "children": []
         }, {
-            "id": "edc2bd1f94814ad8e30e9a8a76000e56",
+            "id": "48141d6349dd85df70519127bc842949",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -680,7 +680,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "5fd33d4b7b514eef92b6c316d0cc2512",
+                    "id": "77eccad9b08aa661a364e41741e06703",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -690,7 +690,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "700d7d2a1daba0f8dcf53f26ac1b1ff9",
+                    "id": "70c7d52d09ca206a4e7ca4b22cdd6a9a",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -701,7 +701,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "8f160d7e24349d9052b217cce7e09740",
+                    "id": "dcf3c17c02ea922f6b4af2a9b709506a",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -716,9 +716,9 @@
                 }],
             "children": []
         }, {
-            "id": "b6e4a70e3486c1b241c9e3240333b05c",
+            "id": "e436f1e6f1b376f16440138bfe7cb482",
             "name": "Crate",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -727,7 +727,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "634f60b052ccec90259ddd36c8bfc114",
+                    "id": "2d0ff4c541fec07c1f342a0e3ee960b1",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -737,7 +737,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "dfd412a242a072bafbaa4ab73cdee521",
+                    "id": "8f3268b262addb92397f0bcdc4850f4a",
                     "$type": "BoxCollider",
                     "enabled": true,
                     "properties": {
@@ -748,7 +748,7 @@
                         "m_size": [1.0, 1.0, 1.0]
                     }
                 }, {
-                    "id": "267d10c32373fc577b2a5a2d32d0b84f",
+                    "id": "56bc38df514696d7194a00f364fba789",
                     "$type": "Rigidbody",
                     "enabled": true,
                     "properties": {
@@ -763,9 +763,9 @@
                 }],
             "children": []
         }, {
-            "id": "3e96bce2b22b9110108f667c39b3737c",
+            "id": "705fc6c678000b784d37dfdb20f4610d",
             "name": "Orb",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -774,7 +774,7 @@
                 "m_localScale": [1.4, 1.4, 1.4]
             },
             "components": [{
-                    "id": "c0fa30154e810e830c0211a1aaddafc0",
+                    "id": "984ea719df4ff6486093a2f04e19223d",
                     "$type": "MeshRenderer",
                     "enabled": true,
                     "properties": {
@@ -784,7 +784,7 @@
                         "m_castShadows": true
                     }
                 }, {
-                    "id": "a74c8f62d69861073c83fc4b02869703",
+                    "id": "263d657ec5587e7853ef47e7b2313a79",
                     "$type": "SphereCollider",
                     "enabled": true,
                     "properties": {
@@ -797,9 +797,9 @@
                 }],
             "children": []
         }, {
-            "id": "10d5eddb82b2a5b4ab226d70d6a71586",
+            "id": "53b29e02e4883c8ee1209d84b96b58cd",
             "name": "Lamp",
-            "$type": "LevelObjectInstance",
+            "$type": "LevelObject",
             "active": true,
             "properties": {},
             "transform": {
@@ -808,7 +808,7 @@
                 "m_localScale": [1.0, 1.0, 1.0]
             },
             "components": [{
-                    "id": "e20ee93370dcb3c991e4830453e4c7b5",
+                    "id": "5e6b681774c3b6ec797b22b6358c0358",
                     "$type": "Light",
                     "enabled": true,
                     "properties": {
@@ -823,7 +823,7 @@
                 }],
             "children": []
         }, {
-            "id": "6ad49a338d9fcba3a38d6f2946c11cca",
+            "id": "1df38a8ebf61adba2c3d8612fb16852f",
             "name": "PlayerStart",
             "$type": "PlayerStart",
             "active": true,

@@ -1,21 +1,24 @@
 #pragma once
 
-#include "Framework/GameMode.h"
+#include "ArenaCategories.h"
+#include "Framework/GameModeBase.h"
 
-BrightClass(Category = "Arena")
-class ArenaGameMode : public BrightBox3D::Framework::GameMode
+BrightClass(.category = Arena)
+class ArenaGameMode : public BrightBox3D::Framework::GameModeBase
 {
     BrightBody()
 public:
+    ArenaGameMode();
+
     void OnGameUpdate(float deltaTime) override;
 
 private:
-    BrightProperty(EditDefaultsOnly, Category = "Rules")
+    BrightProperty(.edit = Edit::DefaultsOnly, .category = Rules)
     float m_roundLength = 120.0f;
 
-    BrightUIProperty(Read)
+    BrightUIProperty(.access = UIAccess::Read)
     float m_timeRemaining = 120.0f;
 
-    BrightUIProperty(Write)
+    BrightUIProperty(.access = UIAccess::Write)
     bool m_restartRequested = false;
 };

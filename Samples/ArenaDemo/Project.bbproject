@@ -2,11 +2,7 @@
     "name": "ArenaDemo",
     "engineVersion": "0.1.0",
     "gameModule": "ArenaDemo",
-    "startupLevel": "9852f71b445f96bf076f9a94557843e1",
-    "gameMode": {
-        "$type": "ArenaGameMode",
-        "m_defaultPlayer": "c9c8a51a5c2cf02d3f81cdd09d0bafa2"
-    },
+    "startupLevel": "8660f0967eb8f80adf88b2b3281c4293",
     "settings": {
         "fixedTimeStep": 0.01666666753590107,
         "autoHotReload": true

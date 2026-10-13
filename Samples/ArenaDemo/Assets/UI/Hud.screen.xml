@@ -6,6 +6,7 @@
             <Label text="Health {Player.m_health} / {Player.m_maxHealth:0}" />
             <ProgressBar class="health" value="{Player.m_health}" max="{Player.m_maxHealth}" />
             <Label class="timer" text="Round ends in {GameMode.m_timeRemaining:0}s" />
+            <Label class="score" text="Score {GameState.m_score}" />
             <Button text="Restart Round" onClick="{GameMode.m_restartRequested}" />
         </Panel>
         <Label class="hint" text="WASD to move - mouse to look - Esc to unlock the cursor" />

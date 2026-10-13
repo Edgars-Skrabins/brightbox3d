@@ -1,0 +1,117 @@
+{
+    "$asset": "LevelObjectVariant",
+    "version": 1,
+    "root": {
+        "id": "67750609926de641d8cf467db393f523",
+        "name": "Player",
+        "$type": "ArenaPlayer",
+        "active": true,
+        "properties": {
+            "m_moveSpeed": 6.0,
+            "m_lookSensitivity": 0.15,
+            "m_health": 100,
+            "m_maxHealth": 100.0,
+            "m_playerName": "Arena Hero"
+        },
+        "transform": {
+            "m_localPosition": [0.0, 0.0, 0.0],
+            "m_localRotation": [0.0, 0.0, 0.0, 1.0],
+            "m_localScale": [1.0, 1.0, 1.0]
+        },
+        "components": [{
+                "id": "be3ddf5bd419b55eccd6d42f62ccaea2",
+                "$type": "CapsuleCollider",
+                "enabled": true,
+                "properties": {
+                    "m_isTrigger": false,
+                    "m_center": [0.0, 0.9, 0.0],
+                    "m_friction": 0.5,
+                    "m_restitution": 0.0,
+                    "m_radius": 0.4,
+                    "m_height": 1.8
+                }
+            }, {
+                "id": "ef760f35f73081c36bc59e728c853a2d",
+                "$type": "Rigidbody",
+                "enabled": true,
+                "properties": {
+                    "m_motionType": "Kinematic",
+                    "m_mass": 1.0,
+                    "m_gravityScale": 1.0,
+                    "m_linearDamping": 0.05,
+                    "m_angularDamping": 0.05,
+                    "m_freezeRotation": false,
+                    "m_continuousCollision": false
+                }
+            }],
+        "children": [{
+                "id": "20c55ba23cf7e97595e5e8a42dddcdd6",
+                "name": "Body",
+                "$type": "LevelObject",
+                "active": true,
+                "properties": {},
+                "transform": {
+                    "m_localPosition": [0.0, 0.9, 0.0],
+                    "m_localRotation": [0.0, 0.0, 0.0, 1.0],
+                    "m_localScale": [0.8, 0.9, 0.8]
+                },
+                "components": [{
+                        "id": "8475c340ae80a642b59c24f2f0f94599",
+                        "$type": "MeshRenderer",
+                        "enabled": true,
+                        "properties": {
+                            "m_model": "b0000000b00000000000000000000006",
+                            "m_meshIndex": 0,
+                            "m_materials": ["d5d63f40a08e88bf7e74c4065fe9083b"],
+                            "m_castShadows": true
+                        }
+                    }],
+                "children": []
+            }, {
+                "id": "d33a14f19eea69803bb08312bdfcc075",
+                "name": "PlayerCamera",
+                "$type": "Camera",
+                "active": true,
+                "properties": {
+                    "m_fieldOfView": 60.0,
+                    "m_nearPlane": 0.1,
+                    "m_farPlane": 1000.0,
+                    "m_priority": 0,
+                    "m_activeScreen": "daa0fad77bc1a6e21ba91e639c0821b3",
+                    "m_exposure": 1.0,
+                    "m_autoExposure": false,
+                    "m_autoExposureMin": 0.25,
+                    "m_autoExposureMax": 4.0,
+                    "m_bloomIntensity": 0.04,
+                    "m_bloomThreshold": 1.0,
+                    "m_ssao": true,
+                    "m_ssaoRadius": 0.5,
+                    "m_ssaoIntensity": 1.0,
+                    "m_colorGrading": false,
+                    "m_saturation": 1.0,
+                    "m_contrast": 1.0,
+                    "m_tint": [1.0, 1.0, 1.0, 1.0],
+                    "m_lift": [0.0, 0.0, 0.0, 1.0],
+                    "m_gamma": [1.0, 1.0, 1.0, 1.0],
+                    "m_gain": [1.0, 1.0, 1.0, 1.0],
+                    "m_vignetteIntensity": 0.0,
+                    "m_vignetteRadius": 0.8,
+                    "m_vignetteSoftness": 0.45,
+                    "m_antiAliasing": "TAA",
+                    "m_skyTop": [0.32, 0.52, 0.85, 1.0],
+                    "m_skyHorizon": [0.75, 0.82, 0.9, 1.0],
+                    "m_skyGround": [0.28, 0.26, 0.24, 1.0],
+                    "m_skyIntensity": 1.0,
+                    "m_ambientIntensity": 0.6,
+                    "m_shadowDistance": 80.0
+                },
+                "transform": {
+                    "m_localPosition": [0.0, 2.2, -5.0],
+                    "m_localRotation": [0.0, 0.0, 0.0, 1.0],
+                    "m_localScale": [1.0, 1.0, 1.0]
+                },
+                "components": [],
+                "children": []
+            }]
+    }
+}

@@ -2,8 +2,19 @@
     "$asset": "Level",
     "version": 1,
     "collections": [{
-            "collection": "cdd2eea8c0cf81f63f7531e14d87e822",
+            "collection": "e6ea446ea6d0aa20079dabaf204791f3",
             "name": "Main"
         }],
-    "settings": {}
+    "settings": {
+        "gameMode": {
+            "class": "ArenaGameMode",
+            "settings": {
+                "m_defaultPlayable": "d9f379be897fcc4a0077e5f6000b876f"
+            }
+        },
+        "levelBehavior": {
+            "class": "ArenaLevelBehavior",
+            "settings": {}
+        }
+    }
 }
