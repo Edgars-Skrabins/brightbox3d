@@ -5,10 +5,9 @@
 #include "Rendering/MaterialAsset.h"
 #include "Rendering/MeshRenderer.h"
 #include "Rendering/Renderer.h"
+#include "Rendering/TextureCapture.h"
 
 #include <gtest/gtest.h>
-
-#include <stb_image_write.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -103,9 +102,8 @@ TEST(RendererTests, RendersLitSceneWithShadows)
         renderer.Render(commands, &level, view, output.get());
         device->EndFrame({});
     }
-    ASSERT_TRUE(device->ReadTexture(output.get(), pixels));
-    std::filesystem::path path = OutputDirectory() / (std::getenv("BRIGHT_DEBUG_MODE") ? "BrightBox3D_RendererTestDebug.png" : (std::getenv("BRIGHT_NO_SHADOWS") ? "BrightBox3D_RendererTestNoShadows.png" : "BrightBox3D_RendererTest.png"));
-    stbi_write_png(path.string().c_str(), 640, 360, 4, pixels.data(), 640 * 4);
+    ASSERT_TRUE(Rendering::ReadbackRGBA(*device, *output, pixels));
+    Rendering::SavePng(*device, *output, OutputDirectory() / (std::getenv("BRIGHT_DEBUG_MODE") ? "BrightBox3D_RendererTestDebug.png" : (std::getenv("BRIGHT_NO_SHADOWS") ? "BrightBox3D_RendererTestNoShadows.png" : "BrightBox3D_RendererTest.png")));
 
     auto pixel = [&](int x, int y)
     {
@@ -176,9 +174,8 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
             device->EndFrame({});
         }
         std::vector<uint8_t> pixels;
-        ASSERT_TRUE(device->ReadTexture(output.get(), pixels));
-        std::filesystem::path path = OutputDirectory() / (std::string("BrightBox3D_AA_") + names[mode] + ".png");
-        stbi_write_png(path.string().c_str(), 480, 270, 4, pixels.data(), 480 * 4);
+        ASSERT_TRUE(Rendering::ReadbackRGBA(*device, *output, pixels));
+        Rendering::SavePng(*device, *output, OutputDirectory() / (std::string("BrightBox3D_AA_") + names[mode] + ".png"));
         uint64_t sum = 0;
         for (size_t i = 0; i < pixels.size(); i += 4)
         {
