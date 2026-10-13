@@ -27,7 +27,6 @@ namespace BrightBox3D::UI
         std::vector<TextLine> LayoutLines(const std::string& text, float size, float maxWidth) const;
         float LineHeight(float size) const { return m_data.lineHeight * size; }
 
-        static std::vector<uint32_t> Decode(const std::string& text);
 
     private:
         FontData m_data;

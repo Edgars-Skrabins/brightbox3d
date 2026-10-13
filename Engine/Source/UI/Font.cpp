@@ -5,39 +5,11 @@
 #include "Core/Hash.h"
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
+#include "Core/Utf8.h"
 #include "UI/UIAssets.h"
 
 namespace BrightBox3D::UI
 {
-    std::vector<uint32_t> Font::Decode(const std::string& text)
-    {
-        std::vector<uint32_t> codepoints;
-        for (size_t i = 0; i < text.size();)
-        {
-            unsigned char c = static_cast<unsigned char>(text[i]);
-            uint32_t codepoint = c;
-            size_t length = 1;
-            if (c >= 0xF0 && i + 3 < text.size())
-            {
-                codepoint = ((c & 0x07) << 18) | ((text[i + 1] & 0x3F) << 12) | ((text[i + 2] & 0x3F) << 6) | (text[i + 3] & 0x3F);
-                length = 4;
-            }
-            else if (c >= 0xE0 && i + 2 < text.size())
-            {
-                codepoint = ((c & 0x0F) << 12) | ((text[i + 1] & 0x3F) << 6) | (text[i + 2] & 0x3F);
-                length = 3;
-            }
-            else if (c >= 0xC0 && i + 1 < text.size())
-            {
-                codepoint = ((c & 0x1F) << 6) | (text[i + 1] & 0x3F);
-                length = 2;
-            }
-            codepoints.push_back(codepoint);
-            i += length;
-        }
-        return codepoints;
-    }
-
     RHI::Texture* Font::GetTexture(RHI::Device& device)
     {
         if (!m_texture && m_data.atlasWidth > 0)
@@ -58,7 +30,7 @@ namespace BrightBox3D::UI
         float width = 0.0f;
         float lineWidth = 0.0f;
         uint32_t previous = 0;
-        for (uint32_t codepoint : Decode(text))
+        for (uint32_t codepoint : Core::Utf8::Decode(text))
         {
             if (codepoint == '\n')
             {
