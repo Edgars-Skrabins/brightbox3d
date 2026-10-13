@@ -1,6 +1,8 @@
 #include "Panels/LevelViewPanel.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Commands/CommandRegistry.h"
+#include "Commands/CommandWidgets.h"
 #include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
@@ -27,6 +29,11 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr uint64_t LevelViewId = 0x4C455645;
+
+        const ToolbarItem LevelViewToolbar[] = {
+            CommandId::GizmoMove, CommandId::GizmoRotate, CommandId::GizmoScale, ToolbarSeparator,
+            CommandId::GizmoSpace, CommandId::Snap, CommandId::Grid,
+        };
     }
 
     LevelViewPanel::LevelViewPanel(EditorApplication& application) : m_application(application)
@@ -111,49 +118,7 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::DrawToolbar()
     {
         EditorContext& context = m_application.GetContext();
-        auto toggle = [](const std::string& text, bool active)
-        {
-            const char* label = text.c_str();
-            if (active)
-            {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-            }
-            bool pressed = ImGui::Button(label);
-            if (active)
-            {
-                ImGui::PopStyleColor();
-            }
-            return pressed;
-        };
-        if (toggle(std::string(IconGlyph(Icon::Move)) + "  Move", m_gizmoOperation == GizmoOperation::Translate))
-        {
-            m_gizmoOperation = GizmoOperation::Translate;
-        }
-        ImGui::SameLine();
-        if (toggle(std::string(IconGlyph(Icon::RotateCw)) + "  Rotate", m_gizmoOperation == GizmoOperation::Rotate))
-        {
-            m_gizmoOperation = GizmoOperation::Rotate;
-        }
-        ImGui::SameLine();
-        if (toggle(std::string(IconGlyph(Icon::Scaling)) + "  Scale", m_gizmoOperation == GizmoOperation::Scale))
-        {
-            m_gizmoOperation = GizmoOperation::Scale;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button((std::string(IconGlyph(Icon::Globe)) + (m_gizmoLocal ? "  Local" : "  World")).c_str()))
-        {
-            m_gizmoLocal = !m_gizmoLocal;
-        }
-        ImGui::SameLine();
-        if (toggle(std::string(IconGlyph(Icon::Magnet)) + "  Snap", m_snapping))
-        {
-            m_snapping = !m_snapping;
-        }
-        ImGui::SameLine();
-        if (toggle(std::string(IconGlyph(Icon::Grid)) + "  Grid", m_showGrid))
-        {
-            m_showGrid = !m_showGrid;
-        }
+        Editor::DrawToolbar(LevelViewToolbar);
         ImGui::SameLine();
         static const char* modes[] = { Text(EditorText::DebugModeLit), Text(EditorText::DebugModeAlbedo), Text(EditorText::DebugModeNormals), Text(EditorText::DebugModeMetallicRoughness), Text(EditorText::DebugModeShadows), Text(EditorText::DebugModeAmbientOcclusion) };
         ImGui::SetNextItemWidth(110.0f);
@@ -165,7 +130,8 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         ImGui::SetNextItemWidth(90.0f);
         float speed = m_camera.GetSpeed();
-        if (ImGui::DragFloat("##speed", &speed, 0.1f, 0.5f, 500.0f, "Speed %.1f"))
+        std::string speedFormat = std::string(Text(EditorText::CameraSpeed)) + " %.1f";
+        if (ImGui::DragFloat("##speed", &speed, 0.1f, 0.5f, 500.0f, speedFormat.c_str()))
         {
             m_camera.SetSpeed(speed);
         }
@@ -568,24 +534,9 @@ namespace BrightBox3D::Editor
             drawList->AddText(ImVec2(origin.x + 12.0f, origin.y + 9.0f), EditorColorU32(EditorColor::Text), banner);
         }
 
-        if ((hovered || ImGui::IsWindowFocused()) && !m_camera.IsFlying() && !ImGui::GetIO().WantTextInput)
+        if ((hovered || ImGui::IsWindowFocused()) && !m_camera.IsFlying())
         {
-            if (ImGui::IsKeyPressed(ImGuiKey_W))
-            {
-                m_gizmoOperation = GizmoOperation::Translate;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_E))
-            {
-                m_gizmoOperation = GizmoOperation::Rotate;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_R))
-            {
-                m_gizmoOperation = GizmoOperation::Scale;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F))
-            {
-                FocusSelection();
-            }
+            CommandRegistry::Get().DispatchShortcuts(CommandScope::LevelView);
         }
         ImGui::End();
     }

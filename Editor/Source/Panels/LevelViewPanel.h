@@ -33,6 +33,15 @@ namespace BrightBox3D::Editor
         void FocusSelection();
         Math::Vector3 GetSpawnPoint() const;
 
+        GizmoOperation GetGizmoOperation() const { return m_gizmoOperation; }
+        void SetGizmoOperation(GizmoOperation operation) { m_gizmoOperation = operation; }
+        bool IsGizmoLocal() const { return m_gizmoLocal; }
+        void SetGizmoLocal(bool local) { m_gizmoLocal = local; }
+        bool IsSnapping() const { return m_snapping; }
+        void SetSnapping(bool snapping) { m_snapping = snapping; }
+        bool IsGridVisible() const { return m_showGrid; }
+        void SetGridVisible(bool visible) { m_showGrid = visible; }
+
     private:
         void DrawToolbar();
         void DrawGizmo(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size);

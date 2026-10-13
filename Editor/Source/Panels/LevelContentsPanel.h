@@ -20,6 +20,7 @@ namespace BrightBox3D::Editor
     public:
         explicit LevelContentsPanel(EditorApplication& application);
         void Draw();
+        void BeginRenameSelection();
 
     private:
         void DrawCollection(Level::LevelCollection& collection);

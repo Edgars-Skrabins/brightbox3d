@@ -612,7 +612,7 @@ namespace BrightBox3D::Editor
             ImGui::SameLine();
             if (ImGui::Button(Text(EditorText::PlaceInLevel)))
             {
-                context.GetObjectEditService().InstantiateLevelObject(guid, m_application.GetLevelView().GetSpawnPoint());
+                context.GetObjectEditService().InstantiateLevelObject(guid, m_application.GetActiveLevelView().GetSpawnPoint());
             }
             break;
         case Assets::AssetType::LevelObjectTemplate:
@@ -678,7 +678,7 @@ namespace BrightBox3D::Editor
                 ImGui::Text("%zu meshes, %zu nodes, %zu triangles", model->GetMeshes().size(), model->GetNodes().size(), triangles);
                 if (ImGui::Button(Text(EditorText::PlaceInLevel)))
                 {
-                    context.GetObjectEditService().CreateModelObject(guid, copy.name.substr(0, copy.name.find('.')), m_application.GetLevelView().GetSpawnPoint());
+                    context.GetObjectEditService().CreateModelObject(guid, copy.name.substr(0, copy.name.find('.')), m_application.GetActiveLevelView().GetSpawnPoint());
                 }
             }
             DrawImportSettings(guid);

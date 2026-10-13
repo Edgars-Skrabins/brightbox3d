@@ -1,6 +1,8 @@
 #include "Panels/LevelContentsPanel.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Commands/CommandRegistry.h"
+#include "Commands/CommandWidgets.h"
 #include "Core/EngineInfo.h"
 #include "Core/Log.h"
 #include "EditorApplication.h"
@@ -104,7 +106,7 @@ namespace BrightBox3D::Editor
     void LevelContentsPanel::DrawCreateMenu(Level::LevelObject* parent)
     {
         EditorContext& context = m_application.GetContext();
-        Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : m_application.GetLevelView().GetSpawnPoint();
+        Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : m_application.GetActiveLevelView().GetSpawnPoint();
         if (ImGui::MenuItem(Text(EditorText::EmptyLevelObject)))
         {
             context.GetObjectEditService().CreateObject(Level::LevelObject::StaticType(), Level::LevelObject::StaticType().GetName(), parent);
@@ -188,6 +190,16 @@ namespace BrightBox3D::Editor
         }
     }
 
+    void LevelContentsPanel::BeginRenameSelection()
+    {
+        if (Level::LevelObject* primary = m_application.GetContext().GetSelectionService().GetPrimarySelection())
+        {
+            m_renaming = primary->GetId();
+            m_renameBuffer = primary->GetName();
+            m_focusRename = true;
+        }
+    }
+
     void LevelContentsPanel::DrawObjectContextMenu(Level::LevelObject& object)
     {
         EditorContext& context = m_application.GetContext();
@@ -195,25 +207,13 @@ namespace BrightBox3D::Editor
         {
             context.GetSelectionService().Select(object.GetId());
         }
-        if (ImGui::MenuItem(Text(EditorText::Rename), "F2"))
+        CommandMenuItem(CommandId::Rename);
+        CommandMenuItem(CommandId::Duplicate);
+        if (CommandMenuItem(CommandId::Delete))
         {
-            m_renaming = object.GetId();
-            m_renameBuffer = object.GetName();
-            m_focusRename = true;
-        }
-        if (ImGui::MenuItem(Text(EditorText::Duplicate), "Cmd+D"))
-        {
-            context.GetObjectEditService().DuplicateSelection();
-        }
-        if (ImGui::MenuItem(Text(EditorText::Delete), "Del"))
-        {
-            context.GetObjectEditService().DeleteSelection();
             return;
         }
-        if (ImGui::MenuItem(Text(EditorText::Focus), "F"))
-        {
-            m_application.GetLevelView().FocusSelection();
-        }
+        CommandMenuItem(CommandId::FocusSelection);
         ImGui::Separator();
         if (ImGui::BeginMenu(Text(EditorText::CreateChild)))
         {
@@ -390,7 +390,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
-            m_application.GetLevelView().FocusSelection();
+            m_application.GetActiveLevelView().FocusSelection();
         }
         if (ImGui::BeginDragDropSource())
         {
@@ -595,14 +595,9 @@ namespace BrightBox3D::Editor
             DrawCreateMenu(nullptr);
             ImGui::EndPopup();
         }
-        if (ImGui::IsWindowFocused() && !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F2))
+        if (ImGui::IsWindowFocused())
         {
-            if (Level::LevelObject* primary = context.GetSelectionService().GetPrimarySelection())
-            {
-                m_renaming = primary->GetId();
-                m_renameBuffer = primary->GetName();
-                m_focusRename = true;
-            }
+            CommandRegistry::Get().DispatchShortcuts(CommandScope::LevelContents);
         }
         ImGui::EndChild();
         PopSelectionColors();
