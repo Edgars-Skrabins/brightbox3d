@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Math/Vector3.h"
 #include "Reflection/Object.h"
 
 namespace BrightBox3D::Level
@@ -8,6 +9,15 @@ namespace BrightBox3D::Level
     class Level;
     class LevelObjectInstance;
     class LevelSerializerAccess;
+
+    struct CollisionInfo
+    {
+        LevelObjectInstance* other = nullptr;
+        Math::Vector3 point;
+        Math::Vector3 normal;
+        Math::Vector3 relativeVelocity;
+        bool isTrigger = false;
+    };
     class ObjectReplacer;
     class Transform;
 
@@ -26,6 +36,10 @@ namespace BrightBox3D::Level
         virtual void OnDisable() {}
         virtual void OnGameEnd() {}
         virtual void OnDestroy() {}
+        virtual void OnCollisionEnter(const CollisionInfo& collision) {}
+        virtual void OnCollisionExit(const CollisionInfo& collision) {}
+        virtual void OnTriggerEnter(const CollisionInfo& collision) {}
+        virtual void OnTriggerExit(const CollisionInfo& collision) {}
 
         LevelObjectInstance* GetOwner() const { return m_owner; }
         Transform& GetTransform() const;

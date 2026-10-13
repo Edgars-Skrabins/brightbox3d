@@ -3,22 +3,48 @@
 #include "Core/Log.h"
 
 #include <algorithm>
+#include <mutex>
 
 namespace BrightBox3D::Level
 {
     namespace
     {
         constexpr int MaxFixedStepsPerFrame = 8;
+
+        std::mutex& LevelsMutex()
+        {
+            static std::mutex* mutex = new std::mutex();
+            return *mutex;
+        }
+
+        std::vector<Level*>& LiveLevels()
+        {
+            static std::vector<Level*>* levels = new std::vector<Level*>();
+            return *levels;
+        }
+    }
+
+    std::vector<Level*> Level::GetAllLevels()
+    {
+        std::lock_guard<std::mutex> lock(LevelsMutex());
+        return LiveLevels();
     }
 
     Level::Level(std::string name) : m_name(std::move(name))
     {
         m_settings.SetObject();
         CreateSubsystems();
+        std::lock_guard<std::mutex> lock(LevelsMutex());
+        LiveLevels().push_back(this);
     }
 
     Level::~Level()
     {
+        {
+            std::lock_guard<std::mutex> lock(LevelsMutex());
+            auto& levels = LiveLevels();
+            levels.erase(std::remove(levels.begin(), levels.end(), this), levels.end());
+        }
         if (m_isPlaying)
         {
             EndPlay();
@@ -433,6 +459,8 @@ namespace BrightBox3D::Level
         {
             doomed[object] = true;
         }
+        m_pendingDestroy.erase(std::remove_if(m_pendingDestroy.begin(), m_pendingDestroy.end(), [&](LevelObjectInstance* object) { return doomed.count(object) > 0; }), m_pendingDestroy.end());
+        m_pendingComponentDestroy.erase(std::remove_if(m_pendingComponentDestroy.begin(), m_pendingComponentDestroy.end(), [&](Component* component) { return doomed.count(component->GetOwner()) > 0; }), m_pendingComponentDestroy.end());
         m_objects.erase(std::remove_if(m_objects.begin(), m_objects.end(), [&](const auto& entry) { return doomed.count(entry.get()) > 0; }), m_objects.end());
         MarkHierarchyChanged();
     }
@@ -476,8 +504,7 @@ namespace BrightBox3D::Level
         }
         if (!m_pendingDestroy.empty())
         {
-            std::vector<LevelObjectInstance*> roots;
-            roots.swap(m_pendingDestroy);
+            std::vector<LevelObjectInstance*> roots = m_pendingDestroy;
             std::vector<LevelObjectInstance*> order;
             for (LevelObjectInstance* root : roots)
             {

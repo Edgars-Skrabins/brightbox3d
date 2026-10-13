@@ -44,6 +44,10 @@ namespace BrightBox3D::Level
         virtual void OnDisable() {}
         virtual void OnGameEnd() {}
         virtual void OnDestroy() {}
+        virtual void OnCollisionEnter(const CollisionInfo& collision) {}
+        virtual void OnCollisionExit(const CollisionInfo& collision) {}
+        virtual void OnTriggerEnter(const CollisionInfo& collision) {}
+        virtual void OnTriggerExit(const CollisionInfo& collision) {}
 
         const std::string& GetName() const { return m_name; }
         void SetName(const std::string& name) { m_name = name; }

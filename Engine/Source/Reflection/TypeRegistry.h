@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Event.h"
 #include "Reflection/TypeInfo.h"
 
 #include <cstdint>
@@ -23,6 +24,7 @@ namespace BrightBox3D::Reflection
         static std::vector<const TypeInfo*> GetFromModule(const std::string& moduleName);
         static uint64_t Revision();
 
+        static Core::Event<const std::string&>& OnModuleUnloading();
         static void SetCurrentModule(const std::string& moduleName);
         static const std::string& GetCurrentModule();
     };

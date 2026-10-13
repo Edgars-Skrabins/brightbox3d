@@ -134,6 +134,12 @@ namespace BrightBox3D::Reflection
         return state.revision;
     }
 
+    Core::Event<const std::string&>& TypeRegistry::OnModuleUnloading()
+    {
+        static Core::Event<const std::string&>* event = new Core::Event<const std::string&>();
+        return *event;
+    }
+
     void TypeRegistry::SetCurrentModule(const std::string& moduleName)
     {
         RegistryState& state = State();

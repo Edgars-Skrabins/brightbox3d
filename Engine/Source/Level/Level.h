@@ -25,6 +25,8 @@ namespace BrightBox3D::Level
         Level(const Level&) = delete;
         Level& operator=(const Level&) = delete;
 
+        static std::vector<Level*> GetAllLevels();
+
         const std::string& GetName() const { return m_name; }
         void SetName(const std::string& name) { m_name = name; }
         const Core::Guid& GetAsset() const { return m_asset; }
