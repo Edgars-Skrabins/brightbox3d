@@ -1,0 +1,8 @@
+add_executable(BrightPlayer ${CMAKE_CURRENT_SOURCE_DIR}/Source/Main.cpp)
+target_link_libraries(BrightPlayer PRIVATE BrightBox3D BrightStb)
+if(APPLE)
+    set_target_properties(BrightPlayer PROPERTIES BUILD_RPATH "@executable_path;${BRIGHT_BIN_DIR}")
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(BrightPlayer PRIVATE -Wall -Wextra -Wno-unused-parameter)
+endif()

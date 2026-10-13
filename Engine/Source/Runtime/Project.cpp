@@ -73,7 +73,7 @@ namespace BrightBox3D::Runtime
             error = "Cannot write the project file";
             return false;
         }
-        Core::FileSystem::WriteText(directory / ".gitignore", "Cache/\nBuild/\nBinaries/\n.DS_Store\n");
+        Core::FileSystem::WriteText(directory / ".gitignore", "Cache/\nBuild/\nBinaries/\nCMakeLists.txt\n.DS_Store\n");
         return true;
     }
 

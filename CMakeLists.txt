@@ -33,6 +33,8 @@ include(cmake/BrightReflection.cmake)
 
 add_subdirectory(Tools/BrightHeaderTool)
 add_subdirectory(Engine)
+add_subdirectory(Editor)
+add_subdirectory(Player)
 
 if(BRIGHT_BUILD_TESTS)
     enable_testing()
