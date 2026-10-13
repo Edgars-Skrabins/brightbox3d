@@ -1,3 +1,6 @@
 build/
 Cache/
 .DS_Store
+Engine/Content/Shaders/ThirdParty/
+Editor/Content/Fonts/ThirdParty/
+.idea/

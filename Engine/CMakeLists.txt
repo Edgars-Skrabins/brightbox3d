@@ -18,7 +18,7 @@ add_library(BrightBox3D SHARED ${BRIGHT_ENGINE_SOURCES})
 target_include_directories(BrightBox3D PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 target_link_libraries(BrightBox3D PRIVATE glfw)
 target_link_libraries(BrightBox3D PUBLIC BrightRapidJson)
-target_link_libraries(BrightBox3D PRIVATE BrightStb BrightUfbx)
+target_link_libraries(BrightBox3D PRIVATE BrightStb BrightUfbx BrightPugiXml BrightYoga BrightMsdf Jolt BrightSmaaTextures)
 bright_generate_reflection(BrightBox3D ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 
 if(APPLE)
