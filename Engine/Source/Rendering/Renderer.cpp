@@ -175,11 +175,6 @@ namespace BrightBox3D::Rendering
             layout.strides[0] = sizeof(LineVertex);
             return layout;
         }
-
-        std::string FormatKey(RHI::Format format)
-        {
-            return std::to_string(static_cast<int>(format));
-        }
     }
 
     struct Renderer::ViewTargets
@@ -478,12 +473,12 @@ namespace BrightBox3D::Rendering
         m_statistics.lights = count;
     }
 
-    RHI::Pipeline* Renderer::GetMeshPipeline(const char* key, const char* pixelEntry, const char* file, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip, int32_t depthBias, float slopeBias)
+    RHI::Pipeline* Renderer::GetMeshPipeline(ShaderProgram program, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip, int32_t depthBias, float slopeBias)
     {
-        std::string fullKey = std::string(key) + "|" + std::to_string(static_cast<int>(cull));
+        PipelineKey key{ program, colors.empty() ? depth : colors.front(), cull, true };
         RHI::PipelineDesc desc;
-        desc.vertexShader = m_shaders.Get(file, "MeshVS", RHI::ShaderStage::Vertex);
-        desc.pixelShader = m_shaders.Get(file, pixelEntry, RHI::ShaderStage::Pixel);
+        desc.vertexShader = m_shaders.Get(program, RHI::ShaderStage::Vertex);
+        desc.pixelShader = m_shaders.Get(program, RHI::ShaderStage::Pixel);
         desc.vertexLayout = MeshLayout();
         desc.rasterizer.cullMode = cull;
         desc.rasterizer.depthClip = depthClip;
@@ -497,20 +492,20 @@ namespace BrightBox3D::Rendering
         {
             desc.blend[i] = blend;
         }
-        return m_shaders.GetPipeline(fullKey, desc);
+        return m_shaders.GetPipeline(key, desc);
     }
 
-    RHI::Pipeline* Renderer::GetFullscreenPipeline(const char* key, const char* file, const char* entry, RHI::Format format, const RHI::BlendState& blend)
+    RHI::Pipeline* Renderer::GetFullscreenPipeline(ShaderProgram program, RHI::Format format, const RHI::BlendState& blend)
     {
         RHI::PipelineDesc desc;
-        desc.vertexShader = m_shaders.Get(file, "FullscreenVS", RHI::ShaderStage::Vertex);
-        desc.pixelShader = m_shaders.Get(file, entry, RHI::ShaderStage::Pixel);
+        desc.vertexShader = m_shaders.Get(program, RHI::ShaderStage::Vertex);
+        desc.pixelShader = m_shaders.Get(program, RHI::ShaderStage::Pixel);
         desc.rasterizer.cullMode = RHI::CullMode::None;
         desc.depthStencil.depthTest = false;
         desc.depthStencil.depthWrite = false;
         desc.colorFormats = { format };
         desc.blend[0] = blend;
-        return m_shaders.GetPipeline(std::string(key) + "|" + FormatKey(format), desc);
+        return m_shaders.GetPipeline({ program, format }, desc);
     }
 
     void Renderer::DrawItems(RHI::CommandList& commands, const std::vector<const DrawItem*>& items, RHI::Pipeline* single, RHI::Pipeline* doubleSided)
@@ -596,7 +591,7 @@ namespace BrightBox3D::Rendering
         float aspect = static_cast<float>(view.width) / static_cast<float>(std::max<uint32_t>(view.height, 1));
         float tanHalf = std::tan(view.verticalFov * Math::DegreesToRadians * 0.5f);
         Math::Vector3 up = std::abs(m_shadowDirection.y) > 0.99f ? Math::Vector3::Forward() : Math::Vector3::Up();
-        RHI::Pipeline* pipeline = GetMeshPipeline("ShadowDepth", "DepthOnlyPS", "GBuffer.hlsl", RHI::CullMode::None, {}, RHI::Format::Depth32Float, true, {}, false, 0, 2.0f);
+        RHI::Pipeline* pipeline = GetMeshPipeline(ShaderProgram::ShadowDepth, RHI::CullMode::None, {}, RHI::Format::Depth32Float, true, {}, false, 0, 2.0f);
 
         for (uint32_t cascade = 0; cascade < CascadeCount; ++cascade)
         {
@@ -660,16 +655,16 @@ namespace BrightBox3D::Rendering
         Store(constants->params, 1.0f, 1.0f / static_cast<float>(resolution), view.shadows.normalBias, view.shadows.bias);
     }
 
-    RHI::Pipeline* Renderer::GetSMAAPipeline(const char* vertexEntry, const char* pixelEntry, RHI::Format format)
+    RHI::Pipeline* Renderer::GetSMAAPipeline(ShaderProgram program, RHI::Format format)
     {
         RHI::PipelineDesc desc;
-        desc.vertexShader = m_shaders.Get("AntiAliasingSMAA.hlsl", vertexEntry, RHI::ShaderStage::Vertex);
-        desc.pixelShader = m_shaders.Get("AntiAliasingSMAA.hlsl", pixelEntry, RHI::ShaderStage::Pixel);
+        desc.vertexShader = m_shaders.Get(program, RHI::ShaderStage::Vertex);
+        desc.pixelShader = m_shaders.Get(program, RHI::ShaderStage::Pixel);
         desc.rasterizer.cullMode = RHI::CullMode::None;
         desc.depthStencil.depthTest = false;
         desc.depthStencil.depthWrite = false;
         desc.colorFormats = { format };
-        return m_shaders.GetPipeline(std::string("SMAA|") + pixelEntry + "|" + FormatKey(format), desc);
+        return m_shaders.GetPipeline({ program, format }, desc);
     }
 
     void Renderer::FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load, const std::function<void(RHI::CommandList&)>& bind)
@@ -769,7 +764,7 @@ namespace BrightBox3D::Rendering
         {
             RHI::Texture* history = targets.history[targets.historyIndex].get();
             RHI::Texture* resolved = targets.history[1 - targets.historyIndex].get();
-            FullscreenPass(commands, resolved, GetFullscreenPipeline("TemporalResolve", "PostProcess.hlsl", "TemporalResolvePS", SceneColorFormat), "TemporalResolve", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, resolved, GetFullscreenPipeline(ShaderProgram::TemporalResolve, SceneColorFormat), "TemporalResolve", false, [&](RHI::CommandList&)
             {
                 PostConstants constants{};
                 Store(constants.params, 0.9f, targets.historyValid ? 0.0f : 1.0f, 0.0f, 0.0f);
@@ -794,7 +789,7 @@ namespace BrightBox3D::Rendering
             PostConstants constants{};
             Store(constants.params, post.bloomThreshold, 1.0f, 0.0f, 0.0f);
             Store(constants.sourceSize, static_cast<float>(hdr->GetWidth()), static_cast<float>(hdr->GetHeight()), 1.0f / hdr->GetWidth(), 1.0f / hdr->GetHeight());
-            FullscreenPass(commands, targets.bloom[0].get(), GetFullscreenPipeline("BloomPrefilter", "PostProcess.hlsl", "BloomPrefilterPS", RHI::Format::RGBA16Float), "BloomPrefilter", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, targets.bloom[0].get(), GetFullscreenPipeline(ShaderProgram::BloomPrefilter, RHI::Format::RGBA16Float), "BloomPrefilter", false, [&](RHI::CommandList&)
             {
                 bindCommon(constants);
                 commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, hdr);
@@ -803,7 +798,7 @@ namespace BrightBox3D::Rendering
             {
                 RHI::Texture* source = targets.bloom[level - 1].get();
                 Store(constants.sourceSize, static_cast<float>(source->GetWidth()), static_cast<float>(source->GetHeight()), 1.0f / source->GetWidth(), 1.0f / source->GetHeight());
-                FullscreenPass(commands, targets.bloom[level].get(), GetFullscreenPipeline("BloomDownsample", "PostProcess.hlsl", "BloomDownsamplePS", RHI::Format::RGBA16Float), "BloomDownsample", false, [&](RHI::CommandList&)
+                FullscreenPass(commands, targets.bloom[level].get(), GetFullscreenPipeline(ShaderProgram::BloomDownsample, RHI::Format::RGBA16Float), "BloomDownsample", false, [&](RHI::CommandList&)
                 {
                     bindCommon(constants);
                     commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, source);
@@ -813,7 +808,7 @@ namespace BrightBox3D::Rendering
             {
                 RHI::Texture* source = targets.bloom[level].get();
                 Store(constants.sourceSize, static_cast<float>(source->GetWidth()), static_cast<float>(source->GetHeight()), 1.0f / source->GetWidth(), 1.0f / source->GetHeight());
-                FullscreenPass(commands, targets.bloom[level - 1].get(), GetFullscreenPipeline("BloomUpsample", "PostProcess.hlsl", "BloomUpsamplePS", RHI::Format::RGBA16Float, RHI::BlendState::Additive()), "BloomUpsample", true, [&](RHI::CommandList&)
+                FullscreenPass(commands, targets.bloom[level - 1].get(), GetFullscreenPipeline(ShaderProgram::BloomUpsample, RHI::Format::RGBA16Float, RHI::BlendState::Additive()), "BloomUpsample", true, [&](RHI::CommandList&)
                 {
                     bindCommon(constants);
                     commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, source);
@@ -828,7 +823,7 @@ namespace BrightBox3D::Rendering
         {
             PostConstants constants{};
             Store(constants.sourceSize, static_cast<float>(hdr->GetWidth()), static_cast<float>(hdr->GetHeight()), 1.0f / hdr->GetWidth(), 1.0f / hdr->GetHeight());
-            FullscreenPass(commands, targets.luminance.get(), GetFullscreenPipeline("LogLuminance", "PostProcess.hlsl", "LogLuminancePS", RHI::Format::R32Float), "LogLuminance", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, targets.luminance.get(), GetFullscreenPipeline(ShaderProgram::LogLuminance, RHI::Format::R32Float), "LogLuminance", false, [&](RHI::CommandList&)
             {
                 bindCommon(constants);
                 commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, hdr);
@@ -840,7 +835,7 @@ namespace BrightBox3D::Rendering
             RHI::Texture* current = targets.exposure[1 - targets.exposureIndex].get();
             Store(constants.params, post.exposure, post.autoExposureMin, post.autoExposureMax, post.autoExposureSpeed);
             Store(constants.params2, static_cast<float>(LuminanceSize), targets.exposureValid ? 0.0f : 1.0f, deltaTime, 0.0f);
-            FullscreenPass(commands, current, GetFullscreenPipeline("ExposureAdapt", "PostProcess.hlsl", "ExposureAdaptPS", RHI::Format::R32Float), "ExposureAdapt", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, current, GetFullscreenPipeline(ShaderProgram::ExposureAdapt, RHI::Format::R32Float), "ExposureAdapt", false, [&](RHI::CommandList&)
             {
                 bindCommon(constants);
                 commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, targets.luminance.get());
@@ -902,8 +897,8 @@ namespace BrightBox3D::Rendering
         auto pipelineFor = [&](bool depthTest)
         {
             RHI::PipelineDesc desc;
-            desc.vertexShader = m_shaders.Get("Lines.hlsl", "LineVS", RHI::ShaderStage::Vertex);
-            desc.pixelShader = m_shaders.Get("Lines.hlsl", "LinePS", RHI::ShaderStage::Pixel);
+            desc.vertexShader = m_shaders.Get(ShaderProgram::Lines, RHI::ShaderStage::Vertex);
+            desc.pixelShader = m_shaders.Get(ShaderProgram::Lines, RHI::ShaderStage::Pixel);
             desc.vertexLayout = LineLayout();
             desc.topology = RHI::PrimitiveTopology::LineList;
             desc.rasterizer.cullMode = RHI::CullMode::None;
@@ -912,7 +907,7 @@ namespace BrightBox3D::Rendering
             desc.colorFormats = { output->GetFormat() };
             desc.depthFormat = DepthFormat;
             desc.blend[0] = RHI::BlendState::AlphaBlend();
-            return m_shaders.GetPipeline(std::string("Lines|") + (depthTest ? "Depth" : "Overlay") + "|" + FormatKey(output->GetFormat()), desc);
+            return m_shaders.GetPipeline({ ShaderProgram::Lines, output->GetFormat(), RHI::CullMode::None, depthTest }, desc);
         };
 
         RHI::RenderPassDesc pass;
@@ -1044,8 +1039,8 @@ namespace BrightBox3D::Rendering
         gbufferPass.debugName = "GBuffer";
         commands.BeginRenderPass(gbufferPass);
         commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
-        RHI::Pipeline* gbufferBack = GetMeshPipeline("GBuffer", "GBufferPS", "GBuffer.hlsl", RHI::CullMode::Back, gbufferFormats, DepthFormat, true, {});
-        RHI::Pipeline* gbufferNone = GetMeshPipeline("GBuffer", "GBufferPS", "GBuffer.hlsl", RHI::CullMode::None, gbufferFormats, DepthFormat, true, {});
+        RHI::Pipeline* gbufferBack = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::Back, gbufferFormats, DepthFormat, true, {});
+        RHI::Pipeline* gbufferNone = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::None, gbufferFormats, DepthFormat, true, {});
         DrawItems(commands, frame.opaque, gbufferBack, gbufferNone);
         commands.EndRenderPass();
 
@@ -1063,7 +1058,7 @@ namespace BrightBox3D::Rendering
             SSAOConstants ssao{};
             Store(ssao.params, view.post.ssaoRadius, view.post.ssaoIntensity, 0.02f, 16.0f);
             std::memcpy(ssao.kernel, m_ssaoKernel, sizeof(m_ssaoKernel));
-            FullscreenPass(commands, targets.ao.get(), GetFullscreenPipeline("SSAO", "SSAO.hlsl", "SSAOPS", RHI::Format::R8Unorm), "SSAO", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, targets.ao.get(), GetFullscreenPipeline(ShaderProgram::SSAO, RHI::Format::R8Unorm), "SSAO", false, [&](RHI::CommandList&)
             {
                 commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, viewConstants);
                 commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, ssao);
@@ -1071,7 +1066,7 @@ namespace BrightBox3D::Rendering
                 commands.SetTexture(BRIGHT_SLOT_SSAO_NORMAL, targets.normal.get());
                 commands.SetSampler(BRIGHT_SLOT_SSAO_SAMPLER, m_resources.GetPointClampSampler());
             });
-            FullscreenPass(commands, targets.aoBlur.get(), GetFullscreenPipeline("SSAOBlur", "SSAO.hlsl", "SSAOBlurPS", RHI::Format::R8Unorm), "SSAOBlur", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, targets.aoBlur.get(), GetFullscreenPipeline(ShaderProgram::SSAOBlur, RHI::Format::R8Unorm), "SSAOBlur", false, [&](RHI::CommandList&)
             {
                 commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, viewConstants);
                 commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, ssao);
@@ -1097,7 +1092,7 @@ namespace BrightBox3D::Rendering
     void Renderer::RenderLighting(FrameContext& frame)
     {
         ViewTargets& targets = frame.targets;
-        FullscreenPass(frame.commands, targets.sceneColor.get(), GetFullscreenPipeline("DeferredLighting", "DeferredLighting.hlsl", "DeferredLightingPS", SceneColorFormat), "DeferredLighting", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, targets.sceneColor.get(), GetFullscreenPipeline(ShaderProgram::DeferredLighting, SceneColorFormat), "DeferredLighting", false, [&](RHI::CommandList& commands)
         {
             BindLighting(frame);
             commands.SetTexture(BRIGHT_SLOT_GBUFFER_ALBEDO, targets.albedo.get());
@@ -1124,8 +1119,8 @@ namespace BrightBox3D::Rendering
         forwardPass.debugName = "Transparent";
         commands.BeginRenderPass(forwardPass);
         BindLighting(frame);
-        RHI::Pipeline* back = GetMeshPipeline("Forward", "ForwardPS", "Forward.hlsl", RHI::CullMode::Back, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
-        RHI::Pipeline* none = GetMeshPipeline("Forward", "ForwardPS", "Forward.hlsl", RHI::CullMode::None, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
+        RHI::Pipeline* back = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::Back, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
+        RHI::Pipeline* none = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::None, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
         DrawItems(commands, frame.transparent, back, none);
         commands.EndRenderPass();
     }
@@ -1144,7 +1139,7 @@ namespace BrightBox3D::Rendering
         StoreColor(tonemap.lift, post.lift, 0.0f);
         StoreColor(tonemap.gamma, post.gamma, 1.0f);
         StoreColor(tonemap.gain, post.gain, 1.0f);
-        FullscreenPass(frame.commands, target, GetFullscreenPipeline("Tonemap", "Tonemap.hlsl", "TonemapPS", target->GetFormat()), "Tonemap", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, target, GetFullscreenPipeline(ShaderProgram::Tonemap, target->GetFormat()), "Tonemap", false, [&](RHI::CommandList& commands)
         {
             commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
             commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, tonemap);
@@ -1168,7 +1163,7 @@ namespace BrightBox3D::Rendering
         {
             PostConstants constants{};
             Store(constants.sourceSize, static_cast<float>(view.width), static_cast<float>(view.height), 1.0f / view.width, 1.0f / view.height);
-            FullscreenPass(commands, output, GetFullscreenPipeline("FXAA", "PostProcess.hlsl", "FXAAPS", output->GetFormat()), "FXAA", false, [&](RHI::CommandList&)
+            FullscreenPass(commands, output, GetFullscreenPipeline(ShaderProgram::FXAA, output->GetFormat()), "FXAA", false, [&](RHI::CommandList&)
             {
                 commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, viewConstants);
                 commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, constants);
@@ -1191,7 +1186,7 @@ namespace BrightBox3D::Rendering
             edges.colors.push_back({ targets.smaaEdges.get(), 0, 0, RHI::LoadAction::Clear, { 0, 0, 0, 0 } });
             edges.debugName = "SMAAEdges";
             commands.BeginRenderPass(edges);
-            commands.SetPipeline(GetSMAAPipeline("SMAAEdgeVS", "SMAAEdgePS", RHI::Format::RG8Unorm));
+            commands.SetPipeline(GetSMAAPipeline(ShaderProgram::SMAAEdge, RHI::Format::RG8Unorm));
             bindSMAA();
             commands.SetTexture(BRIGHT_SLOT_SMAA_COLOR, targets.ldr.get());
             commands.Draw(3);
@@ -1200,7 +1195,7 @@ namespace BrightBox3D::Rendering
             blend.colors.push_back({ targets.smaaBlend.get(), 0, 0, RHI::LoadAction::Clear, { 0, 0, 0, 0 } });
             blend.debugName = "SMAABlendWeights";
             commands.BeginRenderPass(blend);
-            commands.SetPipeline(GetSMAAPipeline("SMAABlendVS", "SMAABlendPS", RHI::Format::RGBA8Unorm));
+            commands.SetPipeline(GetSMAAPipeline(ShaderProgram::SMAABlend, RHI::Format::RGBA8Unorm));
             bindSMAA();
             commands.SetTexture(BRIGHT_SLOT_SMAA_EDGES, targets.smaaEdges.get());
             commands.SetTexture(BRIGHT_SLOT_SMAA_AREA, m_smaaArea.get());
@@ -1211,7 +1206,7 @@ namespace BrightBox3D::Rendering
             neighborhood.colors.push_back({ output, 0, 0, RHI::LoadAction::DontCare });
             neighborhood.debugName = "SMAANeighborhood";
             commands.BeginRenderPass(neighborhood);
-            commands.SetPipeline(GetSMAAPipeline("SMAANeighborhoodVS", "SMAANeighborhoodPS", output->GetFormat()));
+            commands.SetPipeline(GetSMAAPipeline(ShaderProgram::SMAANeighborhood, output->GetFormat()));
             bindSMAA();
             commands.SetTexture(BRIGHT_SLOT_SMAA_COLOR, targets.ldr.get());
             commands.SetTexture(BRIGHT_SLOT_SMAA_BLEND, targets.smaaBlend.get());

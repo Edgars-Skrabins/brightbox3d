@@ -81,8 +81,8 @@ namespace BrightBox3D::Editor
         }
 
         RHI::PipelineDesc desc;
-        desc.vertexShader = m_shaders.Get("ImGui.hlsl", "ImGuiVS", RHI::ShaderStage::Vertex);
-        desc.pixelShader = m_shaders.Get("ImGui.hlsl", "ImGuiPS", RHI::ShaderStage::Pixel);
+        desc.vertexShader = m_shaders.Get(Rendering::ShaderProgram::ImGui, RHI::ShaderStage::Vertex);
+        desc.pixelShader = m_shaders.Get(Rendering::ShaderProgram::ImGui, RHI::ShaderStage::Pixel);
         desc.vertexLayout.attributes = {
             { "POSITION", 0, RHI::Format::RG32Float, offsetof(ImDrawVert, pos), 0 },
             { "TEXCOORD", 0, RHI::Format::RG32Float, offsetof(ImDrawVert, uv), 0 },
@@ -95,7 +95,7 @@ namespace BrightBox3D::Editor
         desc.depthStencil.depthWrite = false;
         desc.colorFormats = { target->GetFormat() };
         desc.blend[0] = RHI::BlendState::AlphaBlend();
-        RHI::Pipeline* pipeline = m_shaders.GetPipeline("ImGui|" + std::to_string(static_cast<int>(target->GetFormat())), desc);
+        RHI::Pipeline* pipeline = m_shaders.GetPipeline({ Rendering::ShaderProgram::ImGui, target->GetFormat() }, desc);
         if (!pipeline)
         {
             commands.EndRenderPass();

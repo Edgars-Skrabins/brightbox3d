@@ -9,13 +9,29 @@ namespace BrightBox3D::Rendering
     {
     }
 
-    RHI::Shader* ShaderLibrary::Get(const std::string& file, const std::string& entryPoint, RHI::ShaderStage stage, const std::vector<std::pair<std::string, std::string>>& defines)
+    size_t ShaderLibrary::ShaderKeyHash::operator()(const ShaderKey& key) const
     {
-        std::string key = file + "|" + entryPoint + "|" + (stage == RHI::ShaderStage::Vertex ? "VS" : "PS");
-        for (const auto& [name, value] : defines)
+        std::hash<std::string> hashText;
+        size_t hash = hashText(key.file);
+        hash = hash * 31 + hashText(key.entryPoint);
+        hash = hash * 31 + static_cast<size_t>(key.stage);
+        for (const auto& [name, value] : key.defines)
         {
-            key += "|" + name + "=" + value;
+            hash = hash * 31 + hashText(name);
+            hash = hash * 31 + hashText(value);
         }
+        return hash;
+    }
+
+    RHI::Shader* ShaderLibrary::Get(ShaderProgram program, RHI::ShaderStage stage)
+    {
+        const ShaderProgramInfo& info = GetShaderProgramInfo(program);
+        return Get(info.file, stage == RHI::ShaderStage::Vertex ? info.vertexEntry : info.pixelEntry, stage);
+    }
+
+    RHI::Shader* ShaderLibrary::Get(const std::string& file, const std::string& entryPoint, RHI::ShaderStage stage, const ShaderDefines& defines)
+    {
+        ShaderKey key{ file, entryPoint, stage, defines };
         auto it = m_shaders.find(key);
         if (it != m_shaders.end())
         {
@@ -53,7 +69,7 @@ namespace BrightBox3D::Rendering
         return raw;
     }
 
-    RHI::Pipeline* ShaderLibrary::GetPipeline(const std::string& key, const RHI::PipelineDesc& desc)
+    RHI::Pipeline* ShaderLibrary::GetPipeline(const PipelineKey& key, const RHI::PipelineDesc& desc)
     {
         auto it = m_pipelines.find(key);
         if (it != m_pipelines.end())
@@ -67,11 +83,11 @@ namespace BrightBox3D::Rendering
         }
         std::string error;
         RHI::PipelineDesc named = desc;
-        named.debugName = key;
+        named.debugName = GetShaderProgramInfo(key.program).name;
         std::unique_ptr<RHI::Pipeline> pipeline = m_device.CreatePipeline(named, error);
         if (!pipeline)
         {
-            Core::Log::Error("Pipeline '" + key + "': " + error);
+            Core::Log::Error("Pipeline '" + named.debugName + "': " + error);
         }
         RHI::Pipeline* raw = pipeline.get();
         m_pipelines[key] = std::move(pipeline);
