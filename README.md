@@ -16,7 +16,7 @@ This repository contains:
 | Area | Technology |
 |---|---|
 | Language | C++20 |
-| Build | CMake 3.24+ (all libraries are fetched automatically) |
+| Build | CMake 3.24+ (all libraries are fetched automatically); game code is built with Ninja, which is built alongside the editor |
 | Graphics | Metal (macOS), DirectX 11 (Windows) |
 | Shaders | HLSL, compiled with FXC on Windows and translated to Metal with glslang + SPIRV-Cross |
 | Windowing and input | GLFW |
