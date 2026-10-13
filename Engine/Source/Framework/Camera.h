@@ -3,11 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Level/LevelObjectInstance.h"
 #include "Rendering/RenderView.h"
-
-namespace BrightBox3D::UI
-{
-    class ScreenAsset;
-}
+#include "UI/UIAssets.h"
 
 namespace BrightBox3D::Framework
 {
@@ -32,8 +28,8 @@ namespace BrightBox3D::Framework
         void SetFieldOfView(float degrees) { m_fieldOfView = degrees; }
         int32_t GetPriority() const { return m_priority; }
         void SetPriority(int32_t priority) { m_priority = priority; }
-        const Core::Guid& GetActiveScreen() const { return m_activeScreen; }
-        void SetActiveScreen(const Core::Guid& screen) { m_activeScreen = screen; }
+        const Assets::AssetReference<UI::ScreenAsset>& GetActiveScreen() const { return m_activeScreen; }
+        void SetActiveScreen(const Assets::AssetReference<UI::ScreenAsset>& screen) { m_activeScreen = screen; }
 
     private:
         BrightProperty(EditAnywhere, Category = "Projection")
@@ -49,7 +45,7 @@ namespace BrightBox3D::Framework
         int32_t m_priority = 0;
 
         BrightProperty(EditAnywhere, Category = "UI")
-        Core::Guid m_activeScreen;
+        Assets::AssetReference<UI::ScreenAsset> m_activeScreen;
 
         BrightProperty(EditAnywhere, Category = "Exposure")
         float m_exposure = 1.0f;
