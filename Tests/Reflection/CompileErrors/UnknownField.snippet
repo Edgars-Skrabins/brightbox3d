@@ -1,0 +1,14 @@
+#include "Reflection/EngineObject.h"
+
+namespace Snippet
+{
+    inline constexpr BrightBox3D::Reflection::Category Movement{ "Movement" };
+
+    class Player : public BrightBox3D::Reflection::EngineObject
+    {
+        BrightBody()
+
+        BrightProperty(.editable = Edit::Anywhere)
+        float m_speed = 6.0f;
+    };
+}
