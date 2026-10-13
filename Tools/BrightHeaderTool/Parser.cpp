@@ -21,18 +21,9 @@ namespace BrightBox3D::HeaderTool
         struct PendingMarker
         {
             bool active = false;
-            std::vector<Specifier> specifiers;
+            std::string arguments;
             int line = 0;
         };
-
-        std::string Unquote(const std::string& text)
-        {
-            if (text.size() >= 2 && text.front() == '"' && text.back() == '"')
-            {
-                return text.substr(1, text.size() - 2);
-            }
-            return text;
-        }
 
         class Parser
         {
@@ -107,24 +98,26 @@ namespace BrightBox3D::HeaderTool
                 return path;
             }
 
-            std::vector<Specifier> ReadSpecifiers()
+            std::string ReadMetadataArguments(const char* macro)
             {
-                std::vector<Specifier> specifiers;
+                std::string arguments;
                 if (!Peek(0, "("))
                 {
-                    return specifiers;
+                    return arguments;
                 }
+                int line = Current().line;
                 ++m_index;
                 int depth = 0;
-                std::vector<std::vector<const Token*>> groups(1);
+                bool groupStart = true;
+                bool previousWord = false;
                 while (m_index < m_tokens.size())
                 {
                     const Token& token = Current();
-                    if (token.Is("(") || token.Is("<") || token.Is("{"))
+                    if (token.Is("(") || token.Is("{") || token.Is("["))
                     {
                         ++depth;
                     }
-                    else if (token.Is(")") || token.Is(">") || token.Is("}"))
+                    else if (token.Is(")") || token.Is("}") || token.Is("]"))
                     {
                         if (depth == 0 && token.Is(")"))
                         {
@@ -133,36 +126,21 @@ namespace BrightBox3D::HeaderTool
                         }
                         --depth;
                     }
-                    else if (token.Is(",") && depth == 0)
+                    if (groupStart && depth == 0 && !token.Is("."))
                     {
-                        groups.emplace_back();
-                        ++m_index;
-                        continue;
+                        Error(line, std::string("Old-style ") + macro + " argument '" + token.text + "'; write designated fields such as .edit = Edit::Anywhere");
                     }
-                    groups.back().push_back(&token);
+                    groupStart = token.Is(",") && depth == 0;
+                    bool word = token.type == TokenType::Identifier || token.type == TokenType::Number;
+                    if (word && previousWord)
+                    {
+                        arguments += ' ';
+                    }
+                    arguments += token.text;
+                    previousWord = word;
                     ++m_index;
                 }
-                for (const auto& group : groups)
-                {
-                    if (group.empty())
-                    {
-                        continue;
-                    }
-                    Specifier specifier;
-                    specifier.key = group[0]->text;
-                    if (group.size() > 1 && group[1]->Is("="))
-                    {
-                        specifier.hasValue = true;
-                        std::string value;
-                        for (size_t i = 2; i < group.size(); ++i)
-                        {
-                            value += group[i]->type == TokenType::String ? Unquote(group[i]->text) : group[i]->text;
-                        }
-                        specifier.value = value;
-                    }
-                    specifiers.push_back(specifier);
-                }
-                return specifiers;
+                return arguments;
             }
 
             void Step()
@@ -176,7 +154,7 @@ namespace BrightBox3D::HeaderTool
                         ++m_index;
                         m_pendingClass.active = true;
                         m_pendingClass.line = line;
-                        m_pendingClass.specifiers = ReadSpecifiers();
+                        m_pendingClass.arguments = ReadMetadataArguments("BrightClass");
                         return;
                     }
                     if (token.Is("BrightEnum"))
@@ -185,13 +163,13 @@ namespace BrightBox3D::HeaderTool
                         ++m_index;
                         m_pendingEnum.active = true;
                         m_pendingEnum.line = line;
-                        m_pendingEnum.specifiers = ReadSpecifiers();
+                        m_pendingEnum.arguments = ReadMetadataArguments("BrightEnum");
                         return;
                     }
                     if (token.Is("BrightBody"))
                     {
                         ++m_index;
-                        ReadSpecifiers();
+                        ReadMetadataArguments("BrightBody");
                         if (Scope* scope = CurrentReflectedClass())
                         {
                             m_result.classes[static_cast<size_t>(scope->classIndex)].hasBody = true;
@@ -421,7 +399,7 @@ namespace BrightBox3D::HeaderTool
                     reflected.name = name;
                     std::string path = ScopePath();
                     reflected.qualifiedName = path.empty() ? name : path + "::" + name;
-                    reflected.specifiers = m_pendingClass.specifiers;
+                    reflected.metadata = m_pendingClass.arguments;
                     reflected.line = line;
                     if (!bases.empty())
                     {
@@ -449,7 +427,7 @@ namespace BrightBox3D::HeaderTool
                 {
                     bool ui = Current().Is("BrightUIProperty");
                     ++m_index;
-                    std::vector<Specifier> specifiers = ReadSpecifiers();
+                    std::string arguments = ReadMetadataArguments(ui ? "BrightUIProperty" : "BrightProperty");
                     if (ui)
                     {
                         if (property.hasUIProperty)
@@ -457,7 +435,7 @@ namespace BrightBox3D::HeaderTool
                             Error(property.line, "BrightUIProperty specified twice on the same member");
                         }
                         property.hasUIProperty = true;
-                        property.uiSpecifiers = specifiers;
+                        property.uiMetadata = arguments;
                     }
                     else
                     {
@@ -466,7 +444,7 @@ namespace BrightBox3D::HeaderTool
                             Error(property.line, "BrightProperty specified twice on the same member");
                         }
                         property.hasProperty = true;
-                        property.propertySpecifiers = specifiers;
+                        property.propertyMetadata = arguments;
                     }
                 }
 

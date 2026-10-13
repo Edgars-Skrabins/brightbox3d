@@ -5,115 +5,6 @@
 
 namespace BrightBox3D::HeaderTool
 {
-    namespace
-    {
-        std::string EscapeString(const std::string& text)
-        {
-            std::string result;
-            for (char c : text)
-            {
-                if (c == '"' || c == '\\')
-                {
-                    result += '\\';
-                }
-                result += c;
-            }
-            return result;
-        }
-
-        std::string BuildPropertyFlags(const ReflectedProperty& property, std::string& category, std::vector<Diagnostic>& errors)
-        {
-            std::vector<std::string> flags;
-            int editModes = 0;
-            for (const Specifier& specifier : property.propertySpecifiers)
-            {
-                if (specifier.key == "EditAnywhere")
-                {
-                    flags.push_back("PropertyFlagEditAnywhere");
-                    ++editModes;
-                }
-                else if (specifier.key == "EditDefaultsOnly")
-                {
-                    flags.push_back("PropertyFlagEditDefaultsOnly");
-                    ++editModes;
-                }
-                else if (specifier.key == "EditInstanceOnly")
-                {
-                    flags.push_back("PropertyFlagEditInstanceOnly");
-                    ++editModes;
-                }
-                else if (specifier.key == "VisibleAnywhere")
-                {
-                    flags.push_back("PropertyFlagVisibleAnywhere");
-                    ++editModes;
-                }
-                else if (specifier.key == "Hidden")
-                {
-                    flags.push_back("PropertyFlagHidden");
-                    ++editModes;
-                }
-                else if (specifier.key == "Category")
-                {
-                    if (!specifier.hasValue || specifier.value.empty())
-                    {
-                        errors.push_back({ property.line, "Category requires a value, e.g. Category = \"Movement\"" });
-                    }
-                    category = specifier.value;
-                }
-                else
-                {
-                    errors.push_back({ property.line, "Unknown BrightProperty specifier '" + specifier.key + "'" });
-                }
-            }
-            if (editModes > 1)
-            {
-                errors.push_back({ property.line, "Property '" + property.name + "' combines several edit/visibility specifiers; use exactly one" });
-            }
-
-            if (property.hasUIProperty)
-            {
-                int permissions = 0;
-                for (const Specifier& specifier : property.uiSpecifiers)
-                {
-                    if (specifier.key == "Read")
-                    {
-                        flags.push_back("PropertyFlagUIRead");
-                        ++permissions;
-                    }
-                    else if (specifier.key == "Write")
-                    {
-                        flags.push_back("PropertyFlagUIRead");
-                        flags.push_back("PropertyFlagUIWrite");
-                        ++permissions;
-                    }
-                    else
-                    {
-                        errors.push_back({ property.line, "Unknown BrightUIProperty specifier '" + specifier.key + "'; expected Read or Write" });
-                    }
-                }
-                if (permissions != 1)
-                {
-                    errors.push_back({ property.line, "BrightUIProperty on '" + property.name + "' requires exactly one permission: Read or Write" });
-                }
-            }
-
-            if (flags.empty())
-            {
-                return "PropertyFlagNone";
-            }
-            std::string result;
-            for (const std::string& flag : flags)
-            {
-                if (!result.empty())
-                {
-                    result += " | ";
-                }
-                result += flag;
-            }
-            return result;
-        }
-    }
-
     GeneratorResult Generate(const ParseResult& parsed, const std::string& includePath, const std::string& uniqueId)
     {
         GeneratorResult result;
@@ -143,33 +34,25 @@ namespace BrightBox3D::HeaderTool
         for (const ReflectedClass& reflected : parsed.classes)
         {
             std::string qualified = "::" + reflected.qualifiedName;
-            bool isAbstract = false;
-            std::string typeCategory;
-            for (const Specifier& specifier : reflected.specifiers)
-            {
-                if (specifier.key == "Abstract")
-                {
-                    isAbstract = true;
-                }
-                else if (specifier.key == "Category")
-                {
-                    typeCategory = specifier.value;
-                }
-                else
-                {
-                    result.errors.push_back({ reflected.line, "Unknown BrightClass specifier '" + specifier.key + "'" });
-                }
-            }
+            std::string reflection = "::BrightBox3D::Reflection::";
 
-            std::set<std::string> names;
             out << "namespace BrightBox3D::Reflection\n{\n";
             out << "    template <>\n";
             out << "    struct TypeBuilder<" << qualified << ">\n    {\n";
             out << "        static void Build(TypeInfo& type)\n        {\n";
-            if (!typeCategory.empty())
-            {
-                out << "            type.SetCategory(\"" << EscapeString(typeCategory) << "\");\n";
-            }
+            out << "            " << qualified << "::BrightRegisterProperties(type);\n";
+            out << "        }\n    };\n}\n\n";
+
+            out << reflection << "ClassMetadata " << reflected.qualifiedName << "::BrightClassMetadata()\n{\n";
+            out << "    using namespace " << reflection << "Specifiers;\n";
+            out << "    return " << reflection << "ClassMetadata{ " << reflected.metadata << " };\n}\n\n";
+
+            out << "void " << qualified << "::BrightRegisterProperties(" << reflection << "TypeInfo& type)\n{\n";
+            out << "    using namespace " << reflection << "Specifiers;\n";
+            out << "    " << reflection << "ClassMetadata metadata = BrightClassMetadata();\n";
+            out << "    type.SetCategory(std::string(metadata.category.name));\n";
+            out << "    type.SetIcon(metadata.icon);\n";
+            std::set<std::string> names;
             for (const ReflectedProperty& property : reflected.properties)
             {
                 if (!names.insert(property.name).second)
@@ -177,21 +60,20 @@ namespace BrightBox3D::HeaderTool
                     result.errors.push_back({ property.line, "Duplicate reflected property '" + property.name + "'" });
                     continue;
                 }
-                std::string category;
-                std::string flags = BuildPropertyFlags(property, category, result.errors);
-                out << "            type.AddProperty(MakeProperty<decltype(" << qualified << "::" << property.name << ")>(\""
-                    << property.name << "\", " << flags << ", \"" << EscapeString(category) << "\", [](Object* object) -> void* { return &static_cast<"
+                out << "    type.AddProperty(" << reflection << "MakeProperty<decltype(" << qualified << "::" << property.name << ")>(\"" << property.name << "\", "
+                    << reflection << "PropertyMetadata{ " << property.propertyMetadata << " }, "
+                    << reflection << "UIPropertyMetadata{ " << property.uiMetadata << " }, [](" << reflection << "EngineObject* object) -> void* { return &static_cast<"
                     << qualified << "*>(object)->" << property.name << "; }));\n";
             }
-            out << "        }\n    };\n}\n\n";
+            out << "}\n\n";
 
-            out << "const ::BrightBox3D::Reflection::TypeInfo& " << qualified << "::StaticType()\n{\n";
-            out << "    static const ::BrightBox3D::Reflection::TypeInfo type(\"" << reflected.name << "\", &" << reflected.baseName << "::StaticType(), sizeof("
-                << qualified << "), " << (isAbstract ? "::BrightBox3D::Reflection::TypeFlagAbstract" : "::BrightBox3D::Reflection::TypeFlagNone") << ", "
-                << (isAbstract ? "nullptr" : "&::BrightBox3D::Reflection::CreateObject<" + qualified + ">") << ", &::BrightBox3D::Reflection::TypeBuilder<"
-                << qualified << ">::Build);\n";
+            out << "const " << reflection << "TypeInfo& " << qualified << "::StaticType()\n{\n";
+            out << "    static const bool isAbstract = BrightClassMetadata().abstract;\n";
+            out << "    static const " << reflection << "TypeInfo type(\"" << reflected.name << "\", BRIGHT_MODULE_NAME, &" << reflected.baseName << "::StaticType(), sizeof(" << qualified
+                << "), isAbstract ? " << reflection << "TypeFlagAbstract : " << reflection << "TypeFlagNone, isAbstract ? nullptr : " << reflection << "FactoryFor<" << qualified
+                << ">(), &" << reflection << "TypeBuilder<" << qualified << ">::Build);\n";
             out << "    return type;\n}\n\n";
-            out << "const ::BrightBox3D::Reflection::TypeInfo& " << qualified << "::GetType() const\n{\n    return StaticType();\n}\n\n";
+            out << "const " << reflection << "TypeInfo& " << qualified << "::GetType() const\n{\n    return StaticType();\n}\n\n";
         }
 
         out << "namespace\n{\n";

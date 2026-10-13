@@ -8,18 +8,11 @@
 
 namespace BrightBox3D::HeaderTool
 {
-    struct Specifier
-    {
-        std::string key;
-        std::string value;
-        bool hasValue = false;
-    };
-
     struct ReflectedProperty
     {
         std::string name;
-        std::vector<Specifier> propertySpecifiers;
-        std::vector<Specifier> uiSpecifiers;
+        std::string propertyMetadata;
+        std::string uiMetadata;
         bool hasProperty = false;
         bool hasUIProperty = false;
         int line = 0;
@@ -30,7 +23,7 @@ namespace BrightBox3D::HeaderTool
         std::string name;
         std::string qualifiedName;
         std::string baseName;
-        std::vector<Specifier> specifiers;
+        std::string metadata;
         std::vector<ReflectedProperty> properties;
         bool hasBody = false;
         int line = 0;

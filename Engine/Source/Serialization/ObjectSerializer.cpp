@@ -102,6 +102,7 @@ namespace BrightBox3D::Serialization
             out.SetDouble(*static_cast<const double*>(value));
             break;
         case PropertyKind::String:
+        case PropertyKind::ClassReference:
             out = MakeString(*static_cast<const std::string*>(value), allocator);
             break;
         case PropertyKind::Vector2:
@@ -201,6 +202,7 @@ namespace BrightBox3D::Serialization
             *static_cast<double*>(value) = in.GetDouble();
             return true;
         case PropertyKind::String:
+        case PropertyKind::ClassReference:
             if (!in.IsString())
             {
                 return false;
@@ -259,7 +261,7 @@ namespace BrightBox3D::Serialization
         return false;
     }
 
-    void WriteProperty(const PropertyInfo& property, const Object& object, JsonValue& out, JsonAllocator& allocator)
+    void WriteProperty(const PropertyInfo& property, const EngineObject& object, JsonValue& out, JsonAllocator& allocator)
     {
         const void* value = property.GetValuePointer(&object);
         if (property.value.kind != PropertyKind::Array)
@@ -277,7 +279,7 @@ namespace BrightBox3D::Serialization
         }
     }
 
-    bool ReadProperty(const PropertyInfo& property, Object& object, const JsonValue& in)
+    bool ReadProperty(const PropertyInfo& property, EngineObject& object, const JsonValue& in)
     {
         void* value = property.GetValuePointer(&object);
         if (property.value.kind != PropertyKind::Array)
@@ -297,7 +299,7 @@ namespace BrightBox3D::Serialization
         return success;
     }
 
-    void SerializeProperties(const Object& object, JsonValue& out, JsonAllocator& allocator)
+    void SerializeProperties(const EngineObject& object, JsonValue& out, JsonAllocator& allocator)
     {
         if (!out.IsObject())
         {
@@ -315,7 +317,7 @@ namespace BrightBox3D::Serialization
         }
     }
 
-    void DeserializeProperties(Object& object, const JsonValue& in)
+    void DeserializeProperties(EngineObject& object, const JsonValue& in)
     {
         if (!in.IsObject())
         {
@@ -336,14 +338,14 @@ namespace BrightBox3D::Serialization
         object.OnPropertiesChanged();
     }
 
-    void SerializeObject(const Object& object, JsonValue& out, JsonAllocator& allocator)
+    void SerializeObject(const EngineObject& object, JsonValue& out, JsonAllocator& allocator)
     {
         out.SetObject();
         out.AddMember(JsonValue(TypeKey, allocator), MakeString(object.GetType().GetName(), allocator), allocator);
         SerializeProperties(object, out, allocator);
     }
 
-    std::unique_ptr<Object> DeserializeObject(const JsonValue& in, std::string* error)
+    std::unique_ptr<EngineObject> DeserializeObject(const JsonValue& in, std::string* error)
     {
         std::string typeName = GetString(in, TypeKey);
         const TypeInfo* type = TypeRegistry::Find(typeName);
@@ -355,7 +357,7 @@ namespace BrightBox3D::Serialization
             }
             return nullptr;
         }
-        std::unique_ptr<Object> object(type->CreateInstance());
+        std::unique_ptr<EngineObject> object(type->CreateInstance());
         if (!object)
         {
             if (error)
@@ -368,7 +370,7 @@ namespace BrightBox3D::Serialization
         return object;
     }
 
-    bool PropertyValuesEqual(const PropertyInfo& property, const Object& a, const Object& b)
+    bool PropertyValuesEqual(const PropertyInfo& property, const EngineObject& a, const EngineObject& b)
     {
         JsonDocument document;
         JsonValue left;
@@ -378,7 +380,7 @@ namespace BrightBox3D::Serialization
         return left == right;
     }
 
-    void CopyPropertyValue(const PropertyInfo& property, const Object& source, Object& destination)
+    void CopyPropertyValue(const PropertyInfo& property, const EngineObject& source, EngineObject& destination)
     {
         JsonDocument document;
         JsonValue value;
@@ -387,7 +389,7 @@ namespace BrightBox3D::Serialization
         destination.OnPropertiesChanged();
     }
 
-    void CopyProperties(const Object& source, Object& destination)
+    void CopyProperties(const EngineObject& source, EngineObject& destination)
     {
         JsonDocument document;
         JsonValue value;

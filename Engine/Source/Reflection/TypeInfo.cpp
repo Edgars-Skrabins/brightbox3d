@@ -1,6 +1,6 @@
 #include "Reflection/TypeInfo.h"
 
-#include "Reflection/Object.h"
+#include "Reflection/EngineObject.h"
 
 namespace BrightBox3D::Reflection
 {
@@ -28,8 +28,8 @@ namespace BrightBox3D::Reflection
         return nullptr;
     }
 
-    TypeInfo::TypeInfo(std::string name, const TypeInfo* base, size_t size, uint32_t flags, Factory factory, Builder builder)
-        : m_name(std::move(name)), m_base(base), m_size(size), m_flags(flags), m_factory(factory)
+    TypeInfo::TypeInfo(std::string name, std::string moduleName, const TypeInfo* base, size_t size, uint32_t flags, Factory factory, Builder builder)
+        : m_name(std::move(name)), m_base(base), m_size(size), m_flags(flags), m_factory(factory), m_moduleName(std::move(moduleName))
     {
         if (builder)
         {
@@ -49,7 +49,7 @@ namespace BrightBox3D::Reflection
         return false;
     }
 
-    Object* TypeInfo::CreateInstance() const
+    EngineObject* TypeInfo::CreateInstance() const
     {
         if (IsAbstract())
         {

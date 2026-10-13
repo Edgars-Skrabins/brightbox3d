@@ -25,8 +25,6 @@ namespace BrightBox3D::Reflection
         static uint64_t Revision();
 
         static Core::Event<const std::string&>& OnModuleUnloading();
-        static void SetCurrentModule(const std::string& moduleName);
-        static const std::string& GetCurrentModule();
     };
 
     class TypeRegistration

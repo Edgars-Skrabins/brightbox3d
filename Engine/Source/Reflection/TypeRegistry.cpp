@@ -1,6 +1,7 @@
 #include "Reflection/TypeRegistry.h"
 
 #include "Core/Log.h"
+#include "Reflection/TypeRedirects.h"
 
 #include <algorithm>
 #include <mutex>
@@ -15,7 +16,6 @@ namespace BrightBox3D::Reflection
             std::recursive_mutex mutex;
             std::unordered_map<std::string, const TypeInfo*> types;
             std::unordered_map<std::string, const EnumInfo*> enums;
-            std::string currentModule = "BrightBox3D";
             uint64_t revision = 0;
         };
 
@@ -35,7 +35,6 @@ namespace BrightBox3D::Reflection
         {
             Core::Log::Warning("Reflected type '" + type.GetName() + "' is registered twice; the newest registration wins");
         }
-        const_cast<TypeInfo&>(type).SetModuleName(state.currentModule);
         state.types[type.GetName()] = &type;
         state.revision++;
     }
@@ -77,6 +76,16 @@ namespace BrightBox3D::Reflection
         RegistryState& state = State();
         std::lock_guard<std::recursive_mutex> lock(state.mutex);
         auto it = state.types.find(name);
+        if (it != state.types.end())
+        {
+            return it->second;
+        }
+        const std::string* redirect = TypeRedirects::Resolve(name);
+        if (!redirect)
+        {
+            return nullptr;
+        }
+        it = state.types.find(*redirect);
         return it == state.types.end() ? nullptr : it->second;
     }
 
@@ -138,18 +147,6 @@ namespace BrightBox3D::Reflection
     {
         static Core::Event<const std::string&>* event = new Core::Event<const std::string&>();
         return *event;
-    }
-
-    void TypeRegistry::SetCurrentModule(const std::string& moduleName)
-    {
-        RegistryState& state = State();
-        std::lock_guard<std::recursive_mutex> lock(state.mutex);
-        state.currentModule = moduleName;
-    }
-
-    const std::string& TypeRegistry::GetCurrentModule()
-    {
-        return State().currentModule;
     }
 
     TypeRegistration::TypeRegistration(Getter getter) : m_type(&getter())

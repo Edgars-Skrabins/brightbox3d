@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Icon.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -7,7 +9,7 @@
 
 namespace BrightBox3D::Reflection
 {
-    class Object;
+    class EngineObject;
     class TypeInfo;
 
     template <typename T>
@@ -31,6 +33,7 @@ namespace BrightBox3D::Reflection
         Enum,
         AssetReference,
         ObjectReference,
+        ClassReference,
         Array
     };
 
@@ -76,6 +79,7 @@ namespace BrightBox3D::Reflection
         PropertyKind kind = PropertyKind::Int32;
         const EnumInfo* enumInfo = nullptr;
         std::string referenceType;
+        const TypeInfo& (*baseType)() = nullptr;
         size_t size = 0;
     };
 
@@ -95,17 +99,17 @@ namespace BrightBox3D::Reflection
         ValueDescriptor value;
         ValueDescriptor element;
         ArrayAccess array;
-        void* (*access)(Object* object) = nullptr;
+        void* (*access)(EngineObject* object) = nullptr;
         const TypeInfo* owner = nullptr;
 
-        void* GetValuePointer(Object* object) const { return access(object); }
-        const void* GetValuePointer(const Object* object) const { return access(const_cast<Object*>(object)); }
+        void* GetValuePointer(EngineObject* object) const { return access(object); }
+        const void* GetValuePointer(const EngineObject* object) const { return access(const_cast<EngineObject*>(object)); }
 
         template <typename T>
-        T& GetValue(Object* object) const { return *static_cast<T*>(access(object)); }
+        T& GetValue(EngineObject* object) const { return *static_cast<T*>(access(object)); }
 
         template <typename T>
-        const T& GetValue(const Object* object) const { return *static_cast<const T*>(GetValuePointer(object)); }
+        const T& GetValue(const EngineObject* object) const { return *static_cast<const T*>(GetValuePointer(object)); }
 
         bool HasFlag(uint32_t flag) const { return (flags & flag) != 0; }
         bool IsUIProperty() const { return HasFlag(PropertyFlagUIRead | PropertyFlagUIWrite); }
@@ -115,10 +119,10 @@ namespace BrightBox3D::Reflection
     class TypeInfo
     {
     public:
-        using Factory = Object* (*)();
+        using Factory = EngineObject* (*)();
         using Builder = void (*)(TypeInfo&);
 
-        TypeInfo(std::string name, const TypeInfo* base, size_t size, uint32_t flags, Factory factory, Builder builder);
+        TypeInfo(std::string name, std::string moduleName, const TypeInfo* base, size_t size, uint32_t flags, Factory factory, Builder builder);
 
         const std::string& GetName() const { return m_name; }
         const TypeInfo* GetBase() const { return m_base; }
@@ -126,17 +130,18 @@ namespace BrightBox3D::Reflection
         uint32_t GetFlags() const { return m_flags; }
         bool IsAbstract() const { return (m_flags & TypeFlagAbstract) != 0 || m_factory == nullptr; }
         bool IsA(const TypeInfo& other) const;
-        Object* CreateInstance() const;
+        EngineObject* CreateInstance() const;
 
         const std::vector<PropertyInfo>& GetOwnProperties() const { return m_properties; }
         std::vector<const PropertyInfo*> GetAllProperties() const;
         const PropertyInfo* FindProperty(const std::string& propertyName) const;
 
         void AddProperty(PropertyInfo property);
-        void SetModuleName(std::string moduleName) { m_moduleName = std::move(moduleName); }
         const std::string& GetModuleName() const { return m_moduleName; }
         void SetCategory(std::string category) { m_category = std::move(category); }
         const std::string& GetCategory() const { return m_category; }
+        void SetIcon(Core::Icon icon) { m_icon = icon; }
+        Core::Icon GetIcon() const { return m_icon; }
 
     private:
         std::string m_name;
@@ -147,5 +152,6 @@ namespace BrightBox3D::Reflection
         std::vector<PropertyInfo> m_properties;
         std::string m_moduleName;
         std::string m_category;
+        Core::Icon m_icon = Core::Icon::None;
     };
 }

@@ -35,6 +35,12 @@ namespace BrightBox3D::Reflection
     };
 
     template <typename T>
+    concept ClassReferenceLike = requires {
+        { T::ReflectionKind } -> std::convertible_to<PropertyKind>;
+        { T::ReflectionBaseType() } -> std::convertible_to<const TypeInfo&>;
+    };
+
+    template <typename T>
     ValueDescriptor DescribeValue()
     {
         ValueDescriptor descriptor;
@@ -95,6 +101,12 @@ namespace BrightBox3D::Reflection
         else if constexpr (std::is_same_v<T, Core::Guid>)
         {
             descriptor.kind = PropertyKind::Guid;
+        }
+        else if constexpr (ClassReferenceLike<T>)
+        {
+            static_assert(std::is_standard_layout_v<T>, "Class reference properties must be standard layout with a type name as first member");
+            descriptor.kind = PropertyKind::ClassReference;
+            descriptor.baseType = &T::ReflectionBaseType;
         }
         else if constexpr (ReferenceLike<T>)
         {

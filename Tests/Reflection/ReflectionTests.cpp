@@ -18,7 +18,7 @@ TEST(ReflectionTests, RegistersTypesWithHierarchy)
     ASSERT_NE(base, nullptr);
     EXPECT_EQ(derived, &TestDerived::StaticType());
     EXPECT_EQ(derived->GetBase(), base);
-    EXPECT_TRUE(derived->IsA(Object::StaticType()));
+    EXPECT_TRUE(derived->IsA(EngineObject::StaticType()));
     EXPECT_TRUE(base->IsAbstract());
     EXPECT_FALSE(derived->IsAbstract());
     EXPECT_EQ(derived->GetCategory(), "Testing");
@@ -71,7 +71,7 @@ TEST(ReflectionTests, AccessesValuesThroughProperties)
 
 TEST(ReflectionTests, CreatesInstancesByName)
 {
-    std::unique_ptr<Object> object(TypeRegistry::Find("TestDerived")->CreateInstance());
+    std::unique_ptr<EngineObject> object(TypeRegistry::Find("TestDerived")->CreateInstance());
     ASSERT_NE(object, nullptr);
     EXPECT_NE(Cast<TestDerived>(object.get()), nullptr);
     EXPECT_EQ(TypeRegistry::Find("TestBase")->CreateInstance(), nullptr);
@@ -99,7 +99,7 @@ TEST(SerializationTests, RoundTripsThroughJson)
     JsonDocument parsed;
     ASSERT_TRUE(ParseJson(text, parsed));
     std::string error;
-    std::unique_ptr<Object> object = DeserializeObject(parsed, &error);
+    std::unique_ptr<EngineObject> object = DeserializeObject(parsed, &error);
     ASSERT_NE(object, nullptr) << error;
     auto* restored = Cast<TestDerived>(object.get());
     ASSERT_NE(restored, nullptr);
