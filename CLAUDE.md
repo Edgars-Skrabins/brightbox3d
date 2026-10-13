@@ -8,7 +8,7 @@ C++20 3D game engine: an Unreal-style gameplay framework, a Unity-style editor, 
 |---|---|
 | `Engine/Source/<Module>` | Engine shared library `libBrightBox3D`. Modules: `Core`, `Math`, `Platform`, `RHI` (Metal + DX11), `Reflection`, `Serialization`, `Assets`, `Geometry`, `Level`, `Rendering`, `Physics` (Jolt), `UI`, `Framework`, `Runtime`. Each module is its own CMake object library |
 | `Engine/Content` | Runtime content shipped with games: HLSL shaders, fonts. `Shaders/ShaderBindings.h` holds every shader slot number for both HLSL and C++. `Shaders/ThirdParty` is fetched at configure time and gitignored |
-| `Editor/Source` | Editor. Built as the static lib `BrightEditorCore` plus the `BrightEditor` exe. `Panels/` holds dockable windows, `Services/` the editor services owned by `EditorContext`, `ImGui/` the backends |
+| `Editor/Source` | Editor. Built as the static lib `BrightEditorCore` plus the `BrightEditor` exe. `Panels/` holds dockable windows, `Services/` the editor services owned by `EditorContext`, `Commands/` the command system, `ImGui/` the backends |
 | `Editor/Content` | Editor-only content. `Fonts/ThirdParty/Lucide` (icon font) is fetched at configure time and gitignored |
 | `Player/Source` | `BrightPlayer`, the standalone runtime used by packaged games |
 | `Tools/BrightHeaderTool` | Reflection code generator. It writes a `.gen.cpp` per reflected header |
@@ -66,10 +66,14 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
   - Then third-party headers (`<imgui.h>`), then std headers.
 - **Singletons** use `static T& Get()`, backed by `static T* x = new T();`.
 - **Reflection:**
-  - `BrightClass(...)`, `BrightBody()`, `BrightProperty(EditAnywhere|..., Category = "...")`, `BrightUIProperty(Read|Write)`, `BrightEnum()`.
+  - Typed designated initializers, fields in declaration order: `BrightClass(.category = Categories::Gameplay, .icon = Icon::Flag, .abstract = true)`, `BrightProperty(.edit = Edit::Anywhere, .category = Categories::Physics)`, `BrightUIProperty(.access = UIAccess::Read)`, `BrightEnum()`, plus `BrightBody()` in the class.
+  - Never pass strings as metadata. Categories are `constexpr Reflection::Category` values in each module's `Categories.h`.
   - CMake generates `.gen.cpp` files; never edit them.
+- **No strings in typed APIs:** use enums and types so the IDE lists what's possible.
+- **Editor text:** no user-visible string literal in editor code. Add an entry to `Editor/Source/EditorText.h/.cpp` and use `Text(EditorText::X)` or `Text(EditorText::X, args...)` (`std::format` placeholders). ImGui `##` IDs and persistence keys are the only other strings. Window titles come from `EditorWindow` (`WindowTitle`).
+- **Commands:** every toolbar button, menu item and shortcut is a command. Add a `CommandId`, register it in `Editor/Source/EditorCommands.cpp`, and draw it with `CommandButton`, `CommandMenuItem` or `DrawToolbar`. Panels dispatch their own scope with `CommandRegistry::Get().DispatchShortcuts(scope)`.
 - **Editor colors:** never hard-code a color. Add an entry to `EditorColor` / `ColorInfos` in `Editor/Source/EditorPreferences.*` and read it with `EditorColorVec4` / `EditorColorU32`. Theme-wide ImGui colors are derived in `Editor/Source/Theme.cpp`.
-- **Editor icons:** use the Lucide constants in `Editor/Source/Icons.h`. To add one, look up its codepoint in `lucide-static`'s `font/info.json`.
+- **Icons:** use `Icon::` (every Lucide icon is generated into `Core/Icon.h`) and draw it with `IconGlyph(Icon::X)` or `IconLabel`. Classes declare theirs with `BrightClass(.icon = ...)`.
 - **Selection highlight:** wrap list and tree panels in `PushSelectionColors()` / `PopSelectionColors()`.
 
 ## Workflow rules
