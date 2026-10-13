@@ -1,28 +1,26 @@
 #include "Assets/AssetDatabase.h"
+#include "Core/CommandLine.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
-#include "Core/SharedLibrary.h"
 #include "Framework/Camera.h"
 #include "Framework/CameraScreen.h"
 #include "Framework/GameSession.h"
 #include "Level/LevelSerializer.h"
 #include "Platform/Input.h"
 #include "Platform/Window.h"
+#include "PlayerCommandLine.h"
 #include "Rendering/DebugDraw.h"
-#include "Rendering/GpuResourceCache.h"
-#include "Rendering/Renderer.h"
-#include "Rendering/ShaderLibrary.h"
-#include "RHI/Device.h"
+#include "Rendering/TextureCapture.h"
+#include "Runtime/BuildLayout.h"
+#include "Runtime/FrameClock.h"
 #include "Runtime/GameManifest.h"
 #include "Runtime/GameModule.h"
 #include "Runtime/GameplayMigration.h"
 #include "Runtime/LevelObjectAssetMigration.h"
 #include "Runtime/Project.h"
-#include "UI/ScreenRenderer.h"
+#include "Runtime/RenderContext.h"
 
-#include <stb_image_write.h>
-
-#include <cstdlib>
+#include <optional>
 #include <string>
 
 using namespace BrightBox3D;
@@ -30,49 +28,21 @@ using namespace BrightBox3D;
 namespace
 {
     constexpr uint64_t PlayerViewId = 0x504C5952;
-
-    void SaveScreenshot(RHI::Device& device, RHI::Texture* texture, const std::string& path)
-    {
-        std::vector<uint8_t> pixels;
-        if (!texture || !device.ReadTexture(texture, pixels))
-        {
-            return;
-        }
-        bool bgra = texture->GetFormat() == RHI::Format::BGRA8Unorm;
-        for (size_t i = 0; i + 3 < pixels.size(); i += 4)
-        {
-            if (bgra)
-            {
-                std::swap(pixels[i], pixels[i + 2]);
-            }
-            pixels[i + 3] = 255;
-        }
-        stbi_write_png(path.c_str(), static_cast<int>(texture->GetWidth()), static_cast<int>(texture->GetHeight()), 4, pixels.data(), static_cast<int>(texture->GetWidth()) * 4);
-        Core::Log::Info("Saved screenshot '" + path + "'");
-    }
 }
 
 int main(int argc, char** argv)
 {
-    std::filesystem::path projectPath;
-    std::string screenshotPath;
-    int exitAfterFrames = -1;
-    for (int i = 1; i < argc; ++i)
+    std::string commandLineError;
+    std::optional<Player::PlayerOptions> options = Core::ParseCommandLine<Player::PlayerOptions>(argc, argv, Player::PlayerCommandLine, commandLineError);
+    if (!options)
     {
-        std::string argument = argv[i];
-        if (argument == "--project" && i + 1 < argc)
-        {
-            projectPath = argv[++i];
-        }
-        else if (argument == "--frames" && i + 1 < argc)
-        {
-            exitAfterFrames = std::atoi(argv[++i]);
-        }
-        else if (argument == "--screenshot" && i + 1 < argc)
-        {
-            screenshotPath = argv[++i];
-        }
+        Core::Log::Error(commandLineError);
+        Core::Log::Info(Core::CommandLineUsage<Player::PlayerOptions>(std::filesystem::path(argv[0]).filename().string(), Player::PlayerCommandLine));
+        return 1;
     }
+    const std::filesystem::path& projectPath = options->project;
+    const std::filesystem::path& screenshotPath = options->screenshot;
+    int exitAfterFrames = options->frames;
 
     Runtime::GameManifest manifest;
     std::filesystem::path root;
@@ -86,12 +56,9 @@ int main(int argc, char** argv)
             Core::Log::Error("Cannot open project: " + error);
             return 1;
         }
-        manifest.name = project.GetName();
-        manifest.gameModule = project.GetGameModuleName();
-        manifest.startupLevel = project.GetStartupLevel();
-        manifest.fixedTimeStep = project.GetFixedTimeStep();
+        manifest = Runtime::GameManifest::FromProject(project);
         root = project.GetRoot();
-        modulePath = root / "Binaries" / Core::SharedLibrary::PlatformFileName(manifest.gameModule);
+        modulePath = project.GetGameModulePath();
         Runtime::MigrateLegacyLevelObjectAssets(project);
         Assets::AssetDatabase::Get().Open(root, Assets::AssetDatabaseMode::Editor);
         Runtime::MigrateLegacyGameplaySettings(project);
@@ -99,12 +66,12 @@ int main(int argc, char** argv)
     else
     {
         root = Core::FileSystem::ExecutableDirectory();
-        if (!manifest.Load(root / Runtime::GameManifest::FileName, error))
+        if (!manifest.Load(Runtime::BuildLayout::GetManifestPath(root), error))
         {
             Core::Log::Error("Cannot read " + std::string(Runtime::GameManifest::FileName) + ": " + error);
             return 1;
         }
-        modulePath = root / Core::SharedLibrary::PlatformFileName(manifest.gameModule);
+        modulePath = Runtime::BuildLayout::GetGameModulePath(root, manifest.gameModule);
         Assets::AssetDatabase::Get().Open(root, Assets::AssetDatabaseMode::Cooked);
     }
 
@@ -117,16 +84,13 @@ int main(int argc, char** argv)
     {
         return 1;
     }
-    std::unique_ptr<RHI::Device> device = RHI::Device::Create();
-    if (!device)
+    std::unique_ptr<Runtime::RenderContext> renderContext = Runtime::RenderContext::Create(&window, Runtime::RenderContext::DefaultShaderDirectory());
+    if (!renderContext)
     {
         return 1;
     }
-    std::unique_ptr<RHI::Swapchain> swapchain = device->CreateSwapchain(window, true);
-    Rendering::ShaderLibrary shaders(*device, Core::FileSystem::EngineContentDirectory() / "Shaders");
-    Rendering::GpuResourceCache resources(*device);
-    Rendering::Renderer renderer(*device, shaders, resources);
-    UI::ScreenRenderer::Get().Initialize(*device, shaders, resources);
+    RHI::Device& device = renderContext->GetDevice();
+    RHI::Swapchain& swapchain = *renderContext->GetSwapchain();
 
     Runtime::GameModule module;
     if (!manifest.gameModule.empty() && std::filesystem::exists(modulePath))
@@ -155,30 +119,28 @@ int main(int argc, char** argv)
     });
     Framework::GameSession::Start(*level);
 
-    double previous = Platform::Window::GetTime();
+    Runtime::FrameClock clock;
     int frame = 0;
     while (!window.ShouldClose())
     {
         Platform::Window::PollEvents();
-        double now = Platform::Window::GetTime();
-        float deltaTime = static_cast<float>(std::min(now - previous, 0.1));
-        previous = now;
+        float deltaTime = clock.Tick();
         window.GetInput().BeginFrame();
         level->Update(deltaTime);
         if (window.IsMinimized())
         {
-            Platform::Window::WaitEvents(0.05);
+            Runtime::FrameClock::WaitWhileMinimized();
             continue;
         }
-        resources.ProcessInvalidations();
-        RHI::CommandList& commands = device->BeginFrame();
-        RHI::Texture* backbuffer = swapchain->AcquireNextTexture();
+        renderContext->GetResources().ProcessInvalidations();
+        RHI::CommandList& commands = device.BeginFrame();
+        RHI::Texture* backbuffer = swapchain.AcquireNextTexture();
         if (backbuffer)
         {
             Framework::Camera* camera = Framework::Camera::FindActive(*level);
             if (camera)
             {
-                renderer.Render(commands, level.get(), camera->BuildRenderView(backbuffer->GetWidth(), backbuffer->GetHeight(), PlayerViewId), backbuffer);
+                renderContext->GetRenderer().Render(commands, level.get(), camera->BuildRenderView(backbuffer->GetWidth(), backbuffer->GetHeight(), PlayerViewId), backbuffer);
                 Framework::RenderCameraScreen(commands, *camera, *level, backbuffer, &window);
             }
             else
@@ -198,13 +160,16 @@ int main(int argc, char** argv)
             copyDesc.height = backbuffer->GetHeight();
             copyDesc.format = backbuffer->GetFormat();
             copyDesc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-            auto copy = device->CreateTexture(copyDesc);
+            auto copy = device.CreateTexture(copyDesc);
             commands.CopyTexture(backbuffer, copy.get());
-            device->EndFrame({ swapchain.get() });
-            SaveScreenshot(*device, copy.get(), screenshotPath);
+            device.EndFrame({ &swapchain });
+            if (Rendering::SavePng(device, *copy, screenshotPath))
+            {
+                Core::Log::Info("Saved screenshot '" + screenshotPath.string() + "'");
+            }
             break;
         }
-        device->EndFrame({ swapchain.get() });
+        device.EndFrame({ &swapchain });
         Rendering::DebugDraw::Clear();
         if (capture)
         {
@@ -212,9 +177,9 @@ int main(int argc, char** argv)
         }
     }
 
-    device->WaitIdle();
+    device.WaitIdle();
     level->EndPlay();
-    UI::ScreenRenderer::Get().Shutdown();
+    renderContext.reset();
     level.reset();
     Level::LevelObjectLibrary::Get().Clear();
     module.Unload();

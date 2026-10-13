@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Core/FileWatcher.h"
+#include "EditorCommandLine.h"
 #include "EditorContext.h"
 #include "Platform/Window.h"
-#include "RHI/Device.h"
-#include "Rendering/GpuResourceCache.h"
-#include "Rendering/Renderer.h"
-#include "Rendering/ShaderLibrary.h"
+#include "Runtime/RenderContext.h"
 
 #include <memory>
 #include <string>
@@ -45,20 +43,28 @@ namespace BrightBox3D::Editor
         void Shutdown();
 
         EditorContext& GetContext() { return m_context; }
-        RHI::Device& GetDevice() { return *m_device; }
-        Rendering::Renderer& GetRenderer() { return *m_renderer; }
-        Rendering::GpuResourceCache& GetResources() { return *m_resources; }
-        Rendering::ShaderLibrary& GetShaders() { return *m_shaders; }
+        RHI::Device& GetDevice() { return m_renderContext->GetDevice(); }
+        RHI::Swapchain& GetSwapchain() { return *m_renderContext->GetSwapchain(); }
+        Rendering::Renderer& GetRenderer() { return m_renderContext->GetRenderer(); }
+        Rendering::GpuResourceCache& GetResources() { return m_renderContext->GetResources(); }
+        Rendering::ShaderLibrary& GetShaders() { return m_renderContext->GetShaders(); }
         ThumbnailCache& GetThumbnails() { return *m_thumbnails; }
         Platform::Window& GetWindow() { return *m_window; }
         HotReload* GetHotReload() { return m_hotReload.get(); }
         EditorPlaySession* GetPlaySession() { return m_playSession.get(); }
-        LevelViewPanel& GetLevelView() { return *m_levelView; }
+        LevelViewPanel& GetActiveLevelView() { return *m_levelView; }
+        LevelContentsPanel& GetLevelContents() { return *m_levelContents; }
 
         void RequestRender(const ViewRenderRequest& request) { m_renderRequests.push_back(request); }
         void RequestPlay();
         void RequestStop();
         void OpenProjectSettings();
+        void OpenPreferences();
+        void OpenNewLevelDialog();
+        void BuildGame();
+        void CloseProject();
+        void RequestExit();
+        void ResetLayout();
         void OpenFileInEditor(const std::string& path, int line);
         void RevealInFileBrowser(const std::filesystem::path& path);
 
@@ -69,7 +75,6 @@ namespace BrightBox3D::Editor
         void DrawToolbar();
         void DrawDockSpace();
         void DrawStatusBar();
-        void HandleShortcuts();
         bool OpenProject(const std::filesystem::path& path);
         void LoadRecentProjects();
         void SaveRecentProjects();
@@ -80,11 +85,7 @@ namespace BrightBox3D::Editor
         std::filesystem::path GetUserDirectory() const;
 
         std::unique_ptr<Platform::Window> m_window;
-        std::unique_ptr<RHI::Device> m_device;
-        std::unique_ptr<RHI::Swapchain> m_swapchain;
-        std::unique_ptr<Rendering::ShaderLibrary> m_shaders;
-        std::unique_ptr<Rendering::GpuResourceCache> m_resources;
-        std::unique_ptr<Rendering::Renderer> m_renderer;
+        std::unique_ptr<Runtime::RenderContext> m_renderContext;
         std::unique_ptr<ImGuiPlatform> m_imguiPlatform;
         std::unique_ptr<ImGuiRenderer> m_imguiRenderer;
         std::unique_ptr<ThumbnailCache> m_thumbnails;
@@ -114,12 +115,8 @@ namespace BrightBox3D::Editor
         std::string m_newLevelName;
         bool m_openNewLevelPopup = false;
         std::string m_iniPath;
-        std::string m_screenshotPath;
-        std::string m_playScreenshotPath;
+        EditorOptions m_options;
         int m_exitAfterFrames = -1;
         int m_frameCount = 0;
-        bool m_playOnStart = false;
-        bool m_buildOnStart = false;
-        std::string m_selectOnStart;
     };
 }

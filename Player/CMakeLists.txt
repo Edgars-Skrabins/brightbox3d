@@ -1,4 +1,4 @@
-add_executable(BrightPlayer ${CMAKE_CURRENT_SOURCE_DIR}/Source/Main.cpp)
+add_executable(BrightPlayer ${CMAKE_CURRENT_SOURCE_DIR}/Source/Main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/Source/PlayerCommandLine.h)
 target_link_libraries(BrightPlayer PRIVATE BrightBox3D BrightStb)
 if(APPLE)
     set_target_properties(BrightPlayer PROPERTIES BUILD_RPATH "@executable_path;${BRIGHT_BIN_DIR}")

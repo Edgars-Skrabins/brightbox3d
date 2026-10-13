@@ -1,17 +1,20 @@
 #include "EditorApplication.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Commands/CommandRegistry.h"
+#include "Commands/CommandWidgets.h"
 #include "Core/EngineInfo.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
 #include "Core/Process.h"
+#include "EditorCommandLine.h"
+#include "EditorCommands.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
 #include "EditorWindows.h"
 #include "GameBuilder.h"
 #include "HotReload.h"
-#include "IconGlyphs.h"
 #include "ImGui/ImGuiPlatform.h"
 #include "ImGui/ImGuiRenderer.h"
 #include "Labels.h"
@@ -24,23 +27,51 @@
 #include "Panels/ProjectSettingsPanel.h"
 #include "Panels/TerminalPanel.h"
 #include "Platform/Input.h"
+#include "Platform/Shell.h"
 #include "Rendering/DebugDraw.h"
+#include "Rendering/TextureCapture.h"
+#include "Runtime/FrameClock.h"
 #include "Serialization/Json.h"
 #include "Theme.h"
 #include "Thumbnails.h"
-#include "UI/ScreenRenderer.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <ImGuizmo.h>
 
-#include <stb_image_write.h>
-
-#include <thread>
+#include <span>
 
 namespace BrightBox3D::Editor
 {
+    namespace
+    {
+        constexpr const char* UserSettingsFolder = ".brightbox3d";
+        constexpr const char* PortableSettingsFolder = "UserSettings";
+        constexpr const char* DefaultProjectsFolder = "BrightBox3DProjects";
+        constexpr float PlayButtonWidth = 84.0f;
+        constexpr float CompileAreaWidth = 300.0f;
+
+        const ToolbarItem PlayToolbar[] = { CommandId::Play, CommandId::Pause, CommandId::Step };
+        const ToolbarItem FileMenu[] = { CommandId::NewLevel, CommandId::Save, CommandId::BuildGame, ToolbarSeparator, CommandId::ProjectSettings, CommandId::OpenOtherProject, ToolbarSeparator, CommandId::Exit };
+        const ToolbarItem EditMenu[] = { CommandId::Undo, CommandId::Redo, ToolbarSeparator, CommandId::Duplicate, CommandId::Delete, ToolbarSeparator, CommandId::Preferences };
+        const ToolbarItem GameMenu[] = { CommandId::Play, CommandId::Compile };
+        const ToolbarItem WindowMenu[] = { CommandId::ResetLayout };
+
+        void DrawMenuItems(std::span<const ToolbarItem> items)
+        {
+            for (const ToolbarItem& item : items)
+            {
+                if (item.separator)
+                {
+                    ImGui::Separator();
+                    continue;
+                }
+                CommandMenuItem(item.id);
+            }
+        }
+    }
+
     EditorApplication::EditorApplication() = default;
 
     EditorApplication::~EditorApplication()
@@ -50,20 +81,24 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path EditorApplication::GetUserDirectory() const
     {
-        const char* home = std::getenv("HOME");
-#if defined(_WIN32)
-        if (!home)
-        {
-            home = std::getenv("USERPROFILE");
-        }
-#endif
-        std::filesystem::path directory = home ? std::filesystem::path(home) / ".brightbox3d" : Core::FileSystem::ExecutableDirectory() / "UserSettings";
+        std::filesystem::path home = Platform::Shell::UserDirectory();
+        std::filesystem::path directory = home.empty() ? Core::FileSystem::ExecutableDirectory() / PortableSettingsFolder : home / UserSettingsFolder;
         Core::FileSystem::EnsureDirectory(directory);
         return directory;
     }
 
     bool EditorApplication::Initialize(int argc, char** argv)
     {
+        std::string commandLineError;
+        std::optional<EditorOptions> options = Core::ParseCommandLine<EditorOptions>(argc, argv, EditorCommandLine, commandLineError);
+        if (!options)
+        {
+            Core::Log::Error(commandLineError);
+            Core::Log::Info(Core::CommandLineUsage<EditorOptions>(std::filesystem::path(argv[0]).filename().string(), EditorCommandLine));
+            return false;
+        }
+        m_options = *options;
+        m_exitAfterFrames = m_options.frames;
         Core::Log::Info(Text(EditorText::EditorStarting, Core::EngineName));
         Platform::WindowDesc desc;
         desc.title = Core::EngineName;
@@ -75,18 +110,13 @@ namespace BrightBox3D::Editor
         {
             return false;
         }
-        m_device = RHI::Device::Create();
-        if (!m_device)
+        m_renderContext = Runtime::RenderContext::Create(m_window.get(), Runtime::RenderContext::DefaultShaderDirectory());
+        if (!m_renderContext)
         {
             Core::Log::Error(Text(EditorText::NoGraphicsDevice));
             return false;
         }
-        Core::Log::Info(Text(EditorText::GraphicsDevice, m_device->GetName()));
-        m_swapchain = m_device->CreateSwapchain(*m_window, true);
-        m_shaders = std::make_unique<Rendering::ShaderLibrary>(*m_device, Core::FileSystem::EngineContentDirectory() / "Shaders");
-        m_resources = std::make_unique<Rendering::GpuResourceCache>(*m_device);
-        m_renderer = std::make_unique<Rendering::Renderer>(*m_device, *m_shaders, *m_resources);
-        UI::ScreenRenderer::Get().Initialize(*m_device, *m_shaders, *m_resources);
+        Core::Log::Info(Text(EditorText::GraphicsDevice, GetDevice().GetName()));
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -98,14 +128,15 @@ namespace BrightBox3D::Editor
         io.IniFilename = m_iniPath.c_str();
         m_resetLayout = !std::filesystem::exists(m_iniPath);
         float contentScale = m_window->GetContentScale().x;
+        RegisterEditorCommands(*this);
         EditorPreferences::Get().Load(GetUserDirectory() / "Preferences.json");
         ApplyEditorTheme(1.0f);
         m_themeRevision = EditorPreferences::Get().GetRevision();
         LoadEditorFonts(contentScale);
         m_imguiPlatform = std::make_unique<ImGuiPlatform>(*m_window);
-        m_imguiRenderer = std::make_unique<ImGuiRenderer>(*m_device, *m_shaders);
+        m_imguiRenderer = std::make_unique<ImGuiRenderer>(GetDevice(), GetShaders());
 
-        m_thumbnails = std::make_unique<ThumbnailCache>(*m_device, *m_renderer);
+        m_thumbnails = std::make_unique<ThumbnailCache>(GetDevice(), GetRenderer());
         m_levelView = std::make_unique<LevelViewPanel>(*this);
         m_levelContents = std::make_unique<LevelContentsPanel>(*this);
         m_inspector = std::make_unique<InspectorPanel>(*this);
@@ -142,63 +173,30 @@ namespace BrightBox3D::Editor
         });
 
         LoadRecentProjects();
-        const char* home = std::getenv("HOME");
-        m_launcherLocation = home ? (std::filesystem::path(home) / "BrightBox3DProjects").generic_string() : "";
-        std::string projectPath;
-        for (int i = 1; i < argc; ++i)
+        std::filesystem::path home = Platform::Shell::UserDirectory();
+        m_launcherLocation = home.empty() ? std::string() : (home / DefaultProjectsFolder).generic_string();
+        std::filesystem::path projectPath = m_options.project;
+        if (!m_options.createProject.empty())
         {
-            std::string argument = argv[i];
-            if (argument == "--screenshot" && i + 1 < argc)
+            std::string error;
+            if (!Runtime::Project::IsProjectDirectory(m_options.createProject) && !Runtime::Project::Create(m_options.createProject, m_options.createProject.filename().string(), error))
             {
-                m_screenshotPath = argv[++i];
+                Core::Log::Error(Text(EditorText::CreateProjectFailed, error));
             }
-            else if (argument == "--play-screenshot" && i + 1 < argc)
-            {
-                m_playScreenshotPath = argv[++i];
-            }
-            else if (argument == "--frames" && i + 1 < argc)
-            {
-                m_exitAfterFrames = std::atoi(argv[++i]);
-            }
-            else if (argument == "--select" && i + 1 < argc)
-            {
-                m_selectOnStart = argv[++i];
-            }
-            else if (argument == "--build")
-            {
-                m_buildOnStart = true;
-            }
-            else if (argument == "--play")
-            {
-                m_playOnStart = true;
-            }
-            else if (argument == "--create-project" && i + 1 < argc)
-            {
-                std::filesystem::path directory = argv[++i];
-                std::string error;
-                if (!Runtime::Project::IsProjectDirectory(directory) && !Runtime::Project::Create(directory, directory.filename().string(), error))
-                {
-                    Core::Log::Error(Text(EditorText::CreateProjectFailed, error));
-                }
-                projectPath = directory.string();
-            }
-            else
-            {
-                projectPath = argument;
-            }
+            projectPath = m_options.createProject;
         }
         if (!projectPath.empty())
         {
             OpenProject(projectPath);
         }
-        if (!m_selectOnStart.empty() && m_context.GetLevelService().GetEditLevel())
+        if (!m_options.select.empty() && m_context.GetLevelService().GetEditLevel())
         {
-            if (Level::LevelObject* selected = m_context.GetLevelService().GetEditLevel()->FindObjectByName(m_selectOnStart))
+            if (Level::LevelObject* selected = m_context.GetLevelService().GetEditLevel()->FindObjectByName(m_options.select))
             {
                 m_context.GetSelectionService().Select(selected->GetId());
             }
         }
-        if (m_buildOnStart && m_context.GetProjectService().HasProject())
+        if (m_options.build && m_context.GetProjectService().HasProject())
         {
             std::string error;
             bool built = GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context), error);
@@ -208,7 +206,7 @@ namespace BrightBox3D::Editor
             }
             m_exitAfterFrames = 1;
         }
-        if (m_playOnStart)
+        if (m_options.play)
         {
             RequestPlay();
         }
@@ -217,11 +215,12 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::Shutdown()
     {
-        if (!m_device)
+        if (!m_renderContext)
         {
             return;
         }
-        m_device->WaitIdle();
+        GetDevice().WaitIdle();
+        CommandRegistry::Get().Clear();
         if (m_playSession && m_playSession->IsActive())
         {
             m_playSession->Stop();
@@ -247,12 +246,7 @@ namespace BrightBox3D::Editor
         {
             ImGui::DestroyContext();
         }
-        UI::ScreenRenderer::Get().Shutdown();
-        m_renderer.reset();
-        m_resources.reset();
-        m_shaders.reset();
-        m_swapchain.reset();
-        m_device.reset();
+        m_renderContext.reset();
         m_window.reset();
         Platform::Window::ShutdownPlatform();
     }
@@ -303,7 +297,7 @@ namespace BrightBox3D::Editor
             m_hotReload->OnProjectClosed();
             m_fileWatcher.Stop();
             m_thumbnails->Clear();
-            m_resources->Clear();
+            GetResources().Clear();
             m_context.GetProjectService().CloseProject();
         }
         std::string error;
@@ -370,41 +364,59 @@ namespace BrightBox3D::Editor
         m_projectSettings->Open();
     }
 
+    void EditorApplication::OpenPreferences()
+    {
+        m_preferences->Open();
+    }
+
+    void EditorApplication::OpenNewLevelDialog()
+    {
+        m_openNewLevelPopup = true;
+        m_newLevelName = "NewLevel";
+    }
+
+    void EditorApplication::BuildGame()
+    {
+        std::string error;
+        if (!GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context), error))
+        {
+            Core::Log::Error(Text(EditorText::BuildFailed, error));
+            return;
+        }
+        RevealInFileBrowser(GameBuilder::DefaultOutput(m_context));
+    }
+
+    void EditorApplication::CloseProject()
+    {
+        if (m_context.GetLevelService().IsPlaying())
+        {
+            m_playSession->Stop();
+        }
+        m_hotReload->OnProjectClosed();
+        m_fileWatcher.Stop();
+        m_thumbnails->Clear();
+        GetResources().Clear();
+        m_context.GetProjectService().CloseProject();
+    }
+
+    void EditorApplication::RequestExit()
+    {
+        m_running = false;
+    }
+
+    void EditorApplication::ResetLayout()
+    {
+        m_resetLayout = true;
+    }
+
     void EditorApplication::OpenFileInEditor(const std::string& path, int line)
     {
-        std::vector<std::string> command;
-#if defined(__APPLE__)
-        std::filesystem::path code = "/usr/local/bin/code";
-        if (!std::filesystem::exists(code))
-        {
-            code = "/opt/homebrew/bin/code";
-        }
-        if (std::filesystem::exists(code))
-        {
-            command = { code.string(), "-g", path + ":" + std::to_string(std::max(line, 1)) };
-        }
-        else
-        {
-            command = { "open", "-t", path };
-        }
-#elif defined(_WIN32)
-        command = { "cmd", "/c", "code", "-g", path + ":" + std::to_string(std::max(line, 1)) };
-#else
-        command = { "xdg-open", path };
-#endif
-        std::thread([command] { Core::Process::Run(command); }).detach();
+        Platform::Shell::OpenInCodeEditor(path, line);
     }
 
     void EditorApplication::RevealInFileBrowser(const std::filesystem::path& path)
     {
-#if defined(__APPLE__)
-        std::vector<std::string> command = { "open", "-R", path.string() };
-#elif defined(_WIN32)
-        std::vector<std::string> command = { "explorer", "/select," + path.string() };
-#else
-        std::vector<std::string> command = { "xdg-open", path.parent_path().string() };
-#endif
-        std::thread([command] { Core::Process::Run(command); }).detach();
+        Platform::Shell::RevealInFileBrowser(path);
     }
 
     void EditorApplication::UpdateTitle()
@@ -505,100 +517,24 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        bool playing = m_context.GetLevelService().IsPlaying();
-        if (ImGui::BeginMenu("File"))
+        if (ImGui::BeginMenu(Text(EditorText::MenuFile)))
         {
-            if (ImGui::MenuItem("New Level...", nullptr, false, !playing))
-            {
-                m_openNewLevelPopup = true;
-                m_newLevelName = "NewLevel";
-            }
-            if (ImGui::MenuItem("Save", "Cmd+S", false, !playing))
-            {
-                m_context.GetLevelService().SaveLevel();
-            }
-            if (ImGui::MenuItem("Build Game", nullptr, false, !playing && !m_hotReload->IsCompiling()))
-            {
-                std::string error;
-                if (!GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context), error))
-                {
-                    Core::Log::Error(Text(EditorText::BuildFailed, error));
-                }
-                else
-                {
-                    RevealInFileBrowser(GameBuilder::DefaultOutput(m_context));
-                }
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Project Settings..."))
-            {
-                OpenProjectSettings();
-            }
-            if (ImGui::MenuItem("Open Other Project..."))
-            {
-                if (playing)
-                {
-                    m_playSession->Stop();
-                }
-                m_hotReload->OnProjectClosed();
-                m_fileWatcher.Stop();
-                m_thumbnails->Clear();
-                m_resources->Clear();
-                m_context.GetProjectService().CloseProject();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Exit"))
-            {
-                m_running = false;
-            }
+            DrawMenuItems(FileMenu);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Edit"))
+        if (ImGui::BeginMenu(Text(EditorText::MenuEdit)))
         {
-            std::string undo = Text(EditorText::UndoMenuItem, m_context.GetUndoService().GetUndo().GetUndoName());
-            std::string redo = Text(EditorText::RedoMenuItem, m_context.GetUndoService().GetUndo().GetRedoName());
-            if (ImGui::MenuItem(undo.c_str(), "Cmd+Z", false, m_context.GetUndoService().GetUndo().CanUndo() && !playing))
-            {
-                m_context.GetUndoService().Undo();
-            }
-            if (ImGui::MenuItem(redo.c_str(), "Cmd+Shift+Z", false, m_context.GetUndoService().GetUndo().CanRedo() && !playing))
-            {
-                m_context.GetUndoService().Redo();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Duplicate", "Cmd+D", false, !m_context.GetSelectionService().GetSelection().empty()))
-            {
-                m_context.GetObjectEditService().DuplicateSelection();
-            }
-            if (ImGui::MenuItem("Delete", "Del", false, !m_context.GetSelectionService().GetSelection().empty()))
-            {
-                m_context.GetObjectEditService().DeleteSelection();
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Preferences...", "Cmd+,"))
-            {
-                m_preferences->Open();
-            }
+            DrawMenuItems(EditMenu);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Game"))
+        if (ImGui::BeginMenu(Text(EditorText::MenuGame)))
         {
-            if (ImGui::MenuItem(playing ? "Stop" : "Play", "Cmd+P"))
-            {
-                playing ? RequestStop() : RequestPlay();
-            }
-            if (ImGui::MenuItem("Compile Game Code", "Cmd+B", false, !m_hotReload->IsCompiling()))
-            {
-                m_hotReload->RequestCompile();
-            }
+            DrawMenuItems(GameMenu);
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Window"))
+        if (ImGui::BeginMenu(Text(EditorText::MenuWindow)))
         {
-            if (ImGui::MenuItem("Reset Layout"))
-            {
-                m_resetLayout = true;
-            }
+            DrawMenuItems(WindowMenu);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -606,49 +542,10 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::DrawToolbar()
     {
-        bool playing = m_context.GetLevelService().IsPlaying();
-        float buttonWidth = 84.0f;
-        ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - buttonWidth * 3.0f) * 0.5f);
-        if (playing)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, EditorColorVec4(EditorColor::PlayMode, 0.85f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EditorColorVec4(EditorColor::PlayMode));
-        }
-        if (ImGui::Button(playing ? (std::string(IconGlyph(Icon::Square)) + "  Stop").c_str() : (std::string(IconGlyph(Icon::Play)) + "  Play").c_str(), ImVec2(buttonWidth, 0)))
-        {
-            playing ? RequestStop() : RequestPlay();
-        }
-        if (playing)
-        {
-            ImGui::PopStyleColor(2);
-        }
-        ImGui::SameLine();
-        ImGui::BeginDisabled(!playing);
-        bool paused = m_playSession->IsPaused();
-        if (ImGui::Button(paused ? (std::string(IconGlyph(Icon::Play)) + "  Resume").c_str() : (std::string(IconGlyph(Icon::Pause)) + "  Pause").c_str(), ImVec2(buttonWidth, 0)))
-        {
-            m_playSession->SetPaused(!paused);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button((std::string(IconGlyph(Icon::StepForward)) + "  Step").c_str(), ImVec2(buttonWidth, 0)))
-        {
-            m_playSession->SetPaused(true);
-            m_playSession->Step();
-        }
-        ImGui::EndDisabled();
-
-        ImGui::SameLine(ImGui::GetWindowWidth() - 300.0f);
-        if (m_hotReload->IsCompiling())
-        {
-            if (ImGui::Button((std::string(IconGlyph(Icon::X)) + "  Cancel").c_str()))
-            {
-                m_hotReload->Cancel();
-            }
-        }
-        else if (ImGui::Button((std::string(IconGlyph(Icon::Hammer)) + "  Compile").c_str()))
-        {
-            m_hotReload->RequestCompile();
-        }
+        ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - ToolbarWidth(PlayToolbar, PlayButtonWidth)) * 0.5f);
+        Editor::DrawToolbar(PlayToolbar, PlayButtonWidth);
+        ImGui::SameLine(ImGui::GetWindowWidth() - CompileAreaWidth);
+        CommandButton(m_hotReload->IsCompiling() ? CommandId::CancelCompile : CommandId::Compile);
         ImGui::SameLine();
         ImVec4 color = m_hotReload->GetState() == CompileState::Failed ? EditorColorVec4(EditorColor::Error) : (m_hotReload->IsCompiling() ? EditorColorVec4(EditorColor::Warning) : EditorColorVec4(EditorColor::Success));
         ImGui::TextColored(color, "%s", m_hotReload->GetStatusText().c_str());
@@ -705,55 +602,14 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::DrawStatusBar()
     {
-        const Rendering::RenderStatistics& stats = m_renderer->GetStatistics();
+        const Rendering::RenderStatistics& stats = GetRenderer().GetStatistics();
         Level::Level* level = m_context.GetLevelService().GetActiveLevel();
-        ImGui::TextDisabled("%s", Text(EditorText::StatusBar, m_device->GetName(), level ? level->GetObjectCount() : size_t{ 0 }, stats.drawCalls, stats.lights, ImGui::GetIO().Framerate).c_str());
+        ImGui::TextDisabled("%s", Text(EditorText::StatusBar, GetDevice().GetName(), level ? level->GetObjectCount() : size_t{ 0 }, stats.drawCalls, stats.lights, ImGui::GetIO().Framerate).c_str());
         int errors = Core::Log::Count(Core::LogLevel::Error);
         if (errors > 0)
         {
             ImGui::SameLine();
             ImGui::TextColored(EditorColorVec4(EditorColor::Error), "%s", Text(EditorText::StatusBarErrors, errors).c_str());
-        }
-    }
-
-    void EditorApplication::HandleShortcuts()
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        if (io.WantTextInput || !m_context.GetProjectService().HasProject())
-        {
-            return;
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Comma))
-        {
-            m_preferences->Open();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_S))
-        {
-            m_context.GetLevelService().SaveLevel();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Z))
-        {
-            m_context.GetUndoService().Undo();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z) || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Y))
-        {
-            m_context.GetUndoService().Redo();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_D))
-        {
-            m_context.GetObjectEditService().DuplicateSelection();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_P))
-        {
-            m_context.GetLevelService().IsPlaying() ? RequestStop() : RequestPlay();
-        }
-        if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_B))
-        {
-            m_hotReload->RequestCompile();
-        }
-        if ((ImGui::IsKeyPressed(ImGuiKey_Delete) || (ImGui::IsKeyPressed(ImGuiKey_Backspace) && io.KeyCtrl)) && !m_context.GetSelectionService().GetSelection().empty())
-        {
-            m_context.GetObjectEditService().DeleteSelection();
         }
     }
 
@@ -798,6 +654,7 @@ namespace BrightBox3D::Editor
         m_imguiPlatform->NewFrame(deltaTime);
         ImGui::NewFrame();
         ImGuizmo::BeginFrame();
+        CommandRegistry::Get().BeginFrame();
 
         if (!m_context.GetProjectService().HasProject())
         {
@@ -838,16 +695,19 @@ namespace BrightBox3D::Editor
                 }
                 ImGui::EndPopup();
             }
-            HandleShortcuts();
+            if (m_context.GetProjectService().HasProject())
+            {
+                CommandRegistry::Get().DispatchShortcuts(CommandScope::Global);
+            }
         }
         ImGui::Render();
 
-        m_resources->ProcessInvalidations();
-        RHI::CommandList& commands = m_device->BeginFrame();
+        GetResources().ProcessInvalidations();
+        RHI::CommandList& commands = GetDevice().BeginFrame();
         m_thumbnails->Update(commands);
         for (const ViewRenderRequest& request : m_renderRequests)
         {
-            m_renderer->Render(commands, request.level, request.view, request.target);
+            GetRenderer().Render(commands, request.level, request.view, request.target);
         }
         m_renderRequests.clear();
         std::vector<RHI::Swapchain*> present;
@@ -856,10 +716,10 @@ namespace BrightBox3D::Editor
             m_playSession->Render(commands);
             present.push_back(m_playSession->GetSwapchain());
         }
-        if (RHI::Texture* backbuffer = m_swapchain->AcquireNextTexture())
+        if (RHI::Texture* backbuffer = GetSwapchain().AcquireNextTexture())
         {
             m_imguiRenderer->Render(commands, ImGui::GetDrawData(), backbuffer);
-            present.push_back(m_swapchain.get());
+            present.push_back(&GetSwapchain());
         }
         ++m_frameCount;
         bool capture = m_exitAfterFrames > 0 && m_frameCount == m_exitAfterFrames;
@@ -867,10 +727,10 @@ namespace BrightBox3D::Editor
         {
             SaveScreenshot(commands);
         }
-        m_device->EndFrame(present);
+        GetDevice().EndFrame(present);
         if (capture)
         {
-            m_device->WaitIdle();
+            GetDevice().WaitIdle();
             m_running = false;
         }
         Rendering::DebugDraw::Clear();
@@ -879,58 +739,44 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::SaveScreenshot(RHI::CommandList& commands)
     {
-        auto save = [&](RHI::Texture* texture, const std::string& path)
+        auto save = [&](RHI::Texture* texture, const std::filesystem::path& path)
         {
-            std::vector<uint8_t> pixels;
-            if (!texture || path.empty() || !m_device->ReadTexture(texture, pixels))
+            if (texture && !path.empty() && Rendering::SavePng(GetDevice(), *texture, path))
             {
-                return;
+                Core::Log::Info(Text(EditorText::SavedScreenshot, path.string()));
             }
-            bool bgra = texture->GetFormat() == RHI::Format::BGRA8Unorm;
-            for (size_t i = 0; i + 3 < pixels.size(); i += 4)
-            {
-                if (bgra)
-                {
-                    std::swap(pixels[i], pixels[i + 2]);
-                }
-                pixels[i + 3] = 255;
-            }
-            stbi_write_png(path.c_str(), static_cast<int>(texture->GetWidth()), static_cast<int>(texture->GetHeight()), 4, pixels.data(), static_cast<int>(texture->GetWidth()) * 4);
-            Core::Log::Info(Text(EditorText::SavedScreenshot, path));
         };
         RHI::TextureDesc desc;
-        desc.width = std::max<uint32_t>(m_swapchain->GetWidth(), 1);
-        desc.height = std::max<uint32_t>(m_swapchain->GetHeight(), 1);
+        desc.width = std::max<uint32_t>(GetSwapchain().GetWidth(), 1);
+        desc.height = std::max<uint32_t>(GetSwapchain().GetHeight(), 1);
         desc.format = RHI::Format::BGRA8Unorm;
         desc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-        auto target = m_device->CreateTexture(desc);
+        auto target = GetDevice().CreateTexture(desc);
         m_imguiRenderer->Render(commands, ImGui::GetDrawData(), target.get());
         std::unique_ptr<RHI::Texture> playTarget;
-        if (m_context.GetLevelService().IsPlaying() && m_playSession->GetSwapchain() && !m_playScreenshotPath.empty())
+        if (m_context.GetLevelService().IsPlaying() && m_playSession->GetSwapchain() && !m_options.playScreenshot.empty())
         {
             desc.width = m_playSession->GetSwapchain()->GetWidth();
             desc.height = m_playSession->GetSwapchain()->GetHeight();
-            playTarget = m_device->CreateTexture(desc);
+            playTarget = GetDevice().CreateTexture(desc);
             m_playSession->RenderTo(commands, playTarget.get());
         }
-        m_device->EndFrame({});
-        save(target.get(), m_screenshotPath);
-        save(playTarget.get(), m_playScreenshotPath);
-        m_device->BeginFrame();
+        GetDevice().EndFrame({});
+        save(target.get(), m_options.screenshot);
+        save(playTarget.get(), m_options.playScreenshot);
+        GetDevice().BeginFrame();
     }
 
     void EditorApplication::Run()
     {
-        double previous = Platform::Window::GetTime();
+        Runtime::FrameClock clock;
         while (m_running && !m_window->ShouldClose())
         {
             Platform::Window::PollEvents();
-            double now = Platform::Window::GetTime();
-            float deltaTime = static_cast<float>(std::min(now - previous, 0.1));
-            previous = now;
+            float deltaTime = clock.Tick();
             if (m_window->IsMinimized() && !m_context.GetLevelService().IsPlaying())
             {
-                Platform::Window::WaitEvents(0.1);
+                Runtime::FrameClock::WaitWhileMinimized();
                 continue;
             }
             Frame(deltaTime);
