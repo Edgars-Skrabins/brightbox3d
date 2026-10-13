@@ -1,0 +1,13 @@
+<Screen>
+    <Style src="UI/Hud.css" />
+    <Panel class="hud">
+        <Panel class="card">
+            <Label class="title" text="{Player.m_playerName}" />
+            <Label text="Health {Player.m_health} / {Player.m_maxHealth:0}" />
+            <ProgressBar class="health" value="{Player.m_health}" max="{Player.m_maxHealth}" />
+            <Label class="timer" text="Round ends in {GameMode.m_timeRemaining:0}s" />
+            <Button text="Restart Round" onClick="{GameMode.m_restartRequested}" />
+        </Panel>
+        <Label class="hint" text="WASD to move - mouse to look - Esc to unlock the cursor" />
+    </Panel>
+</Screen>

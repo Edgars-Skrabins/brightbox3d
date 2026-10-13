@@ -1,0 +1,85 @@
+{
+    "$asset": "LevelObject",
+    "version": 1,
+    "root": {
+        "id": "c75b27805ef34ee143689ca437b55c2d",
+        "name": "Player",
+        "$type": "ArenaPlayer",
+        "active": true,
+        "properties": {
+            "m_moveSpeed": 6.0,
+            "m_lookSensitivity": 0.15,
+            "m_health": 100,
+            "m_maxHealth": 100.0,
+            "m_playerName": "Arena Hero"
+        },
+        "transform": {
+            "m_localPosition": [0.0, 0.0, 0.0],
+            "m_localRotation": [0.0, 0.0, 0.0, 1.0],
+            "m_localScale": [1.0, 1.0, 1.0]
+        },
+        "components": [{
+                "id": "6dcbf18cf573485b20c1d0451cf872d3",
+                "$type": "PlayerController",
+                "enabled": true,
+                "properties": {
+                    "m_playerIndex": 0,
+                    "m_spawnCamera": true,
+                    "m_cameraLevelObject": "bd0522e328a77a6d9d128fd6dcb51f61",
+                    "m_cameraFollow": true,
+                    "m_cameraOffset": [0.0, 2.2, -5.0],
+                    "m_cameraUsesLookRotation": false,
+                    "m_lockCursorOnStart": false
+                }
+            }, {
+                "id": "1e4c5155be9255a092027e2d043a18a1",
+                "$type": "CapsuleCollider",
+                "enabled": true,
+                "properties": {
+                    "m_isTrigger": false,
+                    "m_center": [0.0, 0.9, 0.0],
+                    "m_friction": 0.5,
+                    "m_restitution": 0.0,
+                    "m_radius": 0.4,
+                    "m_height": 1.8
+                }
+            }, {
+                "id": "5890814cc5314f5ca0674e20f1e89d07",
+                "$type": "Rigidbody",
+                "enabled": true,
+                "properties": {
+                    "m_motionType": "Kinematic",
+                    "m_mass": 1.0,
+                    "m_gravityScale": 1.0,
+                    "m_linearDamping": 0.05,
+                    "m_angularDamping": 0.05,
+                    "m_freezeRotation": false,
+                    "m_continuousCollision": false
+                }
+            }],
+        "children": [{
+                "id": "9fb0077430327ad063a2a7f4276a4399",
+                "name": "Body",
+                "$type": "LevelObjectInstance",
+                "active": true,
+                "properties": {},
+                "transform": {
+                    "m_localPosition": [0.0, 0.9, 0.0],
+                    "m_localRotation": [0.0, 0.0, 0.0, 1.0],
+                    "m_localScale": [0.8, 0.9, 0.8]
+                },
+                "components": [{
+                        "id": "ca8fb7ca009a5ebd70cbfc57f945486d",
+                        "$type": "MeshRenderer",
+                        "enabled": true,
+                        "properties": {
+                            "m_model": "b0000000b00000000000000000000006",
+                            "m_meshIndex": 0,
+                            "m_materials": ["d5d63f40a08e88bf7e74c4065fe9083b"],
+                            "m_castShadows": true
+                        }
+                    }],
+                "children": []
+            }]
+    }
+}

@@ -1,0 +1,5 @@
+Cache/
+Build/
+Binaries/
+CMakeLists.txt
+.DS_Store
