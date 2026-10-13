@@ -1,4 +1,5 @@
-cbuffer ImGuiConstants : register(b0)
+#include "ShaderBindings.h"
+cbuffer ImGuiConstants : BRIGHT_B(BRIGHT_SLOT_LOCAL_CONSTANTS)
 {
     float4x4 ProjectionMatrix;
 };
@@ -17,8 +18,8 @@ struct ImGuiOutput
     float2 uv : TEXCOORD0;
 };
 
-Texture2D ImGuiTexture : register(t0);
-SamplerState ImGuiSampler : register(s0);
+Texture2D ImGuiTexture : BRIGHT_T(BRIGHT_SLOT_OVERLAY_TEXTURE);
+SamplerState ImGuiSampler : BRIGHT_S(BRIGHT_SLOT_OVERLAY_SAMPLER);
 
 ImGuiOutput ImGuiVS(ImGuiInput input)
 {

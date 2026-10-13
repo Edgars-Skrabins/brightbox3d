@@ -1,15 +1,16 @@
+#include "ShaderBindings.h"
 #define SMAA_CUSTOM_SL 1
 #define SMAA_PRESET_HIGH 1
 
-cbuffer SMAAConstants : register(b0)
+cbuffer SMAAConstants : BRIGHT_B(BRIGHT_SLOT_LOCAL_CONSTANTS)
 {
     float4 SMAAMetrics;
 };
 
 #define SMAA_RT_METRICS SMAAMetrics
 
-SamplerState LinearSampler : register(s0);
-SamplerState PointSampler : register(s1);
+SamplerState LinearSampler : BRIGHT_S(BRIGHT_SLOT_SMAA_LINEAR_SAMPLER);
+SamplerState PointSampler : BRIGHT_S(BRIGHT_SLOT_SMAA_POINT_SAMPLER);
 
 #define SMAATexture2D(tex) Texture2D tex
 #define SMAATexturePass2D(tex) tex
@@ -24,11 +25,11 @@ SamplerState PointSampler : register(s1);
 
 #include "ThirdParty/SMAA/SMAA.hlsl"
 
-Texture2D ColorTexture : register(t0);
-Texture2D EdgesTexture : register(t1);
-Texture2D AreaTexture : register(t2);
-Texture2D SearchTexture : register(t3);
-Texture2D BlendTexture : register(t4);
+Texture2D ColorTexture : BRIGHT_T(BRIGHT_SLOT_SMAA_COLOR);
+Texture2D EdgesTexture : BRIGHT_T(BRIGHT_SLOT_SMAA_EDGES);
+Texture2D AreaTexture : BRIGHT_T(BRIGHT_SLOT_SMAA_AREA);
+Texture2D SearchTexture : BRIGHT_T(BRIGHT_SLOT_SMAA_SEARCH);
+Texture2D BlendTexture : BRIGHT_T(BRIGHT_SLOT_SMAA_BLEND);
 
 struct SMAAOutput
 {

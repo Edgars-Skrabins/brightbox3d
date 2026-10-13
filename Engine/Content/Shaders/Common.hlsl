@@ -1,6 +1,7 @@
+#include "ShaderBindings.h"
 #pragma once
 
-cbuffer ViewConstants : register(b0)
+cbuffer ViewConstants : BRIGHT_B(BRIGHT_SLOT_VIEW_CONSTANTS)
 {
     float4x4 ViewMatrix;
     float4x4 ProjectionMatrix;

@@ -1,3 +1,4 @@
+#include "ShaderBindings.h"
 #pragma once
 
 #include "Common.hlsl"
@@ -15,14 +16,14 @@ struct LightData
     float4 SpotShadow;
 };
 
-cbuffer LightConstants : register(b3)
+cbuffer LightConstants : BRIGHT_B(BRIGHT_SLOT_LIGHT_CONSTANTS)
 {
     float4 LightCounts;
     float4 AmbientParams;
     LightData Lights[MAX_LIGHTS];
 };
 
-cbuffer ShadowConstants : register(b4)
+cbuffer ShadowConstants : BRIGHT_B(BRIGHT_SLOT_SHADOW_CONSTANTS)
 {
     float4x4 CascadeMatrices[4];
     float4 CascadeSplits;
@@ -30,8 +31,8 @@ cbuffer ShadowConstants : register(b4)
     float4 ShadowParams;
 };
 
-Texture2DArray ShadowMap : register(t12);
-SamplerComparisonState ShadowSampler : register(s12);
+Texture2DArray ShadowMap : BRIGHT_T(BRIGHT_SLOT_SHADOW_MAP);
+SamplerComparisonState ShadowSampler : BRIGHT_S(BRIGHT_SLOT_SHADOW_SAMPLER);
 
 float DistributionGGX(float NdotH, float roughness)
 {

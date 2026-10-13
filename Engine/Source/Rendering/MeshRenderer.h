@@ -1,21 +1,23 @@
 #pragma once
 
 #include "Assets/AssetDatabase.h"
-#include "Level/Component.h"
+#include "Geometry/Categories.h"
+#include "Geometry/ModelAsset.h"
+#include "Level/LevelObjectComponent.h"
+#include "Rendering/Categories.h"
 #include "Rendering/MaterialAsset.h"
-#include "Rendering/ModelAsset.h"
 
 #include <vector>
 
 namespace BrightBox3D::Rendering
 {
-    BrightClass(Category = "Rendering")
-    class MeshRenderer : public Level::Component
+    BrightClass(.category = Categories::Rendering, .icon = Icon::Box)
+    class MeshRenderer : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
-        const Assets::AssetReference<ModelAsset>& GetModel() const { return m_model; }
-        void SetModel(const Assets::AssetReference<ModelAsset>& model) { m_model = model; }
+        const Assets::AssetReference<Geometry::ModelAsset>& GetModel() const { return m_model; }
+        void SetModel(const Assets::AssetReference<Geometry::ModelAsset>& model) { m_model = model; }
         int32_t GetMeshIndex() const { return m_meshIndex; }
         void SetMeshIndex(int32_t index) { m_meshIndex = index; }
         const std::vector<Assets::AssetReference<MaterialAsset>>& GetMaterials() const { return m_materials; }
@@ -24,16 +26,16 @@ namespace BrightBox3D::Rendering
         void SetCastShadows(bool castShadows) { m_castShadows = castShadows; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Mesh")
-        Assets::AssetReference<ModelAsset> m_model;
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Mesh)
+        Assets::AssetReference<Geometry::ModelAsset> m_model;
 
-        BrightProperty(EditAnywhere, Category = "Mesh")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Mesh)
         int32_t m_meshIndex = 0;
 
-        BrightProperty(EditAnywhere, Category = "Materials")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Materials)
         std::vector<Assets::AssetReference<MaterialAsset>> m_materials;
 
-        BrightProperty(EditAnywhere, Category = "Lighting")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Lighting)
         bool m_castShadows = true;
     };
 }

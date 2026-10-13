@@ -1,11 +1,12 @@
+#include "ShaderBindings.h"
 #include "Lighting.hlsl"
 
-Texture2D AlbedoTexture : register(t0);
-Texture2D NormalRoughnessTexture : register(t1);
-Texture2D MaterialTexture : register(t2);
-Texture2D EmissionTexture : register(t3);
-Texture2D DepthTexture : register(t4);
-Texture2D AmbientOcclusionTexture : register(t5);
+Texture2D AlbedoTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_ALBEDO);
+Texture2D NormalRoughnessTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_NORMAL_ROUGHNESS);
+Texture2D MaterialTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_MATERIAL);
+Texture2D EmissionTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_EMISSION);
+Texture2D DepthTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_DEPTH);
+Texture2D AmbientOcclusionTexture : BRIGHT_T(BRIGHT_SLOT_GBUFFER_AMBIENT_OCCLUSION);
 
 float4 DeferredLightingPS(FullscreenOutput input) : SV_Target0
 {

@@ -1,8 +1,9 @@
+#include "ShaderBindings.h"
 #pragma once
 
 #include "Common.hlsl"
 
-cbuffer ObjectConstants : register(b1)
+cbuffer ObjectConstants : BRIGHT_B(BRIGHT_SLOT_OBJECT_CONSTANTS)
 {
     float4x4 WorldMatrix;
     float4x4 PreviousWorldMatrix;
@@ -10,7 +11,7 @@ cbuffer ObjectConstants : register(b1)
     float4 ObjectParams;
 };
 
-cbuffer MaterialConstants : register(b2)
+cbuffer MaterialConstants : BRIGHT_B(BRIGHT_SLOT_MATERIAL_CONSTANTS)
 {
     float4 BaseColorFactor;
     float4 EmissiveFactor;
@@ -20,12 +21,12 @@ cbuffer MaterialConstants : register(b2)
     float4 MaterialFlags;
 };
 
-Texture2D BaseColorMap : register(t0);
-Texture2D NormalMap : register(t1);
-Texture2D MetallicRoughnessMap : register(t2);
-Texture2D OcclusionMap : register(t3);
-Texture2D EmissiveMap : register(t4);
-SamplerState MaterialSampler : register(s0);
+Texture2D BaseColorMap : BRIGHT_T(BRIGHT_SLOT_BASE_COLOR_MAP);
+Texture2D NormalMap : BRIGHT_T(BRIGHT_SLOT_NORMAL_MAP);
+Texture2D MetallicRoughnessMap : BRIGHT_T(BRIGHT_SLOT_METALLIC_ROUGHNESS_MAP);
+Texture2D OcclusionMap : BRIGHT_T(BRIGHT_SLOT_OCCLUSION_MAP);
+Texture2D EmissiveMap : BRIGHT_T(BRIGHT_SLOT_EMISSIVE_MAP);
+SamplerState MaterialSampler : BRIGHT_S(BRIGHT_SLOT_MATERIAL_SAMPLER);
 
 struct MeshInput
 {

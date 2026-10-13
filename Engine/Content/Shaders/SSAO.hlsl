@@ -1,11 +1,12 @@
+#include "ShaderBindings.h"
 #include "Common.hlsl"
 
-Texture2D DepthTexture : register(t0);
-Texture2D NormalTexture : register(t1);
-Texture2D AOTexture : register(t2);
-SamplerState PointClamp : register(s0);
+Texture2D DepthTexture : BRIGHT_T(BRIGHT_SLOT_SSAO_DEPTH);
+Texture2D NormalTexture : BRIGHT_T(BRIGHT_SLOT_SSAO_NORMAL);
+Texture2D AOTexture : BRIGHT_T(BRIGHT_SLOT_SSAO_OCCLUSION);
+SamplerState PointClamp : BRIGHT_S(BRIGHT_SLOT_SSAO_SAMPLER);
 
-cbuffer SSAOConstants : register(b1)
+cbuffer SSAOConstants : BRIGHT_B(BRIGHT_SLOT_PASS_CONSTANTS)
 {
     float4 SSAOParams;
     float4 SSAOKernel[16];

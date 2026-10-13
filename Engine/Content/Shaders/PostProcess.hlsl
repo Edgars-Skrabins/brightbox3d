@@ -1,12 +1,13 @@
+#include "ShaderBindings.h"
 #include "Common.hlsl"
 
-Texture2D SourceTexture : register(t0);
-Texture2D SecondTexture : register(t1);
-Texture2D ThirdTexture : register(t2);
-SamplerState LinearClamp : register(s0);
-SamplerState PointClamp : register(s1);
+Texture2D SourceTexture : BRIGHT_T(BRIGHT_SLOT_POST_SOURCE);
+Texture2D SecondTexture : BRIGHT_T(BRIGHT_SLOT_POST_SECOND);
+Texture2D ThirdTexture : BRIGHT_T(BRIGHT_SLOT_POST_THIRD);
+SamplerState LinearClamp : BRIGHT_S(BRIGHT_SLOT_POST_LINEAR_SAMPLER);
+SamplerState PointClamp : BRIGHT_S(BRIGHT_SLOT_POST_POINT_SAMPLER);
 
-cbuffer PostConstants : register(b1)
+cbuffer PostConstants : BRIGHT_B(BRIGHT_SLOT_PASS_CONSTANTS)
 {
     float4 PostParams;
     float4 PostParams2;

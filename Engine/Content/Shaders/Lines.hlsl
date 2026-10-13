@@ -1,3 +1,4 @@
+#include "ShaderBindings.h"
 #include "Common.hlsl"
 
 struct LineInput
@@ -13,7 +14,7 @@ struct LineOutput
     float3 worldPosition : TEXCOORD0;
 };
 
-cbuffer LineConstants : register(b1)
+cbuffer LineConstants : BRIGHT_B(BRIGHT_SLOT_PASS_CONSTANTS)
 {
     float4 LineParams;
 };

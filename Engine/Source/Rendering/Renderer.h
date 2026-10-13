@@ -1,25 +1,30 @@
 #pragma once
 
 #include "Math/Geometry.h"
-#include "RHI/Device.h"
 #include "Rendering/GpuResourceCache.h"
 #include "Rendering/RenderView.h"
 #include "Rendering/ShaderLibrary.h"
+#include "RHI/Device.h"
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
+namespace BrightBox3D::Geometry
+{
+    struct EmbeddedMaterial;
+}
+
 namespace BrightBox3D::Level
 {
     class Level;
-    class Component;
+    class LevelObjectComponent;
 }
 
 namespace BrightBox3D::Rendering
 {
     class MaterialAsset;
-    struct EmbeddedMaterial;
 
     struct RenderStatistics
     {
@@ -69,21 +74,31 @@ namespace BrightBox3D::Rendering
         };
 
         struct ViewTargets;
+        struct FrameContext;
 
         ViewTargets& GetTargets(const RenderView& view);
         void CollectDraws(const Level::Level* level, const RenderView& view, ViewTargets& targets, const Math::Frustum& frustum);
         void CollectLights(const Level::Level* level, const RenderView& view);
-        MaterialBinding ResolveMaterial(const MaterialAsset* material, const EmbeddedMaterial* embedded);
-        void RenderShadows(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets);
+        MaterialBinding ResolveMaterial(const MaterialAsset* material, const Geometry::EmbeddedMaterial* embedded);
+        static bool UsesPostAntiAliasing(const RenderView& view);
+        void PrepareFrame(FrameContext& frame, const Level::Level* level);
+        void RenderShadows(FrameContext& frame);
+        void RenderGBuffer(FrameContext& frame);
+        void RenderSSAO(FrameContext& frame);
+        void BindLighting(FrameContext& frame);
+        void RenderLighting(FrameContext& frame);
+        void RenderTransparent(FrameContext& frame);
+        void RenderTonemap(FrameContext& frame);
+        void RenderAntiAliasing(FrameContext& frame);
         void DrawItems(RHI::CommandList& commands, const std::vector<const DrawItem*>& items, RHI::Pipeline* single, RHI::Pipeline* doubleSided);
-        void RenderLines(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, RHI::Texture* output, const void* viewConstants, size_t viewConstantsSize);
+        void RenderLines(FrameContext& frame);
         RHI::Pipeline* GetMeshPipeline(const char* key, const char* pixelEntry, const char* file, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip = true, int32_t depthBias = 0, float slopeBias = 0.0f);
         RHI::Pipeline* GetFullscreenPipeline(const char* key, const char* file, const char* entry, RHI::Format format, const RHI::BlendState& blend = {});
         RHI::Pipeline* GetSMAAPipeline(const char* vertexEntry, const char* pixelEntry, RHI::Format format);
-        void FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load = false);
+        void FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load, const std::function<void(RHI::CommandList&)>& bind);
         void EnsurePostTargets(const RenderView& view, ViewTargets& targets);
         void EnsureSMAATextures();
-        RHI::Texture* RenderPostProcessing(RHI::CommandList& commands, const RenderView& view, ViewTargets& targets, const void* viewConstants, size_t viewConstantsSize);
+        RHI::Texture* RenderPostProcessing(FrameContext& frame);
 
         RHI::Device& m_device;
         ShaderLibrary& m_shaders;

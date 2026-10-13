@@ -1,12 +1,13 @@
+#include "ShaderBindings.h"
 #include "Common.hlsl"
 
-Texture2D SceneColor : register(t0);
-Texture2D BloomTexture : register(t1);
-Texture2D ExposureTexture : register(t2);
-Texture2D ColorGradingLut : register(t3);
-SamplerState LinearClamp : register(s0);
+Texture2D SceneColor : BRIGHT_T(BRIGHT_SLOT_TONEMAP_SCENE);
+Texture2D BloomTexture : BRIGHT_T(BRIGHT_SLOT_TONEMAP_BLOOM);
+Texture2D ExposureTexture : BRIGHT_T(BRIGHT_SLOT_TONEMAP_EXPOSURE);
+Texture2D ColorGradingLut : BRIGHT_T(BRIGHT_SLOT_TONEMAP_COLOR_GRADING);
+SamplerState LinearClamp : BRIGHT_S(BRIGHT_SLOT_TONEMAP_SAMPLER);
 
-cbuffer TonemapConstants : register(b1)
+cbuffer TonemapConstants : BRIGHT_B(BRIGHT_SLOT_PASS_CONSTANTS)
 {
     float4 ExposureParams;
     float4 BloomParams;

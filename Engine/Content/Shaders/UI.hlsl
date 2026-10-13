@@ -1,4 +1,5 @@
-cbuffer UIConstants : register(b0)
+#include "ShaderBindings.h"
+cbuffer UIConstants : BRIGHT_B(BRIGHT_SLOT_LOCAL_CONSTANTS)
 {
     float4x4 ProjectionMatrix;
 };
@@ -23,8 +24,8 @@ struct UIOutput
     float4 color : COLOR0;
 };
 
-Texture2D UITexture : register(t0);
-SamplerState UISampler : register(s0);
+Texture2D UITexture : BRIGHT_T(BRIGHT_SLOT_OVERLAY_TEXTURE);
+SamplerState UISampler : BRIGHT_S(BRIGHT_SLOT_OVERLAY_SAMPLER);
 
 UIOutput UIVS(UIInput input)
 {

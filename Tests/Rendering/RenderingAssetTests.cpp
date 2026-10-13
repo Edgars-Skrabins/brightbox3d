@@ -1,7 +1,7 @@
 #include "Assets/AssetDatabase.h"
+#include "Geometry/ModelAsset.h"
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/MaterialAsset.h"
-#include "Rendering/ModelAsset.h"
 #include "Rendering/TextureAsset.h"
 #include "Serialization/ObjectSerializer.h"
 
@@ -12,6 +12,7 @@
 #include <filesystem>
 
 using namespace BrightBox3D;
+using namespace BrightBox3D::Geometry;
 using namespace BrightBox3D::Rendering;
 
 namespace

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Level/Component.h"
+#include "Level/LevelObjectComponent.h"
 #include "Math/Color.h"
+#include "Rendering/Categories.h"
 
 namespace BrightBox3D::Rendering
 {
@@ -13,8 +14,8 @@ namespace BrightBox3D::Rendering
         Spot
     };
 
-    BrightClass(Category = "Rendering")
-    class Light : public Level::Component
+    BrightClass(.category = Categories::Rendering, .icon = Icon::Lightbulb)
+    class Light : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
@@ -37,25 +38,25 @@ namespace BrightBox3D::Rendering
         void SetCastShadows(bool castShadows) { m_castShadows = castShadows; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Light")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Light)
         LightType m_type = LightType::Point;
 
-        BrightProperty(EditAnywhere, Category = "Light")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Light)
         Math::Color m_color = Math::Color::White();
 
-        BrightProperty(EditAnywhere, Category = "Light")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Light)
         float m_intensity = 1.0f;
 
-        BrightProperty(EditAnywhere, Category = "Light")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Light)
         float m_range = 10.0f;
 
-        BrightProperty(EditAnywhere, Category = "Spot")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Spot)
         float m_innerAngle = 25.0f;
 
-        BrightProperty(EditAnywhere, Category = "Spot")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Spot)
         float m_outerAngle = 35.0f;
 
-        BrightProperty(EditAnywhere, Category = "Shadows")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Shadows)
         bool m_castShadows = true;
     };
 }
