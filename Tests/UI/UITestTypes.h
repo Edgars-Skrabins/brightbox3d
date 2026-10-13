@@ -1,32 +1,32 @@
 #pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
 
 #include <string>
 
 namespace BrightBox3D::Tests
 {
     BrightClass()
-    class UITestPlayer : public Level::LevelObjectInstance
+    class UITestPlayer : public Level::LevelObject
     {
         BrightBody()
     public:
-        BrightUIProperty(Read)
+        BrightUIProperty(.access = UIAccess::Read)
         int m_health = 75;
 
-        BrightUIProperty(Read)
+        BrightUIProperty(.access = UIAccess::Read)
         float m_maxHealth = 100.0f;
 
-        BrightUIProperty(Write)
+        BrightUIProperty(.access = UIAccess::Write)
         float m_volume = 0.25f;
 
-        BrightUIProperty(Write)
+        BrightUIProperty(.access = UIAccess::Write)
         bool m_leaveRequested = false;
 
-        BrightUIProperty(Write)
+        BrightUIProperty(.access = UIAccess::Write)
         std::string m_playerName = "Bright";
 
-        BrightProperty(EditAnywhere)
+        BrightProperty(.edit = Edit::Anywhere)
         int m_notUI = 1;
     };
 }

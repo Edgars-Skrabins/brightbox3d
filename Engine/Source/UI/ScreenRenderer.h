@@ -3,6 +3,7 @@
 #include "Core/Event.h"
 #include "Core/Guid.h"
 #include "RHI/Device.h"
+#include "UI/Binding.h"
 #include "UI/Document.h"
 #include "UI/DrawList.h"
 
@@ -20,15 +21,6 @@ namespace BrightBox3D::Rendering
     class ShaderLibrary;
 }
 
-namespace BrightBox3D::Level
-{
-    class Level;
-}
-
-namespace BrightBox3D::Framework
-{
-    class Camera;
-}
 
 namespace BrightBox3D::UI
 {
@@ -41,7 +33,7 @@ namespace BrightBox3D::UI
         void Shutdown();
         bool IsInitialized() const { return m_device != nullptr; }
 
-        void RenderCameraScreen(RHI::CommandList& commands, Framework::Camera& camera, Level::Level& level, RHI::Texture* target, Platform::Window* window);
+        void RenderScreen(RHI::CommandList& commands, const Core::Guid& view, const Core::Guid& screen, const BindingRoots& roots, RHI::Texture* target, Platform::Window* window);
         void RenderDocument(RHI::CommandList& commands, Document& document, RHI::Texture* target, float scale);
         Document* GetDocument(const Core::Guid& camera) const;
         void ClearDocuments();

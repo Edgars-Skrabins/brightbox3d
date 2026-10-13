@@ -3,17 +3,20 @@
 #include "Core/Log.h"
 #include "Core/SharedLibrary.h"
 #include "Framework/Camera.h"
+#include "Framework/CameraScreen.h"
 #include "Framework/GameSession.h"
 #include "Level/LevelSerializer.h"
 #include "Platform/Input.h"
 #include "Platform/Window.h"
-#include "RHI/Device.h"
 #include "Rendering/DebugDraw.h"
 #include "Rendering/GpuResourceCache.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/ShaderLibrary.h"
+#include "RHI/Device.h"
 #include "Runtime/GameManifest.h"
 #include "Runtime/GameModule.h"
+#include "Runtime/GameplayMigration.h"
+#include "Runtime/LevelObjectAssetMigration.h"
 #include "Runtime/Project.h"
 #include "UI/ScreenRenderer.h"
 
@@ -87,10 +90,11 @@ int main(int argc, char** argv)
         manifest.gameModule = project.GetGameModuleName();
         manifest.startupLevel = project.GetStartupLevel();
         manifest.fixedTimeStep = project.GetFixedTimeStep();
-        manifest.gameMode.CopyFrom(project.GetGameMode(), manifest.gameMode.GetAllocator());
         root = project.GetRoot();
         modulePath = root / "Binaries" / Core::SharedLibrary::PlatformFileName(manifest.gameModule);
+        Runtime::MigrateLegacyLevelObjectAssets(project);
         Assets::AssetDatabase::Get().Open(root, Assets::AssetDatabaseMode::Editor);
+        Runtime::MigrateLegacyGameplaySettings(project);
     }
     else
     {
@@ -149,7 +153,7 @@ int main(int argc, char** argv)
             window.SetCursorMode(Platform::CursorMode::Normal);
         }
     });
-    Framework::GameSession::Start(*level, manifest.gameMode);
+    Framework::GameSession::Start(*level);
 
     double previous = Platform::Window::GetTime();
     int frame = 0;
@@ -175,7 +179,7 @@ int main(int argc, char** argv)
             if (camera)
             {
                 renderer.Render(commands, level.get(), camera->BuildRenderView(backbuffer->GetWidth(), backbuffer->GetHeight(), PlayerViewId), backbuffer);
-                UI::ScreenRenderer::Get().RenderCameraScreen(commands, *camera, *level, backbuffer, &window);
+                Framework::RenderCameraScreen(commands, *camera, *level, backbuffer, &window);
             }
             else
             {

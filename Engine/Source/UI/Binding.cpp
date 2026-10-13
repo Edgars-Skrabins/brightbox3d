@@ -12,6 +12,40 @@ namespace BrightBox3D::UI
     using Reflection::PropertyFlagUIWrite;
     using Reflection::PropertyKind;
 
+    namespace
+    {
+        const char* const BindingRootNames[] = { "Player", "GameMode", "GameState", "Controller", "LevelBehavior" };
+        static_assert(std::size(BindingRootNames) == static_cast<size_t>(BindingRoot::Count));
+
+        std::string BindingRootList()
+        {
+            std::string list;
+            for (const char* name : BindingRootNames)
+            {
+                list += list.empty() ? name : std::string(", ") + name;
+            }
+            return list;
+        }
+    }
+
+    const char* BindingRootName(BindingRoot root)
+    {
+        return BindingRootNames[static_cast<size_t>(root)];
+    }
+
+    bool FindBindingRoot(const std::string& name, BindingRoot& root)
+    {
+        for (size_t index = 0; index < std::size(BindingRootNames); ++index)
+        {
+            if (name == BindingRootNames[index])
+            {
+                root = static_cast<BindingRoot>(index);
+                return true;
+            }
+        }
+        return false;
+    }
+
     std::string BoundProperty::Format(int decimals) const
     {
         const void* value = property->GetValuePointer(object);
@@ -162,26 +196,17 @@ namespace BrightBox3D::UI
         std::vector<std::string> segments = Core::Split(Core::Trim(path), '.');
         if (segments.size() < 2)
         {
-            error = "binding '" + path + "' must start with Player or GameMode and name a property";
+            error = "binding '" + path + "' must start with one of " + BindingRootList() + " and name a property";
             return {};
         }
-        Reflection::Object* current = nullptr;
-        Level::LevelObjectInstance* owner = nullptr;
-        if (segments[0] == "Player")
+        BindingRoot root;
+        if (!FindBindingRoot(segments[0], root))
         {
-            owner = roots.player;
-            current = roots.player;
-        }
-        else if (segments[0] == "GameMode")
-        {
-            current = roots.gameMode;
-            owner = Reflection::Cast<Level::LevelObjectInstance>(roots.gameMode);
-        }
-        else
-        {
-            error = "unknown binding source '" + segments[0] + "' (use Player or GameMode)";
+            error = "unknown binding source '" + segments[0] + "' (use one of " + BindingRootList() + ")";
             return {};
         }
+        Reflection::EngineObject* current = roots.Get(root);
+        Level::LevelObject* owner = Reflection::Cast<Level::LevelObject>(current);
         if (!current)
         {
             return {};
@@ -209,7 +234,7 @@ namespace BrightBox3D::UI
                 error = "cannot resolve '" + segment + "' in '" + path + "'";
                 return {};
             }
-            Reflection::Object* next = nullptr;
+            Reflection::EngineObject* next = nullptr;
             for (const auto& component : owner->GetComponents())
             {
                 const Reflection::TypeInfo* type = &component->GetType();

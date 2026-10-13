@@ -1,28 +1,47 @@
 #pragma once
 
-#include "Reflection/Object.h"
+#include "Reflection/EngineObject.h"
 
+#include <array>
+#include <cstddef>
 #include <string>
 #include <vector>
 
 namespace BrightBox3D::Level
 {
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 }
 
 namespace BrightBox3D::UI
 {
+    enum class BindingRoot
+    {
+        Player,
+        GameMode,
+        GameState,
+        Controller,
+        LevelBehavior,
+        Count
+    };
+
+    const char* BindingRootName(BindingRoot root);
+    bool FindBindingRoot(const std::string& name, BindingRoot& root);
+
     struct BindingRoots
     {
         Level::Level* level = nullptr;
-        Level::LevelObjectInstance* player = nullptr;
-        Reflection::Object* gameMode = nullptr;
+
+        void Set(BindingRoot root, Reflection::EngineObject* object) { m_objects[static_cast<size_t>(root)] = object; }
+        Reflection::EngineObject* Get(BindingRoot root) const { return m_objects[static_cast<size_t>(root)]; }
+
+    private:
+        std::array<Reflection::EngineObject*, static_cast<size_t>(BindingRoot::Count)> m_objects{};
     };
 
     struct BoundProperty
     {
-        Reflection::Object* object = nullptr;
+        Reflection::EngineObject* object = nullptr;
         const Reflection::PropertyInfo* property = nullptr;
 
         explicit operator bool() const { return object && property; }

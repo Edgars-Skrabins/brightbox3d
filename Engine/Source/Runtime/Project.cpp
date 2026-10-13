@@ -61,9 +61,6 @@ namespace BrightBox3D::Runtime
         document.AddMember("engineVersion", "0.1.0", allocator);
         document.AddMember("gameModule", Serialization::MakeString(SanitizeModuleName(name), allocator), allocator);
         document.AddMember("startupLevel", rapidjson::Value(rapidjson::kNullType), allocator);
-        Serialization::JsonValue gameMode(rapidjson::kObjectType);
-        gameMode.AddMember("$type", "GameMode", allocator);
-        document.AddMember("gameMode", gameMode, allocator);
         Serialization::JsonValue settings(rapidjson::kObjectType);
         settings.AddMember("fixedTimeStep", 1.0 / 60.0, allocator);
         settings.AddMember("autoHotReload", true, allocator);
@@ -97,10 +94,10 @@ namespace BrightBox3D::Runtime
         m_name = Serialization::GetString(document, "name", m_root.filename().string());
         m_gameModuleName = Serialization::GetString(document, "gameModule", SanitizeModuleName(m_name));
         m_startupLevel = Core::Guid::Parse(Serialization::GetString(document, "startupLevel"));
-        m_gameMode.SetObject();
+        m_legacyGameMode.SetNull();
         if (const Serialization::JsonValue* gameMode = Serialization::FindMember(document, "gameMode"); gameMode && gameMode->IsObject())
         {
-            m_gameMode.CopyFrom(*gameMode, m_gameMode.GetAllocator());
+            m_legacyGameMode.CopyFrom(*gameMode, m_legacyGameMode.GetAllocator());
         }
         if (const Serialization::JsonValue* settings = Serialization::FindMember(document, "settings"))
         {
@@ -126,9 +123,6 @@ namespace BrightBox3D::Runtime
         {
             document.AddMember("startupLevel", rapidjson::Value(rapidjson::kNullType), allocator);
         }
-        Serialization::JsonValue gameMode;
-        gameMode.CopyFrom(m_gameMode, allocator);
-        document.AddMember("gameMode", gameMode, allocator);
         Serialization::JsonValue settings(rapidjson::kObjectType);
         settings.AddMember("fixedTimeStep", static_cast<double>(m_fixedTimeStep), allocator);
         settings.AddMember("autoHotReload", m_autoHotReload, allocator);

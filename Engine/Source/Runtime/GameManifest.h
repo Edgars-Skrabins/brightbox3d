@@ -15,7 +15,6 @@ namespace BrightBox3D::Runtime
         std::string name = "Game";
         std::string gameModule;
         Core::Guid startupLevel;
-        Serialization::JsonDocument gameMode;
         float fixedTimeStep = 1.0f / 60.0f;
 
         bool Load(const std::filesystem::path& path, std::string& error);

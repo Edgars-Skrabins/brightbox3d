@@ -2,14 +2,12 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Core/Log.h"
-#include "Framework/Camera.h"
-#include "Framework/GameMode.h"
-#include "Level/Level.h"
 #include "Math/Matrix4.h"
 #include "Platform/Window.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/GpuResourceCache.h"
 #include "Rendering/ShaderLibrary.h"
+#include "Shaders/ShaderBindings.h"
 
 #include <cstddef>
 
@@ -70,15 +68,14 @@ namespace BrightBox3D::UI
         return it == m_entries.end() ? nullptr : it->second.document.get();
     }
 
-    void ScreenRenderer::RenderCameraScreen(RHI::CommandList& commands, Framework::Camera& camera, Level::Level& level, RHI::Texture* target, Platform::Window* window)
+    void ScreenRenderer::RenderScreen(RHI::CommandList& commands, const Core::Guid& view, const Core::Guid& screen, const BindingRoots& roots, RHI::Texture* target, Platform::Window* window)
     {
         m_pointerOverUI = false;
         if (!m_device || !target)
         {
             return;
         }
-        const Core::Guid& screen = camera.GetActiveScreen().guid;
-        Entry& entry = m_entries[camera.GetId()];
+        Entry& entry = m_entries[view];
         if (!screen.IsValid())
         {
             entry.document.reset();
@@ -135,10 +132,6 @@ namespace BrightBox3D::UI
             input.escape = state.WasKeyPressed(Platform::Key::Escape);
         }
 
-        BindingRoots roots;
-        roots.level = &level;
-        roots.player = camera.GetOwnerId().IsValid() ? level.FindObject(camera.GetOwnerId()) : nullptr;
-        roots.gameMode = Framework::GameMode::Get(level);
         double now = Platform::Window::GetTime();
         float deltaTime = m_lastTime > 0.0 ? static_cast<float>(std::min(now - m_lastTime, 0.1)) : 0.0f;
         m_lastTime = now;
@@ -188,8 +181,8 @@ namespace BrightBox3D::UI
         pass.debugName = "UI";
         commands.BeginRenderPass(pass);
         commands.SetPipeline(pipeline);
-        commands.SetConstants(0, projection);
-        commands.SetSampler(0, m_sampler.get());
+        commands.SetConstants(BRIGHT_SLOT_LOCAL_CONSTANTS, projection);
+        commands.SetSampler(BRIGHT_SLOT_OVERLAY_SAMPLER, m_sampler.get());
         commands.SetVertexData(0, m_drawList.GetVertices().data(), m_drawList.GetVertices().size() * sizeof(UIVertex));
         commands.SetIndexData(m_drawList.GetIndices().data(), m_drawList.GetIndices().size() * sizeof(uint32_t), RHI::IndexFormat::UInt32);
         for (const UIBatch& batch : m_drawList.GetBatches())
@@ -207,7 +200,7 @@ namespace BrightBox3D::UI
                 scissor.height = std::max(0, static_cast<int32_t>((batch.clip[3] - batch.clip[1]) * scale));
             }
             commands.SetScissor(scissor);
-            commands.SetTexture(0, batch.texture ? batch.texture : m_resources->GetWhiteTexture());
+            commands.SetTexture(BRIGHT_SLOT_OVERLAY_TEXTURE, batch.texture ? batch.texture : m_resources->GetWhiteTexture());
             commands.DrawIndexed(batch.indexCount, 1, batch.firstIndex, 0, 0);
         }
         commands.EndRenderPass();

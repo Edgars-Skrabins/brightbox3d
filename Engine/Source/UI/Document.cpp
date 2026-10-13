@@ -196,9 +196,9 @@ Image { width: 64px; height: 64px; }
         return m_root ? m_root->FindByName(name) : nullptr;
     }
 
-    Level::LevelObjectInstance* WidgetController::GetPlayer() const
+    Level::LevelObject* WidgetController::GetPlayer() const
     {
-        return m_document ? m_document->GetRoots().player : nullptr;
+        return Reflection::Cast<Level::LevelObject>(GetBindingRoot(BindingRoot::Player));
     }
 
     Level::Level* WidgetController::GetLevel() const
@@ -206,9 +206,9 @@ Image { width: 64px; height: 64px; }
         return m_document ? m_document->GetRoots().level : nullptr;
     }
 
-    Reflection::Object* WidgetController::GetGameMode() const
+    Reflection::EngineObject* WidgetController::GetBindingRoot(BindingRoot root) const
     {
-        return m_document ? m_document->GetRoots().gameMode : nullptr;
+        return m_document ? m_document->GetRoots().Get(root) : nullptr;
     }
 
     Document::Document()

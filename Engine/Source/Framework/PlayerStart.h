@@ -1,18 +1,20 @@
 #pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "Framework/Categories.h"
+#include "Level/Categories.h"
+#include "Level/LevelObject.h"
 
 namespace BrightBox3D::Framework
 {
-    BrightClass(Category = "Gameplay")
-    class PlayerStart : public Level::LevelObjectInstance
+    BrightClass(.category = Categories::Gameplay, .icon = Icon::Flag)
+    class PlayerStart : public Level::LevelObject
     {
         BrightBody()
     public:
         int32_t GetPlayerIndex() const { return m_playerIndex; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Spawn")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Spawn)
         int32_t m_playerIndex = -1;
     };
 }

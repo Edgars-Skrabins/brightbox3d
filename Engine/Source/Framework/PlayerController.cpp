@@ -1,37 +1,22 @@
 #include "Framework/PlayerController.h"
 
 #include "Framework/Camera.h"
+#include "Framework/GameModeBase.h"
+#include "Framework/PlayableLevelObject.h"
 #include "Level/Level.h"
-#include "Level/LevelSerializer.h"
 #include "Platform/Input.h"
 
 namespace BrightBox3D::Framework
 {
+    namespace
+    {
+        constexpr float MaxLookPitch = 89.0f;
+        constexpr int32_t ViewTargetPriority = 100;
+    }
+
     void PlayerController::OnGameStart()
     {
-        Level::Level* level = GetLevel();
-        m_yaw = GetTransform().GetEulerAngles().y;
-        if (m_spawnCamera && level && !GetCamera())
-        {
-            Level::LevelObjectInstance* spawned = nullptr;
-            if (m_cameraLevelObject.IsSet())
-            {
-                spawned = Level::LevelSerializer::Instantiate(*level, m_cameraLevelObject.guid, GetOwner()->GetCollection(), nullptr);
-            }
-            if (!spawned || !spawned->IsA<Camera>())
-            {
-                if (spawned)
-                {
-                    level->DestroyObject(spawned);
-                }
-                spawned = level->CreateObject<Camera>(GetOwner()->GetCollection());
-            }
-            spawned->SetName(GetOwner()->GetName() + " Camera");
-            spawned->SetOwnerId(GetOwner()->GetId());
-            SetCamera(static_cast<Camera*>(spawned));
-            OnGameUpdateLate(0.0f);
-        }
-        if (m_lockCursorOnStart && m_playerIndex == 0)
+        if (m_lockCursorOnStart)
         {
             SetCursorLocked(true);
         }
@@ -39,51 +24,103 @@ namespace BrightBox3D::Framework
 
     void PlayerController::OnGameUpdateLate(float deltaTime)
     {
-        Camera* camera = GetCamera();
-        if (!camera || !m_cameraFollow)
+        if (m_viewTarget && m_cameraUsesLookRotation)
         {
-            return;
-        }
-        const Level::Transform& transform = GetTransform();
-        camera->GetTransform().SetPosition(transform.GetPosition() + transform.GetRotation() * m_cameraOffset);
-        if (m_cameraUsesLookRotation)
-        {
-            camera->GetTransform().SetRotation(Math::Quaternion::Euler(m_pitch, m_yaw, 0.0f));
-        }
-        else
-        {
-            camera->GetTransform().SetRotation(transform.GetRotation());
+            m_viewTarget->GetTransform().SetRotation(Math::Quaternion::Euler(m_pitch, m_yaw, 0.0f));
         }
     }
 
     void PlayerController::OnDestroy()
     {
-        if (Camera* camera = GetCamera())
-        {
-            camera->Destroy();
-        }
-        if (m_playerIndex == 0 && Platform::Input::IsCursorLocked())
+        UnPossess();
+        if (Platform::Input::IsCursorLocked())
         {
             SetCursorLocked(false);
         }
     }
 
-    Camera* PlayerController::GetCamera() const
+    void PlayerController::CarryReferences(Reflection::ReferenceCarrier& carrier)
     {
-        Level::Level* level = GetLevel();
-        if (!level || !m_camera.IsValid())
+        carrier.Carry(m_playable);
+        carrier.Carry(m_viewTarget);
+    }
+
+    void PlayerController::Possess(PlayableLevelObject& playable)
+    {
+        if (m_playable == &playable)
+        {
+            return;
+        }
+        if (PlayerController* previous = playable.GetController())
+        {
+            previous->UnPossess();
+        }
+        UnPossess();
+        m_playable = &playable;
+        playable.m_controller = this;
+        m_yaw = playable.GetTransform().GetEulerAngles().y;
+        m_pitch = 0.0f;
+        Camera* camera = playable.FindCamera();
+        if (!camera && m_spawnCamera)
+        {
+            camera = CreateViewCamera(playable);
+        }
+        if (camera)
+        {
+            SetViewTarget(camera);
+        }
+        playable.OnPossessed(*this);
+    }
+
+    void PlayerController::UnPossess()
+    {
+        PlayableLevelObject* playable = m_playable;
+        if (!playable)
+        {
+            return;
+        }
+        m_playable = nullptr;
+        playable->m_controller = nullptr;
+        playable->OnUnpossessed();
+    }
+
+    void PlayerController::SetViewTarget(Camera* camera)
+    {
+        m_viewTarget = camera;
+        if (camera)
+        {
+            camera->SetPriority(std::max(camera->GetPriority(), ViewTargetPriority - m_playerIndex));
+        }
+    }
+
+    Camera* PlayerController::CreateViewCamera(PlayableLevelObject& playable)
+    {
+        Level::Level* level = playable.GetLevel();
+        if (!level)
         {
             return nullptr;
         }
-        return Reflection::Cast<Camera>(level->FindObject(m_camera));
+        auto* camera = level->CreateObject<Camera>(playable.GetCollection(), &playable);
+        camera->SetName(playable.GetName() + " Camera");
+        camera->SetOwnerId(playable.GetId());
+        camera->GetTransform().SetLocalPosition(m_cameraOffset);
+        return camera;
     }
 
-    void PlayerController::SetCamera(Camera* camera)
+    void PlayerController::HandlePlayableDestroyed()
     {
-        m_camera = camera ? camera->GetId() : Core::Guid{};
-        if (camera)
+        PlayableLevelObject* playable = m_playable;
+        if (m_viewTarget && playable && (m_viewTarget == static_cast<Level::LevelObject*>(playable) || m_viewTarget->IsDescendantOf(playable)))
         {
-            camera->SetPriority(std::max(camera->GetPriority(), 100 - m_playerIndex));
+            m_viewTarget = nullptr;
+        }
+        UnPossess();
+        if (Level::Level* level = GetLevel())
+        {
+            if (GameModeBase* gameMode = GameModeBase::Get(*level))
+            {
+                gameMode->OnPlayableDestroyed(*this);
+            }
         }
     }
 
@@ -113,6 +150,6 @@ namespace BrightBox3D::Framework
     void PlayerController::AddLookInput(float yawDegrees, float pitchDegrees)
     {
         m_yaw += yawDegrees;
-        m_pitch = Math::Clamp(m_pitch + pitchDegrees, -89.0f, 89.0f);
+        m_pitch = Math::Clamp(m_pitch + pitchDegrees, -MaxLookPitch, MaxLookPitch);
     }
 }

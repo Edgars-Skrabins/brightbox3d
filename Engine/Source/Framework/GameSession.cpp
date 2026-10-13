@@ -1,48 +1,67 @@
 #include "Framework/GameSession.h"
 
 #include "Core/Log.h"
-#include "Framework/GameMode.h"
+#include "Framework/GameModeBase.h"
+#include "Framework/PlayableLevelObject.h"
 #include "Level/Level.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
 
 namespace BrightBox3D::Framework
 {
-    const Serialization::JsonValue* GameSession::ResolveGameModeSettings(const Level::Level& level, const Serialization::JsonValue& projectGameMode)
+    Reflection::EngineObject* GameSession::CreateFromSettings(Level::Level& level, GameplaySlot slot)
     {
-        const Serialization::JsonValue* settings = &projectGameMode;
-        if (Serialization::GetBool(level.GetSettings(), "overrideGameMode", false))
+        const Reflection::TypeInfo& base = LevelGameplaySettings::GetBaseType(slot);
+        const Serialization::JsonValue* entry = LevelGameplaySettings::FindEntry(level.GetSettings(), slot);
+        std::string className = entry ? LevelGameplaySettings::GetClassName(*entry) : std::string();
+        if (className.empty())
         {
-            if (const Serialization::JsonValue* levelGameMode = Serialization::FindMember(level.GetSettings(), "gameMode"); levelGameMode && levelGameMode->IsObject())
+            if (LevelGameplaySettings::IsOptional(slot))
             {
-                settings = levelGameMode;
+                return nullptr;
             }
+            className = base.GetName();
         }
-        return settings;
+        const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(className);
+        if (!type || !type->IsA(base) || type->IsAbstract())
+        {
+            Core::Log::Warning("'" + className + "' is not a loaded " + base.GetName() + " class");
+            if (LevelGameplaySettings::IsOptional(slot))
+            {
+                return nullptr;
+            }
+            type = &base;
+        }
+        Reflection::EngineObject* object = level.CreateEngineObject(*type);
+        const Serialization::JsonValue* settings = entry ? LevelGameplaySettings::FindObjectSettings(*entry) : nullptr;
+        if (object && settings)
+        {
+            Serialization::DeserializeProperties(*object, *settings);
+        }
+        return object;
     }
 
-    GameMode* GameSession::Start(Level::Level& level, const Serialization::JsonValue& projectGameMode)
+    GameModeBase* GameSession::Start(Level::Level& level)
     {
-        const Serialization::JsonValue* settings = ResolveGameModeSettings(level, projectGameMode);
-        std::string typeName = Serialization::GetString(*settings, Serialization::TypeKey, "GameMode");
-        const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
-        if (!type || !type->IsA(GameMode::StaticType()) || type->IsAbstract())
+        level.GetRuntimeCollection();
+        CreateFromSettings(level, GameplaySlot::LevelBehavior);
+        auto* gameMode = Reflection::Cast<GameModeBase>(CreateFromSettings(level, GameplaySlot::GameMode));
+        gameMode->CreateGameState();
+        gameMode->CreatePlayerControllers();
+        for (PlayerController* controller : gameMode->GetPlayerControllers())
         {
-            Core::Log::Warning("GameMode type '" + typeName + "' was not found; using the default GameMode");
-            type = &GameMode::StaticType();
+            gameMode->SpawnPlayer(*controller);
         }
-        Level::LevelCollection* runtime = level.FindCollectionByName("Runtime");
-        if (!runtime)
+        level.OnObjectDestroyed.Subscribe([](Level::LevelObject& object)
         {
-            runtime = level.AddCollection("Runtime");
-        }
-        auto* gameMode = static_cast<GameMode*>(level.CreateObject(*type, runtime, nullptr, {}, false));
-        gameMode->SetName("GameMode");
-        gameMode->SetHideInLevelContents(true);
-        Serialization::DeserializeProperties(*gameMode, *settings);
-        level.InitializeObject(*gameMode);
+            auto* playable = Reflection::Cast<PlayableLevelObject>(&object);
+            if (PlayerController* controller = playable ? playable->GetController() : nullptr)
+            {
+                controller->HandlePlayableDestroyed();
+            }
+        });
         level.BeginPlay();
-        Core::Log::Info("Game started with GameMode '" + type->GetName() + "'");
+        Core::Log::Info("Game started with GameMode '" + gameMode->GetType().GetName() + "'");
         return gameMode;
     }
 }

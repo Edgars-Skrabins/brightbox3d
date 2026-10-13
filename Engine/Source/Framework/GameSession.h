@@ -1,20 +1,27 @@
 #pragma once
 
-#include "Serialization/Json.h"
+#include "Framework/LevelGameplaySettings.h"
 
 namespace BrightBox3D::Level
 {
     class Level;
 }
 
+namespace BrightBox3D::Reflection
+{
+    class EngineObject;
+}
+
 namespace BrightBox3D::Framework
 {
-    class GameMode;
+    class GameModeBase;
 
     class GameSession
     {
     public:
-        static GameMode* Start(Level::Level& level, const Serialization::JsonValue& projectGameMode);
-        static const Serialization::JsonValue* ResolveGameModeSettings(const Level::Level& level, const Serialization::JsonValue& projectGameMode);
+        static GameModeBase* Start(Level::Level& level);
+
+    private:
+        static Reflection::EngineObject* CreateFromSettings(Level::Level& level, GameplaySlot slot);
     };
 }

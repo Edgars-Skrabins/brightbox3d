@@ -28,8 +28,8 @@ namespace BrightBox3D::Runtime
 
         const Core::Guid& GetStartupLevel() const { return m_startupLevel; }
         void SetStartupLevel(const Core::Guid& level) { m_startupLevel = level; }
-        Serialization::JsonDocument& GetGameMode() { return m_gameMode; }
-        const Serialization::JsonDocument& GetGameMode() const { return m_gameMode; }
+        const Serialization::JsonValue* GetLegacyGameMode() const { return m_legacyGameMode.IsObject() ? &m_legacyGameMode : nullptr; }
+        void ClearLegacyGameMode() { m_legacyGameMode.SetNull(); }
         float GetFixedTimeStep() const { return m_fixedTimeStep; }
         void SetFixedTimeStep(float step) { m_fixedTimeStep = step; }
         bool GetAutoHotReload() const { return m_autoHotReload; }
@@ -44,7 +44,7 @@ namespace BrightBox3D::Runtime
         std::string m_name;
         std::string m_gameModuleName = "Game";
         Core::Guid m_startupLevel;
-        Serialization::JsonDocument m_gameMode;
+        Serialization::JsonDocument m_legacyGameMode;
         float m_fixedTimeStep = 1.0f / 60.0f;
         bool m_autoHotReload = true;
     };

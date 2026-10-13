@@ -69,7 +69,7 @@ TEST(UITests, BindingsLayoutInputAndRendering)
     ASSERT_TRUE(document.LoadFromText(HudMarkup, error)) << error;
     BindingRoots roots;
     roots.level = &level;
-    roots.player = player;
+    roots.Set(BindingRoot::Player, player);
 
     UIInput input;
     document.Update(roots, input, 640.0f, 360.0f, 0.016f);

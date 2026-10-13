@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Reflection/Object.h"
+#include "Reflection/EngineObject.h"
+#include "UI/Binding.h"
 
 #include <string>
 
 namespace BrightBox3D::Level
 {
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 }
 
 namespace BrightBox3D::UI
@@ -15,8 +16,8 @@ namespace BrightBox3D::UI
     class Document;
     class Element;
 
-    BrightClass(Abstract)
-    class WidgetController : public Reflection::Object
+    BrightClass(.abstract = true)
+    class WidgetController : public Reflection::EngineObject
     {
         BrightBody()
     public:
@@ -29,9 +30,9 @@ namespace BrightBox3D::UI
         Element* GetRoot() const { return m_root; }
         Element* Find(const std::string& name) const;
         Document* GetDocument() const { return m_document; }
-        Level::LevelObjectInstance* GetPlayer() const;
-        Level::Level* GetLevel() const;
-        Reflection::Object* GetGameMode() const;
+        Level::LevelObject* GetPlayer() const;
+        Level::Level* GetLevel() const override;
+        Reflection::EngineObject* GetBindingRoot(BindingRoot root) const;
 
     private:
         friend class Document;
