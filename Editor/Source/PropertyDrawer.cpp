@@ -1,6 +1,7 @@
 #include "PropertyDrawer.h"
 
 #include "Assets/AssetDatabase.h"
+#include "EditorPreferences.h"
 #include "Level/Level.h"
 #include "Math/Color.h"
 #include "Math/Quaternion.h"
@@ -75,7 +76,7 @@ namespace BrightBox3D::Editor
         ImGui::AlignTextToFramePadding();
         if (bold)
         {
-            ImGui::TextColored(ImVec4(0.55f, 0.78f, 1.0f, 1.0f), "%s", label);
+            ImGui::TextColored(EditorColorVec4(EditorColor::Override), "%s", label);
         }
         else
         {
@@ -333,7 +334,7 @@ namespace BrightBox3D::Editor
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
             if (overridden)
             {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.78f, 1.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, EditorColorVec4(EditorColor::Override));
             }
             bool open = ImGui::TreeNodeEx("##array", flags, "%s [%zu]", property.displayName.c_str(), count);
             if (overridden)

@@ -4,11 +4,13 @@
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
 #include "EditorApplication.h"
+#include "EditorPreferences.h"
 #include "ImGui/ImGuiRenderer.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/LevelViewPanel.h"
 #include "Rendering/MaterialAsset.h"
 #include "Serialization/ObjectSerializer.h"
+#include "Theme.h"
 #include "Thumbnails.h"
 
 #include <imgui.h>
@@ -31,28 +33,28 @@ namespace BrightBox3D::Editor
             switch (type)
             {
             case Assets::AssetType::Folder:
-                return IM_COL32(220, 190, 90, 255);
+                return EditorColorU32(EditorColor::AssetFolder);
             case Assets::AssetType::Level:
-                return IM_COL32(120, 200, 120, 255);
+                return EditorColorU32(EditorColor::AssetLevel);
             case Assets::AssetType::LevelCollection:
-                return IM_COL32(100, 170, 120, 255);
+                return EditorColorU32(EditorColor::AssetCollection);
             case Assets::AssetType::LevelObject:
-                return IM_COL32(100, 170, 255, 255);
+                return EditorColorU32(EditorColor::AssetLevelObject);
             case Assets::AssetType::LevelObjectTemplate:
-                return IM_COL32(160, 140, 255, 255);
+                return EditorColorU32(EditorColor::AssetTemplate);
             case Assets::AssetType::Material:
-                return IM_COL32(230, 120, 160, 255);
+                return EditorColorU32(EditorColor::AssetMaterial);
             case Assets::AssetType::Model:
-                return IM_COL32(150, 150, 150, 255);
+                return EditorColorU32(EditorColor::AssetModel);
             case Assets::AssetType::Texture:
-                return IM_COL32(120, 220, 220, 255);
+                return EditorColorU32(EditorColor::AssetTexture);
             case Assets::AssetType::Screen:
             case Assets::AssetType::Widget:
-                return IM_COL32(240, 160, 80, 255);
+                return EditorColorU32(EditorColor::AssetUI);
             case Assets::AssetType::StyleSheet:
-                return IM_COL32(200, 120, 240, 255);
+                return EditorColorU32(EditorColor::AssetStyleSheet);
             default:
-                return IM_COL32(180, 180, 180, 255);
+                return EditorColorU32(EditorColor::AssetOther);
             }
         }
 
@@ -348,6 +350,7 @@ namespace BrightBox3D::Editor
             return;
         }
 
+        PushSelectionColors();
         if (ImGui::BeginTable("AssetsLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
         {
             ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, 180.0f);
@@ -493,7 +496,7 @@ namespace BrightBox3D::Editor
                 }
                 else
                 {
-                    drawList->AddRectFilled(imageMin, imageMax, IM_COL32(45, 45, 48, 255), 4.0f);
+                    drawList->AddRectFilled(imageMin, imageMax, EditorColorU32(EditorColor::Control), 4.0f);
                     const char* glyph = TypeGlyph(record.type);
                     ImVec2 size = ImGui::CalcTextSize(glyph);
                     drawList->AddText(ImVec2((imageMin.x + imageMax.x - size.x) * 0.5f, (imageMin.y + imageMax.y - size.y) * 0.5f), TypeColor(record.type), glyph);
@@ -595,6 +598,7 @@ namespace BrightBox3D::Editor
             }
             ImGui::EndPopup();
         }
+        PopSelectionColors();
         ImGui::End();
     }
 }

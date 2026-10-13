@@ -4,6 +4,7 @@
 #include "Math/Geometry.h"
 #include "RHI/Resources.h"
 #include "Rendering/RenderView.h"
+#include "Core/Guid.h"
 #include "Serialization/Json.h"
 
 #include <imgui.h>

@@ -1,65 +1,167 @@
 #include "Theme.h"
 
+#include "Core/FileSystem.h"
+#include "EditorPreferences.h"
+#include "Icons.h"
+
 #include <imgui.h>
 
 #include <filesystem>
 
 namespace BrightBox3D::Editor
 {
+    namespace
+    {
+        ImVec4 Mix(const ImVec4& a, const ImVec4& b, float t)
+        {
+            return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t);
+        }
+
+        ImVec4 WithAlpha(ImVec4 color, float alpha)
+        {
+            color.w *= alpha;
+            return color;
+        }
+
+        std::filesystem::path EditorContentDirectory()
+        {
+            std::filesystem::path directory = Core::FileSystem::ExecutableDirectory();
+            for (int i = 0; i < 6 && !directory.empty(); ++i)
+            {
+                if (std::filesystem::exists(directory / "EditorContent"))
+                {
+                    return directory / "EditorContent";
+                }
+                if (std::filesystem::exists(directory / "Editor" / "Content"))
+                {
+                    return directory / "Editor" / "Content";
+                }
+                directory = directory.parent_path();
+            }
+            return {};
+        }
+    }
+
+    void PushSelectionColors()
+    {
+        ImGui::PushStyleColor(ImGuiCol_Header, EditorColorVec4(EditorColor::Accent, 0.28f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, EditorColorVec4(EditorColor::RowHovered));
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, EditorColorVec4(EditorColor::Accent, 0.38f));
+    }
+
+    void PopSelectionColors()
+    {
+        ImGui::PopStyleColor(3);
+    }
+
     void ApplyEditorTheme(float scale)
     {
         ImGuiStyle& style = ImGui::GetStyle();
+        float fontSize = style.FontSizeBase;
         style = ImGuiStyle();
-        style.WindowRounding = 2.0f;
-        style.FrameRounding = 3.0f;
-        style.GrabRounding = 3.0f;
-        style.TabRounding = 3.0f;
-        style.PopupRounding = 3.0f;
-        style.ScrollbarRounding = 4.0f;
+        style.FontSizeBase = fontSize;
+        style.WindowRounding = 6.0f;
+        style.ChildRounding = 4.0f;
+        style.FrameRounding = 4.0f;
+        style.PopupRounding = 6.0f;
+        style.GrabRounding = 4.0f;
+        style.TabRounding = 4.0f;
+        style.ScrollbarRounding = 6.0f;
         style.WindowBorderSize = 1.0f;
+        style.ChildBorderSize = 0.0f;
+        style.PopupBorderSize = 1.0f;
         style.FrameBorderSize = 0.0f;
-        style.WindowPadding = ImVec2(8, 6);
-        style.FramePadding = ImVec2(6, 3);
-        style.ItemSpacing = ImVec2(6, 4);
-        style.IndentSpacing = 14.0f;
-        style.ScrollbarSize = 12.0f;
+        style.WindowPadding = ImVec2(10, 8);
+        style.FramePadding = ImVec2(8, 4);
+        style.ItemSpacing = ImVec2(8, 5);
+        style.ItemInnerSpacing = ImVec2(6, 4);
+        style.CellPadding = ImVec2(6, 3);
+        style.IndentSpacing = 16.0f;
+        style.ScrollbarSize = 10.0f;
+        style.GrabMinSize = 10.0f;
         style.TabBarBorderSize = 1.0f;
+        style.TabBarOverlineSize = 2.0f;
+        style.DockingSeparatorSize = 3.0f;
+        style.SeparatorTextBorderSize = 1.0f;
+        style.WindowMenuButtonPosition = ImGuiDir_None;
+        style.TreeLinesFlags = ImGuiTreeNodeFlags_DrawLinesToNodes;
+        style.TreeLinesSize = 1.0f;
+
+        const EditorPreferences& preferences = EditorPreferences::Get();
+        ImVec4 accent = preferences.GetColorVec4(EditorColor::Accent);
+        ImVec4 background = preferences.GetColorVec4(EditorColor::Background);
+        ImVec4 panel = preferences.GetColorVec4(EditorColor::Panel);
+        ImVec4 field = preferences.GetColorVec4(EditorColor::Field);
+        ImVec4 control = preferences.GetColorVec4(EditorColor::Control);
+        ImVec4 controlHovered = preferences.GetColorVec4(EditorColor::ControlHovered);
+        ImVec4 border = preferences.GetColorVec4(EditorColor::Border);
+        ImVec4 text = preferences.GetColorVec4(EditorColor::Text);
+        ImVec4 textDim = preferences.GetColorVec4(EditorColor::TextDim);
+        ImVec4 rowStripe = preferences.GetColorVec4(EditorColor::RowStripe);
+        ImVec4 accentBright = Mix(accent, ImVec4(1, 1, 1, 1), 0.25f);
 
         ImVec4* colors = style.Colors;
-        colors[ImGuiCol_Text] = ImVec4(0.87f, 0.87f, 0.87f, 1.00f);
-        colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_ChildBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_PopupBg] = ImVec4(0.14f, 0.14f, 0.14f, 0.98f);
-        colors[ImGuiCol_Border] = ImVec4(0.09f, 0.09f, 0.09f, 1.00f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
-        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-        colors[ImGuiCol_FrameBgActive] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-        colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-        colors[ImGuiCol_TitleBgActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-        colors[ImGuiCol_MenuBarBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
-        colors[ImGuiCol_CheckMark] = ImVec4(0.36f, 0.62f, 0.95f, 1.00f);
-        colors[ImGuiCol_SliderGrab] = ImVec4(0.36f, 0.62f, 0.95f, 1.00f);
-        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.46f, 0.70f, 1.00f, 1.00f);
-        colors[ImGuiCol_Button] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
-        colors[ImGuiCol_ButtonActive] = ImVec4(0.20f, 0.36f, 0.58f, 1.00f);
-        colors[ImGuiCol_Header] = ImVec4(0.17f, 0.36f, 0.53f, 1.00f);
-        colors[ImGuiCol_HeaderHovered] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-        colors[ImGuiCol_HeaderActive] = ImVec4(0.17f, 0.36f, 0.53f, 1.00f);
-        colors[ImGuiCol_Separator] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-        colors[ImGuiCol_Tab] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_TabHovered] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-        colors[ImGuiCol_TabSelected] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
-        colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.36f, 0.62f, 0.95f, 1.00f);
-        colors[ImGuiCol_TabDimmed] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-        colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_DockingPreview] = ImVec4(0.36f, 0.62f, 0.95f, 0.50f);
-        colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.45f, 0.70f, 0.60f);
-        colors[ImGuiCol_NavCursor] = ImVec4(0.36f, 0.62f, 0.95f, 1.00f);
+        colors[ImGuiCol_Text] = text;
+        colors[ImGuiCol_TextDisabled] = textDim;
+        colors[ImGuiCol_WindowBg] = panel;
+        colors[ImGuiCol_ChildBg] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_PopupBg] = WithAlpha(Mix(panel, control, 0.35f), 0.98f);
+        colors[ImGuiCol_Border] = border;
+        colors[ImGuiCol_BorderShadow] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_FrameBg] = field;
+        colors[ImGuiCol_FrameBgHovered] = Mix(field, control, 0.5f);
+        colors[ImGuiCol_FrameBgActive] = control;
+        colors[ImGuiCol_TitleBg] = background;
+        colors[ImGuiCol_TitleBgActive] = background;
+        colors[ImGuiCol_TitleBgCollapsed] = background;
+        colors[ImGuiCol_MenuBarBg] = background;
+        colors[ImGuiCol_ScrollbarBg] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_ScrollbarGrab] = control;
+        colors[ImGuiCol_ScrollbarGrabHovered] = controlHovered;
+        colors[ImGuiCol_ScrollbarGrabActive] = WithAlpha(accent, 0.8f);
+        colors[ImGuiCol_CheckMark] = accent;
+        colors[ImGuiCol_SliderGrab] = accent;
+        colors[ImGuiCol_SliderGrabActive] = accentBright;
+        colors[ImGuiCol_Button] = control;
+        colors[ImGuiCol_ButtonHovered] = controlHovered;
+        colors[ImGuiCol_ButtonActive] = WithAlpha(accent, 0.75f);
+        colors[ImGuiCol_Header] = Mix(panel, control, 0.6f);
+        colors[ImGuiCol_HeaderHovered] = controlHovered;
+        colors[ImGuiCol_HeaderActive] = controlHovered;
+        colors[ImGuiCol_Separator] = border;
+        colors[ImGuiCol_SeparatorHovered] = WithAlpha(accent, 0.6f);
+        colors[ImGuiCol_SeparatorActive] = accent;
+        colors[ImGuiCol_ResizeGrip] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_ResizeGripHovered] = WithAlpha(accent, 0.5f);
+        colors[ImGuiCol_ResizeGripActive] = accent;
+        colors[ImGuiCol_InputTextCursor] = text;
+        colors[ImGuiCol_TabHovered] = controlHovered;
+        colors[ImGuiCol_Tab] = background;
+        colors[ImGuiCol_TabSelected] = panel;
+        colors[ImGuiCol_TabSelectedOverline] = accent;
+        colors[ImGuiCol_TabDimmed] = background;
+        colors[ImGuiCol_TabDimmedSelected] = panel;
+        colors[ImGuiCol_TabDimmedSelectedOverline] = WithAlpha(textDim, 0.35f);
+        colors[ImGuiCol_DockingPreview] = WithAlpha(accent, 0.45f);
+        colors[ImGuiCol_DockingEmptyBg] = background;
+        colors[ImGuiCol_PlotLines] = accent;
+        colors[ImGuiCol_PlotLinesHovered] = accentBright;
+        colors[ImGuiCol_PlotHistogram] = accent;
+        colors[ImGuiCol_PlotHistogramHovered] = accentBright;
+        colors[ImGuiCol_TableHeaderBg] = control;
+        colors[ImGuiCol_TableBorderStrong] = border;
+        colors[ImGuiCol_TableBorderLight] = border;
+        colors[ImGuiCol_TableRowBg] = ImVec4(0, 0, 0, 0);
+        colors[ImGuiCol_TableRowBgAlt] = rowStripe;
+        colors[ImGuiCol_TextLink] = accent;
+        colors[ImGuiCol_TextSelectedBg] = WithAlpha(accent, 0.35f);
+        colors[ImGuiCol_TreeLines] = preferences.GetColorVec4(EditorColor::TreeLines);
+        colors[ImGuiCol_DragDropTarget] = accent;
+        colors[ImGuiCol_UnsavedMarker] = text;
+        colors[ImGuiCol_NavCursor] = accent;
+        colors[ImGuiCol_NavWindowingHighlight] = WithAlpha(accent, 0.7f);
+        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0, 0, 0, 0.5f);
+        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.5f);
         style.ScaleAllSizes(scale);
     }
 
@@ -74,18 +176,34 @@ namespace BrightBox3D::Editor
             "C:/Windows/Fonts/segoeui.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         };
+        static const ImWchar iconRanges[] = { Icons::RangeMin, Icons::RangeMax, 0 };
+        bool loaded = false;
         for (const char* candidate : candidates)
         {
             if (std::filesystem::exists(candidate))
             {
                 ImFontConfig config;
+                config.GlyphExcludeRanges = iconRanges;
                 if (io.Fonts->AddFontFromFileTTF(candidate, 14.0f, &config))
                 {
                     ImGui::GetStyle().FontSizeBase = 14.0f;
-                    return;
+                    loaded = true;
+                    break;
                 }
             }
         }
-        io.Fonts->AddFontDefault();
+        if (!loaded)
+        {
+            io.Fonts->AddFontDefault();
+        }
+        std::filesystem::path iconFont = EditorContentDirectory() / "Fonts" / "ThirdParty" / "Lucide" / "lucide.ttf";
+        if (std::filesystem::exists(iconFont))
+        {
+            ImFontConfig config;
+            config.MergeMode = true;
+            config.GlyphMinAdvanceX = 15.0f;
+            config.GlyphOffset = ImVec2(0.0f, 2.0f);
+            io.Fonts->AddFontFromFileTTF(iconFont.string().c_str(), 14.0f, &config);
+        }
     }
 }

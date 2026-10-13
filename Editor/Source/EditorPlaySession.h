@@ -25,6 +25,7 @@ namespace BrightBox3D::Editor
         void Stop() override;
         void Tick(float deltaTime) override;
         void Render(RHI::CommandList& commands);
+        void RenderTo(RHI::CommandList& commands, RHI::Texture* target);
         RHI::Swapchain* GetSwapchain() const { return m_swapchain.get(); }
         bool WantsStop() const { return m_wantsStop; }
         Platform::Window* GetWindow() const { return m_window.get(); }

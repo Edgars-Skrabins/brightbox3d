@@ -26,6 +26,7 @@ namespace BrightBox3D::Editor
         void DrawCreateMenu(Level::LevelObjectInstance* parent);
         void DrawObjectContextMenu(Level::LevelObjectInstance& object);
         bool MatchesFilter(const Level::LevelObjectInstance& object) const;
+        void DrawRowBackground(bool selected);
 
         EditorApplication& m_application;
         std::string m_filter;
@@ -33,5 +34,6 @@ namespace BrightBox3D::Editor
         std::string m_renameBuffer;
         bool m_focusRename = false;
         Core::Guid m_scrollTo;
+        int m_rowIndex = 0;
     };
 }

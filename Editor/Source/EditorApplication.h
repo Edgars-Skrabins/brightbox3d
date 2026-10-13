@@ -22,6 +22,7 @@ namespace BrightBox3D::Editor
     class AssetsPanel;
     class TerminalPanel;
     class ProjectSettingsPanel;
+    class PreferencesPanel;
     class ThumbnailCache;
     class EditorPlaySession;
     class HotReload;
@@ -75,6 +76,7 @@ namespace BrightBox3D::Editor
         void AddRecentProject(const std::filesystem::path& path);
         void ProcessFileChanges();
         void UpdateTitle();
+        void SaveScreenshot(RHI::CommandList& commands);
         std::filesystem::path GetUserDirectory() const;
 
         std::unique_ptr<Platform::Window> m_window;
@@ -92,6 +94,7 @@ namespace BrightBox3D::Editor
         std::unique_ptr<AssetsPanel> m_assets;
         std::unique_ptr<TerminalPanel> m_terminal;
         std::unique_ptr<ProjectSettingsPanel> m_projectSettings;
+        std::unique_ptr<PreferencesPanel> m_preferences;
         std::unique_ptr<EditorPlaySession> m_playSession;
         std::unique_ptr<HotReload> m_hotReload;
         Core::FileWatcher m_fileWatcher;
@@ -104,11 +107,19 @@ namespace BrightBox3D::Editor
         std::string m_launcherError;
         std::string m_lastTitle;
         bool m_resetLayout = false;
+        uint32_t m_themeRevision = 0;
         bool m_running = true;
         bool m_requestPlay = false;
         bool m_requestStop = false;
         std::string m_newLevelName;
         bool m_openNewLevelPopup = false;
         std::string m_iniPath;
+        std::string m_screenshotPath;
+        std::string m_playScreenshotPath;
+        int m_exitAfterFrames = -1;
+        int m_frameCount = 0;
+        bool m_playOnStart = false;
+        bool m_buildOnStart = false;
+        std::string m_selectOnStart;
     };
 }

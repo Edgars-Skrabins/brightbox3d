@@ -3,11 +3,18 @@
 #include "Assets/AssetDatabase.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
+#include "EditorPreferences.h"
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
+#include "Icons.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/LevelViewPanel.h"
+#include "Physics/Colliders.h"
+#include "Reflection/TypeRegistry.h"
 #include "Rendering/BuiltinAssets.h"
+#include "Rendering/Light.h"
+#include "Rendering/MeshRenderer.h"
+#include "Theme.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -23,6 +30,75 @@ namespace BrightBox3D::Editor
             std::transform(text.begin(), text.end(), text.begin(), ::tolower);
             return text;
         }
+
+        const char* ObjectIcon(const Level::LevelObjectInstance& object)
+        {
+            if (object.IsA<Framework::PlayerStart>())
+            {
+                return Icons::Flag;
+            }
+            if (object.IsA<Framework::Camera>())
+            {
+                return Icons::Video;
+            }
+            if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
+            {
+                return light->GetLightType() == Rendering::LightType::Directional ? Icons::Sun : Icons::Lightbulb;
+            }
+            if (object.GetComponent<Rendering::MeshRenderer>())
+            {
+                return Icons::Box;
+            }
+            if (object.GetComponent<Physics::Collider>())
+            {
+                return Icons::SquareDashed;
+            }
+            if (&object.GetType() != &Level::LevelObjectInstance::StaticType())
+            {
+                return Icons::FileCode;
+            }
+            return Icons::CircleDashed;
+        }
+
+        void DrawRowLabel(const ImVec2& position, const char* icon, const ImVec4& iconColor, const std::string& name, const ImVec4& nameColor, const std::string& suffix)
+        {
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            float iconWidth = ImGui::CalcTextSize(icon).x;
+            drawList->AddText(position, ImGui::ColorConvertFloat4ToU32(iconColor), icon);
+            ImVec2 namePosition(position.x + iconWidth + ImGui::GetStyle().ItemInnerSpacing.x + 2.0f, position.y);
+            drawList->AddText(namePosition, ImGui::ColorConvertFloat4ToU32(nameColor), name.c_str());
+            if (!suffix.empty())
+            {
+                ImVec2 suffixPosition(namePosition.x + ImGui::CalcTextSize(name.c_str()).x + ImGui::GetStyle().ItemSpacing.x, position.y);
+                drawList->AddText(suffixPosition, EditorColorU32(EditorColor::TextDim), suffix.c_str());
+            }
+        }
+
+        void DrawRowTag(float y, const char* tag)
+        {
+            float x = ImGui::GetWindowPos().x + ImGui::GetWindowWidth() - ImGui::GetStyle().WindowPadding.x - ImGui::CalcTextSize(tag).x;
+            ImGui::GetWindowDrawList()->AddText(ImVec2(x, y), EditorColorU32(EditorColor::TextDim, 0.7f), tag);
+        }
+    }
+
+    void LevelContentsPanel::DrawRowBackground(bool selected)
+    {
+        ImVec2 windowPosition = ImGui::GetWindowPos();
+        float y = ImGui::GetCursorScreenPos().y;
+        ImVec2 min(windowPosition.x, y);
+        ImVec2 max(windowPosition.x + ImGui::GetWindowWidth(), y + ImGui::GetFrameHeight());
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->PushClipRect(ImVec2(windowPosition.x, windowPosition.y), ImVec2(max.x, windowPosition.y + ImGui::GetWindowHeight()), false);
+        if (m_rowIndex % 2 == 1)
+        {
+            drawList->AddRectFilled(min, max, EditorColorU32(EditorColor::RowStripe));
+        }
+        if (selected)
+        {
+            drawList->AddRectFilled(min, ImVec2(min.x + 2.0f, max.y), EditorColorU32(EditorColor::Accent));
+        }
+        drawList->PopClipRect();
+        ++m_rowIndex;
     }
 
     LevelContentsPanel::LevelContentsPanel(EditorApplication& application) : m_application(application)
@@ -236,7 +312,7 @@ namespace BrightBox3D::Editor
         ImGui::PushID(object.GetId().ToString().c_str());
 
         bool hasChildren = std::any_of(object.GetChildren().begin(), object.GetChildren().end(), [](const Level::LevelObjectInstance* child) { return !child->GetHideInLevelContents(); });
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
         if (!hasChildren)
         {
             flags |= ImGuiTreeNodeFlags_Leaf;
@@ -258,26 +334,37 @@ namespace BrightBox3D::Editor
             }
         }
 
-        ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+        ImVec4 color = EditorColorVec4(EditorColor::Text);
+        ImVec4 iconColor = EditorColorVec4(EditorColor::TextDim);
+        const char* icon = ObjectIcon(object);
         if (!object.GetMissingTypeName().empty())
         {
-            color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
+            color = EditorColorVec4(EditorColor::Missing);
+            iconColor = color;
+            icon = Icons::TriangleAlert;
         }
         else if (object.IsLinked() && !context.IsEditingLevelObject())
         {
-            color = ImVec4(0.45f, 0.72f, 1.0f, 1.0f);
+            color = EditorColorVec4(EditorColor::Linked);
+            iconColor = color;
+            icon = Icons::Package;
         }
         if (!object.IsActiveInHierarchy())
         {
             color.w *= 0.5f;
+            iconColor.w *= 0.5f;
         }
         bool keeping = context.IsPlaying() && m_application.GetPlaySession() && m_application.GetPlaySession()->IsKeepingChanges(object.GetId());
 
+        DrawRowBackground(context.IsSelected(object.GetId()));
+        ImVec2 rowPosition = ImGui::GetCursorScreenPos();
+        ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
         bool open;
         if (m_renaming == object.GetId())
         {
             open = ImGui::TreeNodeEx("##node", flags, "%s", "");
             ImGui::SameLine();
+            ImGui::SetCursorScreenPos(ImVec2(labelPosition.x, rowPosition.y));
             if (m_focusRename)
             {
                 ImGui::SetKeyboardFocusHere();
@@ -299,22 +386,21 @@ namespace BrightBox3D::Editor
         }
         else
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            std::string label = object.GetName();
+            std::string suffix;
             if (!object.GetMissingTypeName().empty())
             {
-                label += "  (missing " + object.GetMissingTypeName() + ")";
+                suffix = "(missing " + object.GetMissingTypeName() + ")";
             }
             else if (&object.GetType() != &Level::LevelObjectInstance::StaticType())
             {
-                label += "  [" + object.GetType().GetName() + "]";
+                suffix = "[" + object.GetType().GetName() + "]";
             }
             if (keeping)
             {
-                label += "  (keep changes)";
+                suffix += suffix.empty() ? "(keep changes)" : "  (keep changes)";
             }
-            open = ImGui::TreeNodeEx("##node", flags, "%s", label.c_str());
-            ImGui::PopStyleColor();
+            open = ImGui::TreeNodeEx("##node", flags, "%s", "");
+            DrawRowLabel(labelPosition, icon, iconColor, object.GetName(), color, suffix);
         }
 
         if (m_scrollTo == object.GetId())
@@ -392,8 +478,9 @@ namespace BrightBox3D::Editor
     {
         EditorContext& context = m_application.GetContext();
         ImGui::PushID(&collection);
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_Framed;
-        if (context.GetFocus() == SelectionFocus::Collection && context.GetSelectedCollection() == &collection)
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
+        bool selected = context.GetFocus() == SelectionFocus::Collection && context.GetSelectedCollection() == &collection;
+        if (selected)
         {
             flags |= ImGuiTreeNodeFlags_Selected;
         }
@@ -402,11 +489,17 @@ namespace BrightBox3D::Editor
         {
             label += " *";
         }
+        std::string suffix;
         if (context.GetActiveCollection() == &collection && context.GetEditLevel() && context.GetEditLevel()->GetCollections().size() > 1)
         {
-            label += "  (active)";
+            suffix = "(active)";
         }
-        bool open = ImGui::TreeNodeEx("##collection", flags, "%s", label.c_str());
+        DrawRowBackground(selected);
+        ImVec2 rowPosition = ImGui::GetCursorScreenPos();
+        ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
+        bool open = ImGui::TreeNodeEx("##collection", flags, "%s", "");
+        DrawRowLabel(labelPosition, Icons::Layers, EditorColorVec4(EditorColor::TextDim), label, EditorColorVec4(EditorColor::Text), suffix);
+        DrawRowTag(labelPosition.y, "Collection");
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
             context.SelectCollection(&collection);
@@ -464,7 +557,7 @@ namespace BrightBox3D::Editor
             ImGui::End();
             return;
         }
-        if (ImGui::Button("+"))
+        if (ImGui::Button(Icons::Plus))
         {
             ImGui::OpenPopup("CreatePopup");
         }
@@ -475,22 +568,27 @@ namespace BrightBox3D::Editor
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputTextWithHint("##filter", "Search", &m_filter);
+        ImGui::InputTextWithHint("##filter", (std::string(Icons::Search) + "  Search").c_str(), &m_filter);
 
         std::string levelLabel = level->GetName() + (context.IsDirty() ? " *" : "");
-        if (context.IsPlaying())
-        {
-            levelLabel += "  (PlayMode)";
-        }
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));
-        if (ImGui::Selectable(levelLabel.c_str(), context.GetFocus() == SelectionFocus::Level))
+        std::string levelSuffix = context.IsPlaying() ? "(PlayMode)" : "";
+        bool levelSelected = context.GetFocus() == SelectionFocus::Level;
+        PushSelectionColors();
+        ImGui::Spacing();
+        ImVec2 levelPosition = ImGui::GetCursorScreenPos();
+        float levelHeight = ImGui::GetFrameHeight();
+        if (ImGui::Selectable("##level", levelSelected, ImGuiSelectableFlags_None, ImVec2(0, levelHeight)))
         {
             context.SelectLevel();
         }
-        ImGui::PopStyleColor();
+        ImVec2 levelLabelPosition(levelPosition.x + ImGui::GetStyle().FramePadding.x, levelPosition.y + (levelHeight - ImGui::GetTextLineHeight()) * 0.5f);
+        DrawRowLabel(levelLabelPosition, Icons::Map, EditorColorVec4(EditorColor::Accent), levelLabel, EditorColorVec4(EditorColor::Text), levelSuffix);
+        DrawRowTag(levelLabelPosition.y, "Level");
+        ImGui::Spacing();
         ImGui::Separator();
 
         ImGui::BeginChild("Tree", ImVec2(0, 0), ImGuiChildFlags_None);
+        m_rowIndex = 0;
         for (Level::LevelObjectInstance* selected : context.GetSelectedObjects())
         {
             static Core::Guid lastSelected;
@@ -527,6 +625,7 @@ namespace BrightBox3D::Editor
             }
         }
         ImGui::EndChild();
+        PopSelectionColors();
         ImGui::End();
     }
 }

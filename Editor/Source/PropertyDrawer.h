@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Guid.h"
 #include "Reflection/Object.h"
 
 #include <functional>

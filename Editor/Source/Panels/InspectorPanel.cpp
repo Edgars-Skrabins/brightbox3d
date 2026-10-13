@@ -3,8 +3,12 @@
 #include "Assets/AssetDatabase.h"
 #include "Assets/TextAsset.h"
 #include "Core/Log.h"
+#include "Core/StringUtils.h"
+#include "Panels/LevelViewPanel.h"
+#include "Reflection/PropertyTraits.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
+#include "EditorPreferences.h"
 #include "Framework/GameMode.h"
 #include "Level/LevelSerializer.h"
 #include "Level/MissingComponent.h"
@@ -87,7 +91,7 @@ namespace BrightBox3D::Editor
         const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
         if (!type || !type->IsA(Framework::GameMode::StaticType()))
         {
-            ImGui::TextColored(ImVec4(1, 0.5f, 0.4f, 1), "GameMode class '%s' is not loaded", typeName.c_str());
+            ImGui::TextColored(EditorColorVec4(EditorColor::Missing), "GameMode class '%s' is not loaded", typeName.c_str());
             return false;
         }
         std::unique_ptr<Reflection::Object> temporary(type->CreateInstance());
@@ -161,7 +165,7 @@ namespace BrightBox3D::Editor
         bool overriddenEnabled = !isTransform && LevelSerializer::IsPropertyOverridden(object, &component, "$enabled");
         if (overriddenEnabled)
         {
-            ImGui::TextColored(ImVec4(0.55f, 0.78f, 1.0f, 1.0f), "%s", title.c_str());
+            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", title.c_str());
         }
         else
         {
@@ -327,9 +331,9 @@ namespace BrightBox3D::Editor
         {
             LevelObjectInstance* linkRoot = object.GetLinkRoot();
             const Assets::AssetRecord* record = linkRoot ? Assets::AssetDatabase::Get().FindRecord(linkRoot->GetLink().asset) : nullptr;
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.14f, 0.22f, 0.32f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, EditorColorVec4(EditorColor::Linked, 0.12f));
             ImGui::BeginChild("LinkBar", ImVec2(0, ImGui::GetFrameHeightWithSpacing() * 2.2f), ImGuiChildFlags_Borders);
-            ImGui::TextColored(ImVec4(0.55f, 0.78f, 1.0f, 1.0f), "LevelObject: %s", record ? record->name.c_str() : "missing");
+            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "LevelObject: %s", record ? record->name.c_str() : "missing");
             if (linkRoot && !context.IsPlaying())
             {
                 if (ImGui::SmallButton("Select"))

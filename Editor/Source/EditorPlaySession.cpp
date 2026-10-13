@@ -115,8 +115,12 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        RHI::Texture* backbuffer = m_swapchain->AcquireNextTexture();
-        if (!backbuffer)
+        RenderTo(commands, m_swapchain->AcquireNextTexture());
+    }
+
+    void EditorPlaySession::RenderTo(RHI::CommandList& commands, RHI::Texture* backbuffer)
+    {
+        if (!backbuffer || !IsActive())
         {
             return;
         }

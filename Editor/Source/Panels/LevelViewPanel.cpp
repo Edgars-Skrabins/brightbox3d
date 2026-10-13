@@ -1,12 +1,16 @@
 #include "Panels/LevelViewPanel.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
+#include "EditorPreferences.h"
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
+#include "Icons.h"
 #include "ImGui/ImGuiRenderer.h"
 #include "Level/LevelSerializer.h"
+#include "Physics/Colliders.h"
 #include "Picking.h"
 #include "Rendering/DebugDraw.h"
 #include "Rendering/Light.h"
@@ -105,8 +109,9 @@ namespace BrightBox3D::Editor
     void LevelViewPanel::DrawToolbar()
     {
         EditorContext& context = m_application.GetContext();
-        auto toggle = [](const char* label, bool active)
+        auto toggle = [](const std::string& text, bool active)
         {
+            const char* label = text.c_str();
             if (active)
             {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
@@ -118,32 +123,32 @@ namespace BrightBox3D::Editor
             }
             return pressed;
         };
-        if (toggle("Move", context.GetGizmoOperation() == GizmoOperation::Translate))
+        if (toggle(std::string(Icons::Move) + "  Move", context.GetGizmoOperation() == GizmoOperation::Translate))
         {
             context.SetGizmoOperation(GizmoOperation::Translate);
         }
         ImGui::SameLine();
-        if (toggle("Rotate", context.GetGizmoOperation() == GizmoOperation::Rotate))
+        if (toggle(std::string(Icons::Rotate) + "  Rotate", context.GetGizmoOperation() == GizmoOperation::Rotate))
         {
             context.SetGizmoOperation(GizmoOperation::Rotate);
         }
         ImGui::SameLine();
-        if (toggle("Scale", context.GetGizmoOperation() == GizmoOperation::Scale))
+        if (toggle(std::string(Icons::Scale) + "  Scale", context.GetGizmoOperation() == GizmoOperation::Scale))
         {
             context.SetGizmoOperation(GizmoOperation::Scale);
         }
         ImGui::SameLine();
-        if (ImGui::Button(context.GetGizmoLocal() ? "Local" : "World"))
+        if (ImGui::Button((std::string(Icons::Globe) + (context.GetGizmoLocal() ? "  Local" : "  World")).c_str()))
         {
             context.SetGizmoLocal(!context.GetGizmoLocal());
         }
         ImGui::SameLine();
-        if (toggle("Snap", context.GetSnapping()))
+        if (toggle(std::string(Icons::Magnet) + "  Snap", context.GetSnapping()))
         {
             context.SetSnapping(!context.GetSnapping());
         }
         ImGui::SameLine();
-        if (toggle("Grid", m_showGrid))
+        if (toggle(std::string(Icons::Grid) + "  Grid", m_showGrid))
         {
             m_showGrid = !m_showGrid;
         }
@@ -165,7 +170,7 @@ namespace BrightBox3D::Editor
         if (context.IsEditingLevelObject())
         {
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.55f, 0.78f, 1.0f, 1.0f), "Editing %s", context.GetEditLevel() ? context.GetEditLevel()->GetName().c_str() : "");
+            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "Editing %s", context.GetEditLevel() ? context.GetEditLevel()->GetName().c_str() : "");
             ImGui::SameLine();
             if (ImGui::Button("Save"))
             {
@@ -192,13 +197,13 @@ namespace BrightBox3D::Editor
                     if (const Rendering::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
                     {
                         Math::Matrix4 box = Math::Matrix4::Translation(mesh->bounds.Center()) * node.GetTransform().GetWorldMatrix();
-                        Rendering::DebugDraw::WireBox(box, mesh->bounds.Extents(), { 1.0f, 0.62f, 0.15f, 1.0f }, 0.0f, false);
+                        Rendering::DebugDraw::WireBox(box, mesh->bounds.Extents(), EditorPreferences::Get().GetColor(EditorColor::Accent), 0.0f, false);
                     }
                 }
                 if (auto* light = node.GetComponent<Rendering::Light>())
                 {
                     const Level::Transform& transform = node.GetTransform();
-                    Math::Color color{ 1.0f, 0.9f, 0.4f, 0.9f };
+                    Math::Color color = EditorPreferences::Get().GetColor(EditorColor::LightGizmo);
                     if (light->GetLightType() == Rendering::LightType::Point)
                     {
                         Rendering::DebugDraw::Circle(transform.GetPosition(), Math::Vector3::Up(), light->GetRange(), color, 48, false);
@@ -216,11 +221,44 @@ namespace BrightBox3D::Editor
                         Rendering::DebugDraw::Circle(start, transform.GetForward(), 0.4f, color, 24, false);
                     }
                 }
+                for (Physics::Collider* collider : node.GetComponents<Physics::Collider>())
+                {
+                    Math::Color color = EditorPreferences::Get().GetColor(collider->IsTrigger() ? EditorColor::Trigger : EditorColor::Collider);
+                    const Math::Matrix4& world = node.GetTransform().GetWorldMatrix();
+                    Math::Vector3 center = world.TransformPoint(collider->GetCenter());
+                    Math::Vector3 scale = node.GetTransform().GetLossyScale();
+                    float uniform = std::max(scale.x, std::max(scale.y, scale.z));
+                    if (auto* box = Reflection::Cast<Physics::BoxCollider>(collider))
+                    {
+                        Rendering::DebugDraw::WireBox(Math::Matrix4::Translation(collider->GetCenter()) * world, box->GetSize() * 0.5f, color, 0.0f, false);
+                    }
+                    else if (auto* sphere = Reflection::Cast<Physics::SphereCollider>(collider))
+                    {
+                        float radius = sphere->GetRadius() * uniform;
+                        Rendering::DebugDraw::Circle(center, Math::Vector3::Up(), radius, color, 32, false);
+                        Rendering::DebugDraw::Circle(center, Math::Vector3::Right(), radius, color, 32, false);
+                        Rendering::DebugDraw::Circle(center, Math::Vector3::Forward(), radius, color, 32, false);
+                    }
+                    else if (auto* capsule = Reflection::Cast<Physics::CapsuleCollider>(collider))
+                    {
+                        float radius = capsule->GetRadius() * std::max(scale.x, scale.z);
+                        float half = std::max(capsule->GetHeight() * 0.5f * scale.y - radius, 0.0f);
+                        Math::Vector3 up = node.GetTransform().GetUp();
+                        Rendering::DebugDraw::Circle(center + up * half, up, radius, color, 32, false);
+                        Rendering::DebugDraw::Circle(center - up * half, up, radius, color, 32, false);
+                        Math::Vector3 right = node.GetTransform().GetRight() * radius;
+                        Math::Vector3 forward = node.GetTransform().GetForward() * radius;
+                        for (const Math::Vector3& side : { right, -right, forward, -forward })
+                        {
+                            Rendering::DebugDraw::Line(center + up * half + side, center - up * half + side, color, 0.0f, false);
+                        }
+                    }
+                }
                 if (auto* camera = Reflection::Cast<Framework::Camera>(&node))
                 {
                     Rendering::RenderView view = camera->BuildRenderView(16, 9, 0);
                     Math::Matrix4 limited = Math::Matrix4::PerspectiveFovLH(view.verticalFov * Math::DegreesToRadians, 16.0f / 9.0f, view.nearPlane, std::min(view.farPlane, 3.0f));
-                    Rendering::DebugDraw::Frustum((view.view * limited).Inverse(), { 0.8f, 0.8f, 0.9f, 1.0f }, false);
+                    Rendering::DebugDraw::Frustum((view.view * limited).Inverse(), EditorPreferences::Get().GetColor(EditorColor::CameraGizmo), false);
                 }
                 for (Level::LevelObjectInstance* child : node.GetChildren())
                 {
@@ -248,20 +286,21 @@ namespace BrightBox3D::Editor
                 return;
             }
             const char* glyph = nullptr;
-            ImU32 color = IM_COL32(255, 230, 120, 230);
-            if (object.GetComponent<Rendering::Light>())
+            ImU32 color = 0;
+            if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
             {
-                glyph = "L";
+                glyph = light->GetLightType() == Rendering::LightType::Directional ? Icons::Sun : Icons::Lightbulb;
+                color = EditorColorU32(EditorColor::LightGizmo);
             }
             else if (object.IsA<Framework::Camera>())
             {
-                glyph = "C";
-                color = IM_COL32(200, 210, 255, 230);
+                glyph = Icons::Video;
+                color = EditorColorU32(EditorColor::CameraGizmo);
             }
             else if (object.IsA<Framework::PlayerStart>())
             {
-                glyph = "P";
-                color = IM_COL32(120, 240, 140, 230);
+                glyph = Icons::Flag;
+                color = EditorColorU32(EditorColor::PlayerStartGizmo);
             }
             if (!glyph)
             {
@@ -273,13 +312,13 @@ namespace BrightBox3D::Editor
                 return;
             }
             ImVec2 screen(origin.x + (clip.x / clip.w * 0.5f + 0.5f) * size.x, origin.y + (0.5f - clip.y / clip.w * 0.5f) * size.y);
-            float radius = 10.0f;
+            float radius = 12.0f;
             bool hovered = ImGui::IsWindowHovered() && std::abs(ImGui::GetIO().MousePos.x - screen.x) < radius && std::abs(ImGui::GetIO().MousePos.y - screen.y) < radius;
             bool selected = context.IsSelected(object.GetId());
-            drawList->AddCircleFilled(screen, radius, selected ? IM_COL32(255, 160, 40, 240) : (hovered ? IM_COL32(90, 90, 90, 230) : IM_COL32(40, 40, 40, 200)));
-            drawList->AddCircle(screen, radius, color, 0, 1.5f);
+            drawList->AddCircleFilled(screen, radius, hovered ? EditorColorU32(EditorColor::ControlHovered) : EditorColorU32(EditorColor::GizmoBackground));
+            drawList->AddCircle(screen, radius, selected ? EditorColorU32(EditorColor::Accent) : color, 0, selected ? 2.5f : 1.5f);
             ImVec2 textSize = ImGui::CalcTextSize(glyph);
-            drawList->AddText(ImVec2(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f), color, glyph);
+            drawList->AddText(ImVec2(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f - 1.0f), selected ? EditorColorU32(EditorColor::Accent) : color, glyph);
             if (hovered)
             {
                 m_iconHovered = true;
@@ -499,6 +538,10 @@ namespace BrightBox3D::Editor
         request.view.nearPlane = m_camera.GetNearPlane();
         request.view.farPlane = m_camera.GetFarPlane();
         request.view.showGrid = m_showGrid;
+        request.view.gridColor = EditorPreferences::Get().GetColor(EditorColor::GridMinor);
+        request.view.gridMajorColor = EditorPreferences::Get().GetColor(EditorColor::GridMajor);
+        request.view.gridAxisXColor = EditorPreferences::Get().GetColor(EditorColor::AxisX);
+        request.view.gridAxisZColor = EditorPreferences::Get().GetColor(EditorColor::AxisZ);
         request.view.isEditorView = true;
         request.view.debugMode = m_debugMode;
         request.view.post.antiAliasing = Rendering::AntiAliasing::FXAA;
@@ -516,8 +559,11 @@ namespace BrightBox3D::Editor
         if (context.IsPlaying())
         {
             ImDrawList* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), IM_COL32(60, 140, 255, 200), 0.0f, 0, 2.0f);
-            drawList->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f), IM_COL32(120, 180, 255, 255), "PlayMode - editing live objects (changes revert on stop)");
+            drawList->AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), EditorColorU32(EditorColor::PlayMode, 0.8f), 0.0f, 0, 2.0f);
+            const char* banner = "PlayMode - editing live objects (changes revert on stop)";
+            ImVec2 textSize = ImGui::CalcTextSize(banner);
+            drawList->AddRectFilled(ImVec2(origin.x + 6.0f, origin.y + 6.0f), ImVec2(origin.x + 18.0f + textSize.x, origin.y + 12.0f + textSize.y), EditorColorU32(EditorColor::PlayMode, 0.85f), 4.0f);
+            drawList->AddText(ImVec2(origin.x + 12.0f, origin.y + 9.0f), EditorColorU32(EditorColor::Text), banner);
         }
 
         if ((hovered || ImGui::IsWindowFocused()) && !m_camera.IsFlying() && !ImGui::GetIO().WantTextInput)

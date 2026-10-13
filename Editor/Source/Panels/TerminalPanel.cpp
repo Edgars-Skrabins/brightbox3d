@@ -2,6 +2,7 @@
 
 #include "Core/Log.h"
 #include "EditorApplication.h"
+#include "EditorPreferences.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -30,7 +31,7 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         auto toggle = [](const char* label, bool& value, int count, ImVec4 color)
         {
-            ImGui::PushStyleColor(ImGuiCol_Text, value ? color : ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, value ? color : EditorColorVec4(EditorColor::TextDim));
             std::string text = std::string(label) + " " + std::to_string(count);
             if (ImGui::Button(text.c_str()))
             {
@@ -38,11 +39,11 @@ namespace BrightBox3D::Editor
             }
             ImGui::PopStyleColor();
         };
-        toggle("Info", m_showInfo, Core::Log::Count(Core::LogLevel::Info), ImVec4(0.85f, 0.85f, 0.85f, 1.0f));
+        toggle("Info", m_showInfo, Core::Log::Count(Core::LogLevel::Info), EditorColorVec4(EditorColor::Text));
         ImGui::SameLine();
-        toggle("Warnings", m_showWarnings, Core::Log::Count(Core::LogLevel::Warning), ImVec4(1.0f, 0.8f, 0.3f, 1.0f));
+        toggle("Warnings", m_showWarnings, Core::Log::Count(Core::LogLevel::Warning), EditorColorVec4(EditorColor::Warning));
         ImGui::SameLine();
-        toggle("Errors", m_showErrors, Core::Log::Count(Core::LogLevel::Error), ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+        toggle("Errors", m_showErrors, Core::Log::Count(Core::LogLevel::Error), EditorColorVec4(EditorColor::Error));
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
         ImGui::InputTextWithHint("##filter", "Filter", &m_filter);
@@ -66,7 +67,7 @@ namespace BrightBox3D::Editor
                     return;
                 }
             }
-            ImVec4 color = entry.level == Core::LogLevel::Error ? ImVec4(1.0f, 0.45f, 0.45f, 1.0f) : (entry.level == Core::LogLevel::Warning ? ImVec4(1.0f, 0.82f, 0.35f, 1.0f) : ImVec4(0.85f, 0.85f, 0.85f, 1.0f));
+            ImVec4 color = entry.level == Core::LogLevel::Error ? EditorColorVec4(EditorColor::Error) : (entry.level == Core::LogLevel::Warning ? EditorColorVec4(EditorColor::Warning) : EditorColorVec4(EditorColor::Text));
             ImGui::PushID(static_cast<int>(entry.serial));
             ImGui::TextDisabled("%s", entry.timestamp.c_str());
             ImGui::SameLine();
