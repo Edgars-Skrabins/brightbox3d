@@ -1,6 +1,7 @@
 #include "Runtime/Project.h"
 
 #include "Core/FileSystem.h"
+#include "Core/SharedLibrary.h"
 #include "Core/StringUtils.h"
 
 namespace BrightBox3D::Runtime
@@ -27,6 +28,16 @@ namespace BrightBox3D::Runtime
         }
     }
 
+    std::filesystem::path Project::GetGameModulePath() const
+    {
+        return GetBinariesDirectory() / Core::SharedLibrary::PlatformFileName(m_gameModuleName);
+    }
+
+    std::filesystem::path Project::GetStagingModulePath() const
+    {
+        return GetBinariesDirectory() / ProjectLayout::StagingFolder / Core::SharedLibrary::PlatformFileName(m_gameModuleName);
+    }
+
     Project* Project::GetCurrent()
     {
         return s_current;
@@ -49,7 +60,7 @@ namespace BrightBox3D::Runtime
             error = "A project already exists in this folder";
             return false;
         }
-        if (!Core::FileSystem::EnsureDirectory(directory / "Assets") || !Core::FileSystem::EnsureDirectory(directory / "Source"))
+        if (!Core::FileSystem::EnsureDirectory(directory / ProjectLayout::AssetsFolder) || !Core::FileSystem::EnsureDirectory(directory / ProjectLayout::SourceFolder))
         {
             error = "Cannot create the project folders";
             return false;
@@ -70,7 +81,7 @@ namespace BrightBox3D::Runtime
             error = "Cannot write the project file";
             return false;
         }
-        Core::FileSystem::WriteText(directory / ".gitignore", "Cache/\nBuild/\nBinaries/\nCMakeLists.txt\n.DS_Store\n");
+        Core::FileSystem::WriteText(directory / ProjectLayout::GitIgnoreFileName, "Cache/\nBuild/\nBinaries/\nCMakeLists.txt\n.DS_Store\n");
         return true;
     }
 

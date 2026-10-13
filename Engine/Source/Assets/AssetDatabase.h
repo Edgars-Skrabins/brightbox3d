@@ -38,6 +38,11 @@ namespace BrightBox3D::Assets
     class AssetDatabase
     {
     public:
+        static constexpr const char* AssetsFolder = "Assets";
+        static constexpr const char* CacheFolder = "Cache";
+        static constexpr const char* CookedFolder = "Cooked";
+        static constexpr const char* CookedManifestFileName = "Manifest.json";
+
         static AssetDatabase& Get();
 
         bool Open(const std::filesystem::path& projectRoot, AssetDatabaseMode mode = AssetDatabaseMode::Editor);
@@ -46,8 +51,8 @@ namespace BrightBox3D::Assets
         AssetDatabaseMode GetMode() const { return m_mode; }
 
         const std::filesystem::path& GetProjectRoot() const { return m_projectRoot; }
-        std::filesystem::path GetAssetsDirectory() const { return m_projectRoot / "Assets"; }
-        std::filesystem::path GetCacheDirectory() const { return m_projectRoot / "Cache"; }
+        std::filesystem::path GetAssetsDirectory() const { return m_projectRoot / AssetsFolder; }
+        std::filesystem::path GetCacheDirectory() const { return m_projectRoot / CacheFolder; }
         std::filesystem::path GetCookedDirectory() const;
         std::filesystem::path GetAbsolutePath(const AssetRecord& record) const;
 

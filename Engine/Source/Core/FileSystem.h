@@ -11,6 +11,10 @@ namespace BrightBox3D::Core
     class FileSystem
     {
     public:
+        static constexpr const char* EngineContentFolder = "EngineContent";
+        static constexpr const char* SourceTreeEngineFolder = "Engine";
+        static constexpr const char* SourceTreeContentFolder = "Content";
+
         static std::optional<std::string> ReadText(const std::filesystem::path& path);
         static std::optional<std::vector<uint8_t>> ReadBinary(const std::filesystem::path& path);
         static bool WriteText(const std::filesystem::path& path, const std::string& text);

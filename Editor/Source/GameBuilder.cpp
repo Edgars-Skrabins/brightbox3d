@@ -3,9 +3,9 @@
 #include "Assets/AssetDatabase.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
-#include "Core/SharedLibrary.h"
 #include "EditorContext.h"
 #include "EditorText.h"
+#include "Runtime/BuildLayout.h"
 #include "Runtime/GameManifest.h"
 
 namespace BrightBox3D::Editor
@@ -47,7 +47,7 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path GameBuilder::DefaultOutput(EditorContext& context)
     {
-        return context.GetProjectService().GetProject().GetRoot() / "Build" / PlatformName();
+        return context.GetProjectService().GetProject().GetBuildDirectory() / PlatformName();
     }
 
     bool GameBuilder::Build(EditorContext& context, const std::filesystem::path& output, std::string& error)
@@ -76,38 +76,33 @@ namespace BrightBox3D::Editor
         std::filesystem::remove_all(output, code);
         std::filesystem::create_directories(output, code);
         std::filesystem::path engineBinaries = Core::FileSystem::ExecutableDirectory();
-        std::string executableName = project.GetGameModuleName();
-#if defined(_WIN32)
-        std::filesystem::path player = engineBinaries / "BrightPlayer.exe";
-        executableName += ".exe";
-#else
-        std::filesystem::path player = engineBinaries / "BrightPlayer";
-#endif
+        std::string executableName = Runtime::BuildLayout::PlayerExecutableFileName(project.GetGameModuleName());
+        std::filesystem::path player = engineBinaries / Runtime::BuildLayout::PlayerExecutableFileName();
         if (!std::filesystem::exists(player))
         {
             error = Text(EditorText::PlayerNotFound);
             return false;
         }
         if (!CopyPath(player, output / executableName, error) ||
-            !CopyPath(engineBinaries / Core::SharedLibrary::PlatformFileName("BrightBox3D"), output / Core::SharedLibrary::PlatformFileName("BrightBox3D"), error) ||
-            !CopyPath(database.GetCookedDirectory(), output / "Cooked", error) ||
-            !CopyPath(Core::FileSystem::EngineContentDirectory(), output / "EngineContent", error))
+            !CopyPath(engineBinaries / Runtime::BuildLayout::EngineLibraryFileName(), output / Runtime::BuildLayout::EngineLibraryFileName(), error) ||
+            !CopyPath(database.GetCookedDirectory(), Runtime::BuildLayout::GetCookedDirectory(output), error) ||
+            !CopyPath(Core::FileSystem::EngineContentDirectory(), Runtime::BuildLayout::GetEngineContentDirectory(output), error))
         {
             return false;
         }
-        std::filesystem::path module = project.GetRoot() / "Binaries" / Core::SharedLibrary::PlatformFileName(project.GetGameModuleName());
-        if (std::filesystem::exists(module) && !CopyPath(module, output / module.filename(), error))
+        std::filesystem::path module = project.GetGameModulePath();
+        if (std::filesystem::exists(module) && !CopyPath(module, Runtime::BuildLayout::GetGameModulePath(output, project.GetGameModuleName()), error))
         {
             return false;
         }
         std::filesystem::permissions(output / executableName, std::filesystem::perms::owner_exec | std::filesystem::perms::group_exec | std::filesystem::perms::others_exec, std::filesystem::perm_options::add, code);
 
-        Runtime::GameManifest manifest;
-        manifest.name = project.GetName();
-        manifest.gameModule = std::filesystem::exists(module) ? project.GetGameModuleName() : std::string();
-        manifest.startupLevel = project.GetStartupLevel();
-        manifest.fixedTimeStep = project.GetFixedTimeStep();
-        if (!manifest.Save(output / Runtime::GameManifest::FileName))
+        Runtime::GameManifest manifest = Runtime::GameManifest::FromProject(project);
+        if (!std::filesystem::exists(module))
+        {
+            manifest.gameModule.clear();
+        }
+        if (!manifest.Save(Runtime::BuildLayout::GetManifestPath(output)))
         {
             error = Text(EditorText::ManifestWriteFailed);
             return false;

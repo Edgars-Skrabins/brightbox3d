@@ -124,7 +124,7 @@ namespace BrightBox3D::Assets
 
     std::filesystem::path AssetDatabase::GetCookedDirectory() const
     {
-        return m_mode == AssetDatabaseMode::Cooked ? m_projectRoot / "Cooked" : GetCacheDirectory() / "Cooked";
+        return m_mode == AssetDatabaseMode::Cooked ? m_projectRoot / CookedFolder : GetCacheDirectory() / CookedFolder;
     }
 
     std::filesystem::path AssetDatabase::GetAbsolutePath(const AssetRecord& record) const
@@ -635,13 +635,13 @@ namespace BrightBox3D::Assets
             entry.AddMember("type", Serialization::MakeString(AssetTypeName(record.type), allocator), allocator);
             manifest.PushBack(entry, allocator);
         }
-        Serialization::SaveJsonFile(GetCookedDirectory() / "Manifest.json", manifest);
+        Serialization::SaveJsonFile(GetCookedDirectory() / CookedManifestFileName, manifest);
     }
 
     void AssetDatabase::LoadCookedManifest()
     {
         Serialization::JsonDocument manifest;
-        if (!Serialization::LoadJsonFile(GetCookedDirectory() / "Manifest.json", manifest) || !manifest.IsArray())
+        if (!Serialization::LoadJsonFile(GetCookedDirectory() / CookedManifestFileName, manifest) || !manifest.IsArray())
         {
             Core::Log::Error("Cooked asset manifest is missing");
             return;

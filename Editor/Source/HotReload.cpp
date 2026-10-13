@@ -41,10 +41,6 @@ namespace BrightBox3D::Editor
             return {};
         }
 
-        std::string SharedLibraryName(const std::string& name)
-        {
-            return Core::SharedLibrary::PlatformFileName(name);
-        }
     }
 
     HotReload::HotReload(EditorContext& context) : m_context(context)
@@ -104,14 +100,12 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path HotReload::GetModulePath() const
     {
-        const Runtime::Project& project = m_context.GetProjectService().GetProject();
-        return project.GetRoot() / "Binaries" / SharedLibraryName(project.GetGameModuleName());
+        return m_context.GetProjectService().GetProject().GetGameModulePath();
     }
 
     std::filesystem::path HotReload::GetStagingModulePath() const
     {
-        std::filesystem::path module = GetModulePath();
-        return module.parent_path() / "Staging" / module.filename();
+        return m_context.GetProjectService().GetProject().GetStagingModulePath();
     }
 
     bool HotReload::PromoteStagedModule(std::string& error)
@@ -184,7 +178,7 @@ namespace BrightBox3D::Editor
         if (std::filesystem::exists(module))
         {
             std::string error;
-            if (m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetCacheDirectory() / "HotReload", error))
+            if (m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory(), error))
             {
                 m_statusText = Text(EditorText::GameCodeLoaded);
             }
@@ -295,7 +289,7 @@ namespace BrightBox3D::Editor
             return;
         }
         Runtime::Project& project = m_context.GetProjectService().GetProject();
-        std::filesystem::path buildDirectory = project.GetCacheDirectory() / "Build";
+        std::filesystem::path buildDirectory = project.GetCompileDirectory();
         std::filesystem::path ninja = FindNinja();
         if (!ninja.empty() && std::filesystem::exists(buildDirectory / "CMakeCache.txt") && CachedGenerator(buildDirectory) != NinjaGenerator)
         {
@@ -391,7 +385,7 @@ namespace BrightBox3D::Editor
             return;
         }
         bool loaded = m_module.IsLoaded() ? m_module.Reload(module, error)
-                                          : m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetCacheDirectory() / "HotReload", error);
+                                          : m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory(), error);
         if (!loaded)
         {
             m_state = CompileState::Failed;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Runtime/ProjectLayout.h"
 #include "Serialization/Json.h"
 
 #include <filesystem>
@@ -11,7 +12,7 @@ namespace BrightBox3D::Runtime
     class Project
     {
     public:
-        static constexpr const char* FileName = "Project.bbproject";
+        static constexpr const char* FileName = ProjectLayout::ProjectFileName;
 
         static bool Create(const std::filesystem::path& directory, const std::string& name, std::string& error);
         static bool IsProjectDirectory(const std::filesystem::path& directory);
@@ -21,9 +22,15 @@ namespace BrightBox3D::Runtime
         bool IsOpen() const { return !m_root.empty(); }
 
         const std::filesystem::path& GetRoot() const { return m_root; }
-        std::filesystem::path GetAssetsDirectory() const { return m_root / "Assets"; }
-        std::filesystem::path GetSourceDirectory() const { return m_root / "Source"; }
-        std::filesystem::path GetCacheDirectory() const { return m_root / "Cache"; }
+        std::filesystem::path GetAssetsDirectory() const { return m_root / ProjectLayout::AssetsFolder; }
+        std::filesystem::path GetSourceDirectory() const { return m_root / ProjectLayout::SourceFolder; }
+        std::filesystem::path GetCacheDirectory() const { return m_root / ProjectLayout::CacheFolder; }
+        std::filesystem::path GetBinariesDirectory() const { return m_root / ProjectLayout::BinariesFolder; }
+        std::filesystem::path GetGameModulePath() const;
+        std::filesystem::path GetStagingModulePath() const;
+        std::filesystem::path GetBuildDirectory() const { return m_root / ProjectLayout::BuildFolder; }
+        std::filesystem::path GetCompileDirectory() const { return GetCacheDirectory() / ProjectLayout::CompileCacheFolder; }
+        std::filesystem::path GetHotReloadCacheDirectory() const { return GetCacheDirectory() / ProjectLayout::HotReloadCacheFolder; }
         const std::string& GetName() const { return m_name; }
 
         const Core::Guid& GetStartupLevel() const { return m_startupLevel; }

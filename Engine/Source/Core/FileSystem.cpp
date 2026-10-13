@@ -119,13 +119,13 @@ namespace BrightBox3D::Core
         std::filesystem::path directory = ExecutableDirectory();
         for (int i = 0; i < 6 && !directory.empty(); ++i)
         {
-            if (std::filesystem::exists(directory / "EngineContent"))
+            if (std::filesystem::exists(directory / EngineContentFolder))
             {
                 return directory;
             }
-            if (std::filesystem::exists(directory / "Engine" / "Content"))
+            if (std::filesystem::exists(directory / SourceTreeEngineFolder / SourceTreeContentFolder))
             {
-                return directory / "Engine";
+                return directory / SourceTreeEngineFolder;
             }
             if (!directory.has_parent_path() || directory.parent_path() == directory)
             {
@@ -141,13 +141,13 @@ namespace BrightBox3D::Core
         std::filesystem::path directory = ExecutableDirectory();
         for (int i = 0; i < 6 && !directory.empty(); ++i)
         {
-            if (std::filesystem::exists(directory / "EngineContent"))
+            if (std::filesystem::exists(directory / EngineContentFolder))
             {
-                return directory / "EngineContent";
+                return directory / EngineContentFolder;
             }
-            if (std::filesystem::exists(directory / "Engine" / "Content"))
+            if (std::filesystem::exists(directory / SourceTreeEngineFolder / SourceTreeContentFolder))
             {
-                return directory / "Engine" / "Content";
+                return directory / SourceTreeEngineFolder / SourceTreeContentFolder;
             }
             if (!directory.has_parent_path() || directory.parent_path() == directory)
             {
@@ -155,7 +155,7 @@ namespace BrightBox3D::Core
             }
             directory = directory.parent_path();
         }
-        return ExecutableDirectory() / "EngineContent";
+        return ExecutableDirectory() / EngineContentFolder;
     }
 
     std::string FileSystem::ToGenericString(const std::filesystem::path& path)

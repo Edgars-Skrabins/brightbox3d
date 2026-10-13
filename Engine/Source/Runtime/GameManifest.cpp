@@ -1,7 +1,19 @@
 #include "Runtime/GameManifest.h"
 
+#include "Runtime/Project.h"
+
 namespace BrightBox3D::Runtime
 {
+    GameManifest GameManifest::FromProject(const Project& project)
+    {
+        GameManifest manifest;
+        manifest.name = project.GetName();
+        manifest.gameModule = project.GetGameModuleName();
+        manifest.startupLevel = project.GetStartupLevel();
+        manifest.fixedTimeStep = project.GetFixedTimeStep();
+        return manifest;
+    }
+
     bool GameManifest::Load(const std::filesystem::path& path, std::string& error)
     {
         Serialization::JsonDocument document;

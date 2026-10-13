@@ -8,6 +8,8 @@
 
 namespace BrightBox3D::Runtime
 {
+    class Project;
+
     struct GameManifest
     {
         static constexpr const char* FileName = "Game.json";
@@ -16,6 +18,8 @@ namespace BrightBox3D::Runtime
         std::string gameModule;
         Core::Guid startupLevel;
         float fixedTimeStep = 1.0f / 60.0f;
+
+        static GameManifest FromProject(const Project& project);
 
         bool Load(const std::filesystem::path& path, std::string& error);
         bool Save(const std::filesystem::path& path) const;
