@@ -28,9 +28,7 @@ namespace BrightBox3D::Runtime
             error = "cannot copy module: " + ec.message();
             return false;
         }
-        Reflection::TypeRegistry::SetCurrentModule(m_name);
         bool loaded = m_library.Load(copy);
-        Reflection::TypeRegistry::SetCurrentModule("BrightBox3D");
         if (!loaded)
         {
             error = m_library.LastError();
@@ -63,24 +61,44 @@ namespace BrightBox3D::Runtime
         return true;
     }
 
+    void GameModule::ExtractModuleObjects(Level::ReplacementBatch& batch)
+    {
+        std::string name = m_name;
+        Reflection::TypeRegistry::OnModuleUnloading().Broadcast(name);
+        auto predicate = [name](const Reflection::TypeInfo& type) { return type.GetModuleName() == name; };
+        Level::LevelObjectLibrary::Get().Clear();
+        for (Level::Level* level : Level::Level::GetAllLevels())
+        {
+            Level::ObjectReplacer::Extract(*level, predicate, batch);
+        }
+        Level::ObjectReplacer::DestroyExtracted(batch);
+    }
+
+    void GameModule::RestorePreviousModule(const std::filesystem::path& previous)
+    {
+        bool restored = m_library.Load(previous);
+        if (restored)
+        {
+            m_loadedCopy = previous;
+            Core::Log::Error("Hot reload failed to load the new module; the previous module was restored");
+            return;
+        }
+        Core::Log::Error("Hot reload failed to load the new module, and the previous module could not be restored: " + m_library.LastError());
+        std::error_code ec;
+        std::filesystem::remove(previous, ec);
+        m_loadedCopy.clear();
+    }
+
     void GameModule::Unload()
     {
         if (!m_library.IsLoaded())
         {
             return;
         }
-        std::string name = m_name;
-        Reflection::TypeRegistry::OnModuleUnloading().Broadcast(name);
-        auto predicate = [name](const Reflection::TypeInfo& type) { return type.GetModuleName() == name; };
-        std::vector<Level::ReplacedObject> records;
-        Level::LevelObjectLibrary::Get().Clear();
-        for (Level::Level* level : Level::Level::GetAllLevels())
-        {
-            Level::ObjectReplacer::Extract(*level, predicate, records);
-        }
-        Level::ObjectReplacer::DestroyExtracted(records);
+        Level::ReplacementBatch batch;
+        ExtractModuleObjects(batch);
         m_library.Unload();
-        Level::ObjectReplacer::Restore(records);
+        Level::ObjectReplacer::Restore(batch);
     }
 
     bool GameModule::Reload(const std::filesystem::path& library, std::string& error)
@@ -90,31 +108,17 @@ namespace BrightBox3D::Runtime
             error = "module '" + library.generic_string() + "' does not exist";
             return false;
         }
-        std::string name = m_name;
-        Reflection::TypeRegistry::OnModuleUnloading().Broadcast(name);
-        auto predicate = [name](const Reflection::TypeInfo& type) { return type.GetModuleName() == name; };
-        std::vector<Level::ReplacedObject> records;
-        Level::LevelObjectLibrary::Get().Clear();
-        for (Level::Level* level : Level::Level::GetAllLevels())
-        {
-            Level::ObjectReplacer::Extract(*level, predicate, records);
-        }
-        Level::ObjectReplacer::DestroyExtracted(records);
-
+        Level::ReplacementBatch batch;
+        ExtractModuleObjects(batch);
         std::filesystem::path previous = m_loadedCopy;
         m_library.Unload();
         bool loaded = LoadCopy(library, error);
         if (!loaded && !previous.empty())
         {
-            std::string restoreError;
-            Reflection::TypeRegistry::SetCurrentModule(m_name);
-            m_library.Load(previous);
-            Reflection::TypeRegistry::SetCurrentModule("BrightBox3D");
-            m_loadedCopy = previous;
-            Core::Log::Error("Hot reload failed to load the new module; the previous module was restored");
+            RestorePreviousModule(previous);
         }
-        size_t restored = records.size();
-        Level::ObjectReplacer::Restore(records);
+        size_t restored = batch.Count();
+        Level::ObjectReplacer::Restore(batch);
         if (loaded)
         {
             Core::Log::Info("Hot reloaded '" + m_name + "' (generation " + std::to_string(m_generation) + ", " + std::to_string(restored) + " objects preserved)");

@@ -79,6 +79,11 @@ FetchContent_Declare(smaa
     GIT_TAG 71c806a838bdd7d517df19192a20f0c61b3ca29d
     SOURCE_SUBDIR BrightNoBuild)
 
+FetchContent_Declare(ninja
+    GIT_REPOSITORY https://github.com/ninja-build/ninja.git
+    GIT_TAG v1.12.1
+    GIT_SHALLOW TRUE)
+
 FetchContent_Declare(lucide
     URL https://registry.npmjs.org/lucide-static/-/lucide-static-1.48.0.tgz
     URL_HASH SHA256=3c2ecda3d25f6a9692d83f8036d9a526f7da584a51af74cd16eda4498c5c33d8
@@ -156,6 +161,9 @@ if(BRIGHT_BUILD_TESTS)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 endif()
+
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(ninja)
 
 add_library(BrightPugiXml STATIC ${pugixml_SOURCE_DIR}/src/pugixml.cpp)
 target_include_directories(BrightPugiXml SYSTEM PUBLIC ${pugixml_SOURCE_DIR}/src)

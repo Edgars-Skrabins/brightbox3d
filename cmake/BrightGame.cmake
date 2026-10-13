@@ -14,7 +14,7 @@ if(NOT TARGET BrightBox3D)
     set_target_properties(BrightBox3D PROPERTIES
         IMPORTED_LOCATION "${BRIGHT_ENGINE_LIBRARY}"
         IMPORTED_IMPLIB "${BRIGHT_ENGINE_LINKER_FILE}"
-        INTERFACE_INCLUDE_DIRECTORIES "${BRIGHT_ENGINE_SOURCE_DIR}/Engine/Source;${BRIGHT_RAPIDJSON_INCLUDE}"
+        INTERFACE_INCLUDE_DIRECTORIES "${BRIGHT_ENGINE_SOURCE_DIR}/Engine/Source;${BRIGHT_ENGINE_GENERATED_INCLUDE};${BRIGHT_RAPIDJSON_INCLUDE}"
         INTERFACE_COMPILE_DEFINITIONS "RAPIDJSON_HAS_STDSTRING=1;RAPIDJSON_NOMEMBERITERATORCLASS")
     if(WIN32)
         set_property(TARGET BrightBox3D APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS "NOMINMAX;WIN32_LEAN_AND_MEAN")
@@ -31,6 +31,7 @@ function(bright_add_game_module name source_dir output_dir)
     add_library(${name} SHARED ${sources})
     target_link_libraries(${name} PRIVATE BrightBox3D)
     target_include_directories(${name} PRIVATE ${source_dir})
+    target_compile_definitions(${name} PRIVATE BRIGHT_MODULE_NAME="${name}")
     bright_generate_reflection(${name} ${source_dir})
     set_target_properties(${name} PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY ${output_dir}
@@ -40,8 +41,8 @@ function(bright_add_game_module name source_dir output_dir)
         set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config} ${output_dir} RUNTIME_OUTPUT_DIRECTORY_${config} ${output_dir})
     endforeach()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-        target_compile_options(${name} PRIVATE -Wall -Wno-unused-parameter)
+        target_compile_options(${name} PRIVATE -Wall -Wextra -Wno-unused-parameter -Werror=reorder-init-list)
     elseif(MSVC)
-        target_compile_options(${name} PRIVATE /utf-8 /W3)
+        target_compile_options(${name} PRIVATE /W4 /wd4100 /utf-8)
     endif()
 endfunction()
