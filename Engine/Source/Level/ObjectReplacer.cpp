@@ -1,7 +1,6 @@
 #include "Level/ObjectReplacer.h"
 
 #include "Core/Log.h"
-#include "Level/Level.h"
 #include "Level/MissingComponent.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
@@ -13,24 +12,40 @@ namespace BrightBox3D::Level
 {
     namespace
     {
-        int Depth(const LevelObjectInstance& object)
+        const Reflection::ReferenceRemap NoRemap;
+
+        Reflection::ReferenceList SaveReferences(Reflection::EngineObject& object)
+        {
+            Reflection::ReferenceList references;
+            Reflection::ReferenceCarrier carrier(Reflection::ReferenceCarrier::Mode::Save, references, NoRemap);
+            object.CarryReferences(carrier);
+            return references;
+        }
+
+        struct PendingReferences
+        {
+            Reflection::EngineObject* object = nullptr;
+            Reflection::ReferenceList* references = nullptr;
+        };
+
+        int Depth(const LevelObject& object)
         {
             int depth = 0;
-            for (const LevelObjectInstance* parent = object.GetParent(); parent; parent = parent->GetParent())
+            for (const LevelObject* parent = object.GetParent(); parent; parent = parent->GetParent())
             {
                 ++depth;
             }
             return depth;
         }
 
-        std::string SerializeToString(const Reflection::Object& object)
+        std::string SerializeToString(const Reflection::EngineObject& object)
         {
             Serialization::JsonDocument document;
             Serialization::SerializeProperties(object, document, document.GetAllocator());
             return Serialization::WriteJson(document, false);
         }
 
-        void Deserialize(Reflection::Object& object, const std::string& data)
+        void Deserialize(Reflection::EngineObject& object, const std::string& data)
         {
             Serialization::JsonDocument document;
             if (Serialization::ParseJson(data, document))
@@ -39,76 +54,156 @@ namespace BrightBox3D::Level
             }
         }
 
-        std::unique_ptr<Component> CreateComponent(const std::string& typeName, const std::string& data)
+        std::unique_ptr<LevelObjectComponent> CreateComponent(const ReplacedComponent& entry)
         {
-            const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
-            if (type && type->IsA(Component::StaticType()) && !type->IsAbstract())
+            const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(entry.typeName);
+            std::unique_ptr<LevelObjectComponent> component;
+            if (type && type->IsA(LevelObjectComponent::StaticType()) && !type->IsAbstract())
             {
-                std::unique_ptr<Component> component(static_cast<Component*>(type->CreateInstance()));
-                Deserialize(*component, data);
-                return component;
+                component.reset(static_cast<LevelObjectComponent*>(type->CreateInstance()));
+                Deserialize(*component, entry.data);
             }
-            Core::Log::Warning("Component type '" + typeName + "' no longer exists after reload; its data is preserved");
-            auto missing = std::make_unique<MissingComponent>();
-            missing->SetMissing(typeName, data);
-            return missing;
+            else
+            {
+                Core::Log::Warning("Component type '" + entry.typeName + "' no longer exists after reload; its data is preserved");
+                auto missing = std::make_unique<MissingComponent>();
+                missing->SetMissing(entry.typeName, entry.data);
+                component = std::move(missing);
+            }
+            Level::SetRuntimeState(*component, entry.state);
+            return component;
+        }
+
+        std::unique_ptr<LevelObject> CreateObject(const ReplacedObject& record)
+        {
+            const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(record.typeName);
+            bool missing = !type || !type->IsA(LevelObject::StaticType()) || type->IsAbstract();
+            std::unique_ptr<Reflection::EngineObject> created((missing ? &LevelObject::StaticType() : type)->CreateInstance());
+            std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
+            Level::SetRuntimeState(*object, record.state);
+            Serialization::CopyProperties(record.transform, object->GetTransform());
+            Level::SetRuntimeState(object->GetTransform(), record.transformState);
+            if (missing)
+            {
+                Core::Log::Warning("Type '" + record.typeName + "' no longer exists after reload; '" + record.state.object.name + "' keeps its data as a missing type");
+                object->SetMissingType(record.typeName, record.brainData);
+            }
+            else
+            {
+                Deserialize(*object, record.brainData);
+            }
+            return object;
+        }
+
+        std::unique_ptr<Reflection::EngineObject> CreateEngineObject(const ReplacedEngineObject& record)
+        {
+            for (const std::string& typeName : record.typeNames)
+            {
+                const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
+                if (!type || type->IsAbstract())
+                {
+                    continue;
+                }
+                std::unique_ptr<Reflection::EngineObject> object(type->CreateInstance());
+                if (typeName == record.typeNames.front())
+                {
+                    Deserialize(*object, record.data);
+                }
+                else
+                {
+                    Core::Log::Warning("Type '" + record.typeNames.front() + "' no longer exists after reload; it continues as '" + typeName + "'");
+                }
+                Level::SetRuntimeState(*object, record.state);
+                return object;
+            }
+            Core::Log::Warning("Type '" + record.typeNames.front() + "' no longer exists after reload and has no loaded base class; it was removed");
+            return nullptr;
+        }
+
+        void ExtractEngineObjects(Level& level, const ObjectReplacer::Predicate& isReplaced, ReplacementBatch& batch)
+        {
+            const auto& objects = level.GetEngineObjects();
+            for (size_t index = 0; index < objects.size(); ++index)
+            {
+                Reflection::EngineObject& object = *objects[index];
+                if (!isReplaced(object.GetType()))
+                {
+                    continue;
+                }
+                ReplacedEngineObject record;
+                record.level = &level;
+                record.index = index;
+                for (const Reflection::TypeInfo* type = &object.GetType(); type; type = type->GetBase())
+                {
+                    record.typeNames.push_back(type->GetName());
+                }
+                record.data = SerializeToString(object);
+                record.references = SaveReferences(object);
+                record.state = Level::GetRuntimeState(object);
+                record.oldAddress = &object;
+                record.old = level.ReleaseEngineObjectForReplacement(index);
+                batch.engineObjects.push_back(std::move(record));
+            }
         }
     }
 
-    void ObjectReplacer::Extract(Level& level, const Predicate& isReplaced, std::vector<ReplacedObject>& records)
+    void ObjectReplacer::Extract(Level& level, const Predicate& isReplaced, ReplacementBatch& batch)
     {
-        std::vector<LevelObjectInstance*> affected;
+        ExtractEngineObjects(level, isReplaced, batch);
+        std::vector<ReplacedObject>& records = batch.objects;
+        std::vector<LevelObject*> affected;
         for (const auto& object : level.GetObjects())
         {
+            const auto& components = object->GetComponents();
             bool brain = isReplaced(object->GetType());
-            bool components = std::any_of(object->m_components.begin(), object->m_components.end(), [&](const auto& component) { return isReplaced(component->GetType()); });
-            if (brain || components)
+            bool component = std::any_of(components.begin(), components.end(), [&](const auto& entry) { return isReplaced(entry->GetType()); });
+            if (brain || component)
             {
                 affected.push_back(object.get());
             }
         }
 
         size_t first = records.size();
-        for (LevelObjectInstance* object : affected)
+        for (LevelObject* object : affected)
         {
             ReplacedObject record;
             record.level = &level;
             record.id = object->GetId();
-            record.parentId = object->m_parent ? object->m_parent->GetId() : Core::Guid{};
-            record.collection = object->m_collection;
+            record.parentId = object->GetParent() ? object->GetParent()->GetId() : Core::Guid{};
+            record.collection = object->GetCollection();
             record.siblingIndex = object->GetSiblingIndex();
             record.depth = Depth(*object);
             record.replaceBrain = isReplaced(object->GetType());
-            record.componentCount = object->m_components.size();
+            record.oldAddress = object;
             records.push_back(std::move(record));
         }
 
         for (size_t i = first; i < records.size(); ++i)
         {
             ReplacedObject& record = records[i];
-            LevelObjectInstance* object = level.FindObject(record.id);
+            LevelObject* object = level.FindObject(record.id);
             if (!object)
             {
                 continue;
             }
-            for (size_t index = 0; index < object->m_components.size(); ++index)
+            const auto& components = object->GetComponents();
+            for (size_t index = 0; index < components.size(); ++index)
             {
-                Component& component = *object->m_components[index];
-                if (!isReplaced(component.GetType()) && !record.replaceBrain)
+                LevelObjectComponent& component = *components[index];
+                bool replaced = isReplaced(component.GetType());
+                if (!replaced && !record.replaceBrain)
                 {
                     continue;
                 }
                 ReplacedComponent entry;
                 entry.typeName = component.GetType().GetName();
-                entry.localId = component.m_localId;
-                entry.enabled = component.m_isEnabled;
-                entry.hasLoaded = component.m_hasLoaded;
-                entry.hasStarted = component.m_hasStarted;
-                entry.enabledState = component.m_isEnabledState;
+                entry.state = Level::GetRuntimeState(component);
                 entry.index = index;
-                if (isReplaced(component.GetType()))
+                entry.oldAddress = &component;
+                if (replaced)
                 {
                     entry.data = SerializeToString(component);
+                    entry.references = SaveReferences(component);
                 }
                 record.components.push_back(std::move(entry));
             }
@@ -117,59 +212,31 @@ namespace BrightBox3D::Level
             {
                 record.typeName = object->GetType().GetName();
                 record.brainData = SerializeToString(*object);
-                record.name = object->m_name;
-                record.active = object->m_isActive;
-                record.link = object->m_link;
-                record.ownerId = object->m_ownerId;
-                record.hideInLevelContents = object->m_hideInLevelContents;
-                record.hasLoaded = object->m_hasLoaded;
-                record.hasStarted = object->m_hasStarted;
-                record.enabledState = object->m_isEnabledState;
-                record.pendingDestroy = object->m_isPendingDestroy;
-                record.localPosition = object->m_transform.GetLocalPosition();
-                record.localRotation = object->m_transform.GetLocalRotation();
-                record.localScale = object->m_transform.GetLocalScale();
-                record.transformLocalId = object->m_transform.m_localId;
-                record.children = object->m_children;
-                record.oldBrain = level.ReleaseObjectForReplacement(*object);
-                object->m_children.clear();
-                size_t entryIndex = 0;
-                for (size_t index = 0; index < object->m_components.size(); ++index)
+                record.references = SaveReferences(*object);
+                record.state = Level::GetRuntimeState(*object);
+                Serialization::CopyProperties(object->GetTransform(), record.transform);
+                record.transformState = Level::GetRuntimeState(object->GetTransform());
+                std::vector<std::unique_ptr<LevelObjectComponent>> released;
+                record.oldBrain = level.ReleaseObjectForReplacement(*object, record.children, released);
+                for (size_t index = 0; index < released.size(); ++index)
                 {
-                    ReplacedComponent& entry = record.components[entryIndex++];
-                    if (isReplaced(object->m_components[index]->GetType()))
-                    {
-                        entry.doomed = std::move(object->m_components[index]);
-                    }
-                    else
-                    {
-                        entry.kept = std::move(object->m_components[index]);
-                    }
+                    ReplacedComponent& entry = record.components[index];
+                    (isReplaced(released[index]->GetType()) ? entry.doomed : entry.kept) = std::move(released[index]);
                 }
-                object->m_components.clear();
             }
             else
             {
-                for (ReplacedComponent& entry : record.components)
-                {
-                    Component* component = object->m_components[entry.index].get();
-                    for (const auto& subsystem : level.GetSubsystems())
-                    {
-                        subsystem->OnComponentRemoved(*component);
-                    }
-                }
                 for (auto it = record.components.rbegin(); it != record.components.rend(); ++it)
                 {
-                    it->doomed = std::move(object->m_components[it->index]);
-                    object->m_components.erase(object->m_components.begin() + static_cast<std::ptrdiff_t>(it->index));
+                    it->doomed = level.ReleaseComponentForReplacement(*object, it->index);
                 }
             }
         }
     }
 
-    void ObjectReplacer::DestroyExtracted(std::vector<ReplacedObject>& records)
+    void ObjectReplacer::DestroyExtracted(ReplacementBatch& batch)
     {
-        for (ReplacedObject& record : records)
+        for (ReplacedObject& record : batch.objects)
         {
             for (ReplacedComponent& entry : record.components)
             {
@@ -177,10 +244,31 @@ namespace BrightBox3D::Level
             }
             record.oldBrain.reset();
         }
+        for (ReplacedEngineObject& record : batch.engineObjects)
+        {
+            record.old.reset();
+        }
     }
 
-    void ObjectReplacer::Restore(std::vector<ReplacedObject>& records)
+    void ObjectReplacer::Restore(ReplacementBatch& batch)
     {
+        Reflection::ReferenceRemap remap;
+        std::unordered_set<Level*> levels;
+        std::vector<PendingReferences> pending;
+        for (ReplacedEngineObject& record : batch.engineObjects)
+        {
+            std::unique_ptr<Reflection::EngineObject> object = CreateEngineObject(record);
+            remap[record.oldAddress] = object.get();
+            pending.push_back({ object.get(), &record.references });
+            record.level->InstallEngineObjectReplacement(std::move(object), record.index);
+            levels.insert(record.level);
+        }
+        for (Level* level : levels)
+        {
+            level->RemoveEmptyEngineObjects();
+        }
+
+        std::vector<ReplacedObject>& records = batch.objects;
         std::stable_sort(records.begin(), records.end(), [](const ReplacedObject& a, const ReplacedObject& b) { return a.depth < b.depth; });
         std::unordered_set<Core::Guid> replacedIds;
         for (const ReplacedObject& record : records)
@@ -196,81 +284,59 @@ namespace BrightBox3D::Level
             Level& level = *record.level;
             if (record.replaceBrain)
             {
-                const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(record.typeName);
-                bool missing = !type || !type->IsA(LevelObjectInstance::StaticType()) || type->IsAbstract();
-                std::unique_ptr<Reflection::Object> created((missing ? &LevelObjectInstance::StaticType() : type)->CreateInstance());
-                std::unique_ptr<LevelObjectInstance> object(static_cast<LevelObjectInstance*>(created.release()));
-                object->m_id = record.id;
-                object->m_name = record.name;
-                object->m_isActive = record.active;
-                object->m_link = record.link;
-                object->m_ownerId = record.ownerId;
-                object->m_hideInLevelContents = record.hideInLevelContents;
-                object->m_hasLoaded = record.hasLoaded;
-                object->m_hasStarted = record.hasStarted;
-                object->m_isEnabledState = record.enabledState;
-                object->m_isPendingDestroy = record.pendingDestroy;
-                object->m_transform.m_localId = record.transformLocalId;
-                object->m_transform.SetLocalPosition(record.localPosition);
-                object->m_transform.SetLocalRotation(record.localRotation);
-                object->m_transform.SetLocalScale(record.localScale);
-                if (missing)
-                {
-                    Core::Log::Warning("Type '" + record.typeName + "' no longer exists after reload; '" + record.name + "' keeps its data as a missing type");
-                    object->SetMissingType(record.typeName, record.brainData);
-                }
-                else
-                {
-                    Deserialize(*object, record.brainData);
-                }
+                std::unique_ptr<LevelObject> object = CreateObject(record);
                 for (ReplacedComponent& entry : record.components)
                 {
-                    std::unique_ptr<Component> component = entry.kept ? std::move(entry.kept) : CreateComponent(entry.typeName, entry.data);
-                    component->m_localId = entry.localId;
-                    component->m_isEnabled = entry.enabled;
-                    component->m_hasLoaded = entry.hasLoaded;
-                    component->m_hasStarted = entry.hasStarted;
-                    component->m_isEnabledState = entry.enabledState;
-                    component->m_owner = object.get();
-                    object->m_components.push_back(std::move(component));
+                    bool recreated = !entry.kept;
+                    std::unique_ptr<LevelObjectComponent> component = entry.kept ? std::move(entry.kept) : CreateComponent(entry);
+                    if (recreated)
+                    {
+                        remap[entry.oldAddress] = component.get();
+                        pending.push_back({ component.get(), &entry.references });
+                    }
+                    Level::AttachComponent(*object, std::move(component));
                 }
-                for (LevelObjectInstance* child : record.children)
+                remap[record.oldAddress] = object.get();
+                pending.push_back({ object.get(), &record.references });
+                std::vector<LevelObject*> children;
+                for (LevelObject* child : record.children)
                 {
                     if (!replacedIds.count(child->GetId()))
                     {
-                        object->m_children.push_back(child);
+                        children.push_back(child);
                     }
                 }
-                LevelObjectInstance* parent = record.parentId.IsValid() ? level.FindObject(record.parentId) : nullptr;
-                level.InstallReplacement(std::move(object), parent, parent ? parent->m_collection : record.collection, record.siblingIndex);
+                LevelObject* parent = record.parentId.IsValid() ? level.FindObject(record.parentId) : nullptr;
+                level.InstallReplacement(std::move(object), children, parent, parent ? parent->GetCollection() : record.collection, record.siblingIndex);
             }
-            else
+            else if (LevelObject* object = level.FindObject(record.id))
             {
-                LevelObjectInstance* object = level.FindObject(record.id);
-                if (!object)
-                {
-                    continue;
-                }
                 for (ReplacedComponent& entry : record.components)
                 {
-                    std::unique_ptr<Component> component = CreateComponent(entry.typeName, entry.data);
-                    component->m_localId = entry.localId;
-                    component->m_isEnabled = entry.enabled;
-                    component->m_hasLoaded = entry.hasLoaded;
-                    component->m_hasStarted = entry.hasStarted;
-                    component->m_isEnabledState = entry.enabledState;
-                    component->m_owner = object;
-                    Component* raw = component.get();
-                    size_t index = std::min(entry.index, object->m_components.size());
-                    object->m_components.insert(object->m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(component));
-                    for (const auto& subsystem : level.GetSubsystems())
-                    {
-                        subsystem->OnComponentAdded(*raw);
-                    }
+                    std::unique_ptr<LevelObjectComponent> component = CreateComponent(entry);
+                    remap[entry.oldAddress] = component.get();
+                    pending.push_back({ component.get(), &entry.references });
+                    level.InstallComponentReplacement(*object, std::move(component), entry.index);
                 }
             }
             level.MarkHierarchyChanged();
+            levels.insert(&level);
         }
-        records.clear();
+        std::unordered_set<const Reflection::EngineObject*> restored;
+        for (const PendingReferences& entry : pending)
+        {
+            if (entry.object)
+            {
+                Reflection::ReferenceCarrier carrier(Reflection::ReferenceCarrier::Mode::Restore, *entry.references, remap);
+                entry.object->CarryReferences(carrier);
+                restored.insert(entry.object);
+            }
+        }
+        for (Level* level : levels)
+        {
+            level->RemapReferences(remap, restored);
+        }
+        batch.objects.clear();
+        batch.engineObjects.clear();
     }
 }

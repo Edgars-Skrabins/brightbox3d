@@ -8,7 +8,7 @@
 namespace BrightBox3D::Level
 {
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 
     class LevelCollection
     {
@@ -20,18 +20,18 @@ namespace BrightBox3D::Level
         void SetName(const std::string& name) { m_name = name; }
         const Core::Guid& GetAsset() const { return m_asset; }
         void SetAsset(const Core::Guid& asset) { m_asset = asset; }
-        const std::vector<LevelObjectInstance*>& GetRoots() const { return m_roots; }
+        const std::vector<LevelObject*>& GetRoots() const { return m_roots; }
         bool IsDirty() const { return m_isDirty; }
         void SetDirty(bool dirty) { m_isDirty = dirty; }
 
-        void AddRoot(LevelObjectInstance* object, int index = -1);
-        void RemoveRoot(LevelObjectInstance* object);
+        void AddRoot(LevelObject* object, int index = -1);
+        void RemoveRoot(LevelObject* object);
 
     private:
         Level& m_level;
         std::string m_name;
         Core::Guid m_asset;
-        std::vector<LevelObjectInstance*> m_roots;
+        std::vector<LevelObject*> m_roots;
         bool m_isDirty = false;
     };
 }

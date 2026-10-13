@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Level/Component.h"
+#include "Level/Categories.h"
+#include "Level/LevelObjectComponent.h"
 #include "Math/Matrix4.h"
 
 namespace BrightBox3D::Level
 {
     BrightClass()
-    class Transform : public Component
+    class Transform : public LevelObjectComponent
     {
         BrightBody()
     public:
@@ -53,13 +54,13 @@ namespace BrightBox3D::Level
     private:
         const Transform* GetParentTransform() const;
 
-        BrightProperty(EditAnywhere, Category = "Transform")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
         Math::Vector3 m_localPosition;
 
-        BrightProperty(EditAnywhere, Category = "Transform")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
         Math::Quaternion m_localRotation;
 
-        BrightProperty(EditAnywhere, Category = "Transform")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
         Math::Vector3 m_localScale{ 1.0f, 1.0f, 1.0f };
 
         mutable Math::Matrix4 m_worldMatrix;

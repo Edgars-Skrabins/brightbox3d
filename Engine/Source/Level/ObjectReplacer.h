@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Core/Guid.h"
-#include "Level/LevelObjectInstance.h"
-#include "Math/Quaternion.h"
+#include "Level/Level.h"
+#include "Level/LevelObject.h"
+#include "Level/Transform.h"
 
 #include <functional>
 #include <memory>
@@ -11,21 +12,18 @@
 
 namespace BrightBox3D::Level
 {
-    class Level;
     class LevelCollection;
 
     struct ReplacedComponent
     {
-        std::unique_ptr<Component> kept;
-        std::unique_ptr<Component> doomed;
+        std::unique_ptr<LevelObjectComponent> kept;
+        std::unique_ptr<LevelObjectComponent> doomed;
         std::string typeName;
         std::string data;
-        Core::Guid localId;
-        bool enabled = true;
-        bool hasLoaded = false;
-        bool hasStarted = false;
-        bool enabledState = false;
+        ComponentRuntimeState state;
         size_t index = 0;
+        const Reflection::EngineObject* oldAddress = nullptr;
+        Reflection::ReferenceList references;
     };
 
     struct ReplacedObject
@@ -39,23 +37,34 @@ namespace BrightBox3D::Level
         bool replaceBrain = false;
         std::string typeName;
         std::string brainData;
-        std::unique_ptr<LevelObjectInstance> oldBrain;
-        std::string name;
-        bool active = true;
-        LevelObjectLink link;
-        Core::Guid ownerId;
-        bool hideInLevelContents = false;
-        bool hasLoaded = false;
-        bool hasStarted = false;
-        bool enabledState = false;
-        bool pendingDestroy = false;
-        Math::Vector3 localPosition;
-        Math::Quaternion localRotation;
-        Math::Vector3 localScale{ 1.0f, 1.0f, 1.0f };
-        Core::Guid transformLocalId;
-        std::vector<LevelObjectInstance*> children;
+        std::unique_ptr<LevelObject> oldBrain;
+        const Reflection::EngineObject* oldAddress = nullptr;
+        Reflection::ReferenceList references;
+        LevelObjectRuntimeState state;
+        Transform transform;
+        ComponentRuntimeState transformState;
+        std::vector<LevelObject*> children;
         std::vector<ReplacedComponent> components;
-        size_t componentCount = 0;
+    };
+
+    struct ReplacedEngineObject
+    {
+        Level* level = nullptr;
+        size_t index = 0;
+        std::vector<std::string> typeNames;
+        std::string data;
+        Reflection::EngineObjectState state;
+        std::unique_ptr<Reflection::EngineObject> old;
+        const Reflection::EngineObject* oldAddress = nullptr;
+        Reflection::ReferenceList references;
+    };
+
+    struct ReplacementBatch
+    {
+        std::vector<ReplacedObject> objects;
+        std::vector<ReplacedEngineObject> engineObjects;
+
+        size_t Count() const { return objects.size() + engineObjects.size(); }
     };
 
     class ObjectReplacer
@@ -63,8 +72,8 @@ namespace BrightBox3D::Level
     public:
         using Predicate = std::function<bool(const Reflection::TypeInfo&)>;
 
-        static void Extract(Level& level, const Predicate& isReplaced, std::vector<ReplacedObject>& records);
-        static void DestroyExtracted(std::vector<ReplacedObject>& records);
-        static void Restore(std::vector<ReplacedObject>& records);
+        static void Extract(Level& level, const Predicate& isReplaced, ReplacementBatch& batch);
+        static void DestroyExtracted(ReplacementBatch& batch);
+        static void Restore(ReplacementBatch& batch);
     };
 }

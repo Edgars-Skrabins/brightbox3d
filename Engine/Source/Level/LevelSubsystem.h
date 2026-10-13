@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Reflection/EngineObject.h"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -7,27 +9,23 @@
 
 namespace BrightBox3D::Level
 {
-    class Component;
+    class LevelObjectComponent;
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 
-    class LevelSubsystem
+    BrightClass(.abstract = true)
+    class LevelSubsystem : public Reflection::EngineObject
     {
+        BrightBody()
     public:
         explicit LevelSubsystem(Level& level) : m_level(level) {}
-        virtual ~LevelSubsystem() = default;
 
-        virtual void OnBeginPlay() {}
-        virtual void OnEndPlay() {}
         virtual void OnPreFixedUpdate(float fixedDeltaTime) {}
-        virtual void OnFixedUpdate(float fixedDeltaTime) {}
-        virtual void OnUpdate(float deltaTime) {}
-        virtual void OnLateUpdate(float deltaTime) {}
-        virtual void OnComponentAdded(Component& component) {}
-        virtual void OnComponentRemoved(Component& component) {}
-        virtual void OnObjectTransformChanged(LevelObjectInstance& object) {}
+        virtual void OnComponentAdded(LevelObjectComponent& component) {}
+        virtual void OnComponentRemoved(LevelObjectComponent& component) {}
+        virtual void OnObjectTransformChanged(LevelObject& object) {}
 
-        Level& GetLevel() const { return m_level; }
+        Level* GetLevel() const override { return &m_level; }
 
     private:
         Level& m_level;

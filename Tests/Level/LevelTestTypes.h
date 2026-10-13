@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
+#include "TestCategories.h"
 
 #include <string>
 #include <vector>
@@ -10,7 +11,7 @@ namespace BrightBox3D::Tests
     std::vector<std::string>& LifecycleLog();
 
     BrightClass()
-    class RecordingComponent : public Level::Component
+    class RecordingComponent : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
@@ -29,10 +30,10 @@ namespace BrightBox3D::Tests
         int m_fixedUpdates = 0;
         int m_lateUpdates = 0;
 
-        BrightProperty(EditAnywhere)
+        BrightProperty(.edit = Edit::Anywhere)
         std::string m_label = "component";
 
-        BrightProperty(EditAnywhere)
+        BrightProperty(.edit = Edit::Anywhere)
         float m_power = 1.0f;
 
     private:
@@ -40,7 +41,7 @@ namespace BrightBox3D::Tests
     };
 
     BrightClass()
-    class TestPlayer : public Level::LevelObjectInstance
+    class TestPlayer : public Level::LevelObject
     {
         BrightBody()
     public:
@@ -52,10 +53,23 @@ namespace BrightBox3D::Tests
 
         float m_elapsed = 0.0f;
 
-        BrightProperty(EditDefaultsOnly, Category = "Movement")
+        BrightProperty(.edit = Edit::DefaultsOnly, .category = Movement)
         float m_moveSpeed = 600.0f;
 
-        BrightProperty(EditAnywhere)
+        BrightProperty(.edit = Edit::Anywhere)
         int m_lives = 3;
+    };
+
+    BrightClass()
+    class TestRules : public Reflection::EngineObject
+    {
+        BrightBody()
+    public:
+        void CarryReferences(Reflection::ReferenceCarrier& carrier) override { carrier.Carry(m_target); }
+
+        Level::LevelObject* m_target = nullptr;
+
+        BrightProperty(.edit = Edit::Anywhere)
+        int m_score = 0;
     };
 }

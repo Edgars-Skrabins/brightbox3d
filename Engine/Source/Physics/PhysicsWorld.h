@@ -8,7 +8,7 @@
 namespace BrightBox3D::Level
 {
     class Level;
-    class LevelObjectInstance;
+    class LevelObject;
 }
 
 namespace BrightBox3D::Physics
@@ -17,29 +17,31 @@ namespace BrightBox3D::Physics
 
     struct RaycastHit
     {
-        Level::LevelObjectInstance* object = nullptr;
+        Level::LevelObject* object = nullptr;
         Math::Vector3 point;
         Math::Vector3 normal;
         float distance = 0.0f;
     };
 
+    BrightClass()
     class PhysicsWorld : public Level::LevelSubsystem
     {
+        BrightBody()
     public:
         explicit PhysicsWorld(Level::Level& level);
         ~PhysicsWorld() override;
 
-        void OnBeginPlay() override;
-        void OnEndPlay() override;
+        void OnGameStart() override;
+        void OnGameEnd() override;
         void OnPreFixedUpdate(float fixedDeltaTime) override;
-        void OnFixedUpdate(float fixedDeltaTime) override;
-        void OnComponentAdded(Level::Component& component) override;
-        void OnComponentRemoved(Level::Component& component) override;
+        void OnGameUpdateFixed(float fixedDeltaTime) override;
+        void OnComponentAdded(Level::LevelObjectComponent& component) override;
+        void OnComponentRemoved(Level::LevelObjectComponent& component) override;
 
         bool Raycast(const Math::Vector3& origin, const Math::Vector3& direction, float maxDistance, RaycastHit& hit, bool includeTriggers = false) const;
         void SetGravity(const Math::Vector3& gravity);
         Math::Vector3 GetGravity() const;
-        void MarkDirty(Level::LevelObjectInstance& object);
+        void MarkDirty(Level::LevelObject& object);
         bool IsRunning() const;
 
         Math::Vector3 GetLinearVelocity(const Rigidbody& body) const;

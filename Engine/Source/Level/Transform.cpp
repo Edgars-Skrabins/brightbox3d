@@ -1,12 +1,12 @@
 #include "Level/Transform.h"
 
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
 
 namespace BrightBox3D::Level
 {
     const Transform* Transform::GetParentTransform() const
     {
-        LevelObjectInstance* owner = GetOwner();
+        LevelObject* owner = GetOwner();
         if (!owner || !owner->GetParent())
         {
             return nullptr;
@@ -18,9 +18,9 @@ namespace BrightBox3D::Level
     {
         m_isWorldDirty = true;
         ++m_version;
-        if (LevelObjectInstance* owner = GetOwner())
+        if (LevelObject* owner = GetOwner())
         {
-            for (LevelObjectInstance* child : owner->GetChildren())
+            for (LevelObject* child : owner->GetChildren())
             {
                 child->GetTransform().MarkDirty();
             }

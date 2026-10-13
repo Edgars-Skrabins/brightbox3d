@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Level/Component.h"
+#include "Level/LevelObjectComponent.h"
 #include "Math/Vector3.h"
+#include "Physics/Categories.h"
 
 #include <cstdint>
 
@@ -15,8 +16,8 @@ namespace BrightBox3D::Physics
         Static
     };
 
-    BrightClass(Category = "Physics")
-    class Rigidbody : public Level::Component
+    BrightClass(.category = Categories::Physics, .icon = Icon::Weight)
+    class Rigidbody : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
@@ -48,25 +49,25 @@ namespace BrightBox3D::Physics
         void SetBodyId(uint32_t id) { m_bodyId = id; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         MotionType m_motionType = MotionType::Dynamic;
 
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         float m_mass = 1.0f;
 
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         float m_gravityScale = 1.0f;
 
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         float m_linearDamping = 0.05f;
 
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         float m_angularDamping = 0.05f;
 
-        BrightProperty(EditAnywhere, Category = "Constraints")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Constraints)
         bool m_freezeRotation = false;
 
-        BrightProperty(EditAnywhere, Category = "Body")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         bool m_continuousCollision = false;
 
         uint32_t m_bodyId = 0xFFFFFFFFu;

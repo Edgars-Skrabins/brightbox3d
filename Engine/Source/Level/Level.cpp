@@ -1,6 +1,7 @@
 #include "Level/Level.h"
 
 #include "Core/Log.h"
+#include "Level/LevelSerializer.h"
 
 #include <algorithm>
 #include <mutex>
@@ -10,6 +11,7 @@ namespace BrightBox3D::Level
     namespace
     {
         constexpr int MaxFixedStepsPerFrame = 8;
+        constexpr float MaxTickDeltaTime = 0.25f;
 
         std::mutex& LevelsMutex()
         {
@@ -90,8 +92,8 @@ namespace BrightBox3D::Level
         {
             return;
         }
-        std::vector<LevelObjectInstance*> roots = collection->GetRoots();
-        for (LevelObjectInstance* root : roots)
+        std::vector<LevelObject*> roots = collection->GetRoots();
+        for (LevelObject* root : roots)
         {
             DestroyObjectImmediate(root);
         }
@@ -132,34 +134,34 @@ namespace BrightBox3D::Level
         return m_collections.front().get();
     }
 
-    LevelObjectInstance* Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObjectInstance* parent, const Core::Guid& id, bool initialize)
+    LevelObject* Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObject* parent, const Core::Guid& id, bool initialize)
     {
-        if (!type.IsA(LevelObjectInstance::StaticType()))
+        if (!type.IsA(LevelObject::StaticType()))
         {
-            Core::Log::Error("'" + type.GetName() + "' is not a LevelObjectInstance type");
+            Core::Log::Error("'" + type.GetName() + "' is not a LevelObject type");
             return nullptr;
         }
-        std::unique_ptr<Reflection::Object> created(type.CreateInstance());
+        std::unique_ptr<Reflection::EngineObject> created(type.CreateInstance());
         if (!created)
         {
             Core::Log::Error("'" + type.GetName() + "' is abstract and cannot be created");
             return nullptr;
         }
-        std::unique_ptr<LevelObjectInstance> object(static_cast<LevelObjectInstance*>(created.release()));
+        std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
         if (id.IsValid())
         {
-            object->SetId(id);
+            object->m_state.id = id;
         }
-        object->m_name = type.GetName() == "LevelObjectInstance" ? "LevelObject" : type.GetName();
+        object->m_state.name = type.GetName();
         return AdoptObject(std::move(object), collection, parent, initialize);
     }
 
-    LevelObjectInstance* Level::AdoptObject(std::unique_ptr<LevelObjectInstance> object, LevelCollection* collection, LevelObjectInstance* parent, bool initialize)
+    LevelObject* Level::AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, bool initialize)
     {
         if (m_index.count(object->GetId()))
         {
             Core::Log::Warning("Object id collision for '" + object->GetName() + "'; assigning a new id");
-            object->SetId(Core::Guid::Generate());
+            object->m_state.id = Core::Guid::Generate();
         }
         if (parent && parent->m_level != this)
         {
@@ -174,7 +176,7 @@ namespace BrightBox3D::Level
             collection = GetDefaultCollection();
         }
 
-        LevelObjectInstance* raw = object.get();
+        LevelObject* raw = object.get();
         raw->m_level = this;
         raw->m_collection = collection;
         raw->m_parent = parent;
@@ -209,7 +211,7 @@ namespace BrightBox3D::Level
         return raw;
     }
 
-    void Level::InitializeObject(LevelObjectInstance& object)
+    void Level::InitializeObject(LevelObject& object)
     {
         object.OnInitialize();
         for (const auto& component : object.m_components)
@@ -222,15 +224,15 @@ namespace BrightBox3D::Level
         }
     }
 
-    void Level::ActivateForPlay(LevelObjectInstance& object)
+    void Level::ActivateForPlay(LevelObject& object)
     {
-        if (!object.IsActiveInHierarchy() || object.m_isPendingDestroy)
+        if (!object.IsActiveInHierarchy() || object.m_engineState.isPendingDestroy)
         {
             return;
         }
-        if (!object.m_hasLoaded)
+        if (!object.m_engineState.hasLoaded)
         {
-            object.m_hasLoaded = true;
+            object.m_engineState.hasLoaded = true;
             object.OnGameLoad();
         }
         for (size_t i = 0; i < object.m_components.size(); ++i)
@@ -240,27 +242,27 @@ namespace BrightBox3D::Level
         ApplyEnabledState(object, true);
     }
 
-    void Level::LoadComponent(Component& component)
+    void Level::LoadComponent(LevelObjectComponent& component)
     {
-        if (component.m_hasLoaded || component.m_isPendingDestroy)
+        if (component.m_engineState.hasLoaded || component.m_engineState.isPendingDestroy)
         {
             return;
         }
-        component.m_hasLoaded = true;
+        component.m_engineState.hasLoaded = true;
         component.OnGameLoad();
     }
 
-    void Level::ApplyEnabledState(LevelObjectInstance& object, bool notify)
+    void Level::ApplyEnabledState(LevelObject& object, bool notify)
     {
-        bool objectEnabled = object.IsActiveInHierarchy() && !object.m_isPendingDestroy;
-        if (objectEnabled && !object.m_hasLoaded && m_isPlaying)
+        bool objectEnabled = object.IsActiveInHierarchy() && !object.m_engineState.isPendingDestroy;
+        if (objectEnabled && !object.m_engineState.hasLoaded && m_isPlaying)
         {
-            object.m_hasLoaded = true;
+            object.m_engineState.hasLoaded = true;
             object.OnGameLoad();
         }
-        if (objectEnabled != object.m_isEnabledState)
+        if (objectEnabled != object.m_engineState.isEnabledState)
         {
-            object.m_isEnabledState = objectEnabled;
+            object.m_engineState.isEnabledState = objectEnabled;
             if (notify && m_isPlaying)
             {
                 if (objectEnabled)
@@ -275,15 +277,15 @@ namespace BrightBox3D::Level
         }
         for (size_t i = 0; i < object.m_components.size(); ++i)
         {
-            Component& component = *object.m_components[i];
-            bool componentEnabled = objectEnabled && component.m_isEnabled && !component.m_isPendingDestroy;
+            LevelObjectComponent& component = *object.m_components[i];
+            bool componentEnabled = objectEnabled && component.m_state.isEnabled && !component.m_engineState.isPendingDestroy;
             if (componentEnabled && m_isPlaying)
             {
                 LoadComponent(component);
             }
-            if (componentEnabled != component.m_isEnabledState)
+            if (componentEnabled != component.m_engineState.isEnabledState)
             {
-                component.m_isEnabledState = componentEnabled;
+                component.m_engineState.isEnabledState = componentEnabled;
                 if (notify && m_isPlaying)
                 {
                     if (componentEnabled)
@@ -299,17 +301,17 @@ namespace BrightBox3D::Level
         }
     }
 
-    void Level::RefreshEnabledState(LevelObjectInstance& object)
+    void Level::RefreshEnabledState(LevelObject& object)
     {
         ApplyEnabledState(object, true);
-        std::vector<LevelObjectInstance*> children = object.m_children;
-        for (LevelObjectInstance* child : children)
+        std::vector<LevelObject*> children = object.m_children;
+        for (LevelObject* child : children)
         {
             RefreshEnabledState(*child);
         }
     }
 
-    void Level::OnComponentAttached(Component& component)
+    void Level::OnComponentAttached(LevelObjectComponent& component)
     {
         for (auto& subsystem : m_subsystems)
         {
@@ -322,24 +324,24 @@ namespace BrightBox3D::Level
         }
     }
 
-    void Level::RemoveComponent(Component& component)
+    void Level::RemoveComponent(LevelObjectComponent& component)
     {
-        if (component.m_isPendingDestroy)
+        if (component.m_engineState.isPendingDestroy)
         {
             return;
         }
         if (m_isPlaying && !m_isEnding)
         {
-            component.m_isPendingDestroy = true;
+            component.m_engineState.isPendingDestroy = true;
             m_pendingComponentDestroy.push_back(&component);
             return;
         }
-        LevelObjectInstance* owner = component.m_owner;
+        LevelObject* owner = component.m_owner;
         if (m_isPlaying)
         {
-            if (component.m_isEnabledState)
+            if (component.m_engineState.isEnabledState)
             {
-                component.m_isEnabledState = false;
+                component.m_engineState.isEnabledState = false;
                 component.OnDisable();
             }
             component.OnDestroy();
@@ -351,16 +353,16 @@ namespace BrightBox3D::Level
         owner->DetachComponent(&component);
     }
 
-    void Level::MoveToCollection(LevelObjectInstance& object, LevelCollection* collection)
+    void Level::MoveToCollection(LevelObject& object, LevelCollection* collection)
     {
         object.m_collection = collection;
-        for (LevelObjectInstance* child : object.m_children)
+        for (LevelObject* child : object.m_children)
         {
             MoveToCollection(*child, collection);
         }
     }
 
-    void Level::SetRootCollection(LevelObjectInstance& root, LevelCollection* collection, int siblingIndex)
+    void Level::SetRootCollection(LevelObject& root, LevelCollection* collection, int siblingIndex)
     {
         if (!collection || root.m_parent)
         {
@@ -375,9 +377,9 @@ namespace BrightBox3D::Level
         MarkHierarchyChanged();
     }
 
-    void Level::DestroyObject(LevelObjectInstance* object)
+    void Level::DestroyObject(LevelObject* object)
     {
-        if (!object || object->m_level != this || object->m_isPendingDestroy)
+        if (!object || object->m_level != this || object->m_engineState.isPendingDestroy)
         {
             return;
         }
@@ -386,10 +388,10 @@ namespace BrightBox3D::Level
             DestroyObjectImmediate(object);
             return;
         }
-        std::function<void(LevelObjectInstance&)> mark = [&](LevelObjectInstance& target)
+        std::function<void(LevelObject&)> mark = [&](LevelObject& target)
         {
-            target.m_isPendingDestroy = true;
-            for (LevelObjectInstance* child : target.m_children)
+            target.m_engineState.isPendingDestroy = true;
+            for (LevelObject* child : target.m_children)
             {
                 mark(*child);
             }
@@ -398,11 +400,11 @@ namespace BrightBox3D::Level
         m_pendingDestroy.push_back(object);
     }
 
-    void Level::DestroyRecursive(LevelObjectInstance& object, bool callLifecycle, std::vector<LevelObjectInstance*>& order)
+    void Level::DestroyRecursive(LevelObject& object, bool callLifecycle, std::vector<LevelObject*>& order)
     {
-        object.m_isPendingDestroy = true;
-        std::vector<LevelObjectInstance*> children = object.m_children;
-        for (LevelObjectInstance* child : children)
+        object.m_engineState.isPendingDestroy = true;
+        std::vector<LevelObject*> children = object.m_children;
+        for (LevelObject* child : children)
         {
             DestroyRecursive(*child, callLifecycle, order);
         }
@@ -410,15 +412,15 @@ namespace BrightBox3D::Level
         {
             for (const auto& component : object.m_components)
             {
-                if (component->m_isEnabledState)
+                if (component->m_engineState.isEnabledState)
                 {
-                    component->m_isEnabledState = false;
+                    component->m_engineState.isEnabledState = false;
                     component->OnDisable();
                 }
             }
-            if (object.m_isEnabledState)
+            if (object.m_engineState.isEnabledState)
             {
-                object.m_isEnabledState = false;
+                object.m_engineState.isEnabledState = false;
                 object.OnDisable();
             }
             for (const auto& component : object.m_components)
@@ -430,9 +432,9 @@ namespace BrightBox3D::Level
         order.push_back(&object);
     }
 
-    void Level::FinalizeDestroy(const std::vector<LevelObjectInstance*>& order)
+    void Level::FinalizeDestroy(const std::vector<LevelObject*>& order)
     {
-        for (LevelObjectInstance* object : order)
+        for (LevelObject* object : order)
         {
             OnObjectDestroyed.Broadcast(*object);
             for (const auto& component : object->m_components)
@@ -454,44 +456,61 @@ namespace BrightBox3D::Level
             object->m_children.clear();
             m_index.erase(object->GetId());
         }
-        std::unordered_map<LevelObjectInstance*, bool> doomed;
-        for (LevelObjectInstance* object : order)
+        std::unordered_map<LevelObject*, bool> doomed;
+        for (LevelObject* object : order)
         {
             doomed[object] = true;
         }
-        m_pendingDestroy.erase(std::remove_if(m_pendingDestroy.begin(), m_pendingDestroy.end(), [&](LevelObjectInstance* object) { return doomed.count(object) > 0; }), m_pendingDestroy.end());
-        m_pendingComponentDestroy.erase(std::remove_if(m_pendingComponentDestroy.begin(), m_pendingComponentDestroy.end(), [&](Component* component) { return doomed.count(component->GetOwner()) > 0; }), m_pendingComponentDestroy.end());
+        m_pendingDestroy.erase(std::remove_if(m_pendingDestroy.begin(), m_pendingDestroy.end(), [&](LevelObject* object) { return doomed.count(object) > 0; }), m_pendingDestroy.end());
+        m_pendingComponentDestroy.erase(std::remove_if(m_pendingComponentDestroy.begin(), m_pendingComponentDestroy.end(), [&](LevelObjectComponent* component) { return doomed.count(component->GetOwner()) > 0; }), m_pendingComponentDestroy.end());
         m_objects.erase(std::remove_if(m_objects.begin(), m_objects.end(), [&](const auto& entry) { return doomed.count(entry.get()) > 0; }), m_objects.end());
         MarkHierarchyChanged();
     }
 
-    void Level::DestroyObjectImmediate(LevelObjectInstance* object)
+    void Level::DestroyObjectImmediate(LevelObject* object)
     {
         if (!object || object->m_level != this)
         {
             return;
         }
-        std::vector<LevelObjectInstance*> order;
+        std::vector<LevelObject*> order;
         DestroyRecursive(*object, m_isPlaying, order);
         FinalizeDestroy(order);
     }
 
     void Level::FlushDestroyed()
     {
+        for (auto it = m_engineObjects.begin(); it != m_engineObjects.end();)
+        {
+            if (*it && (*it)->m_engineState.isPendingDestroy)
+            {
+                std::unique_ptr<Reflection::EngineObject> doomed = std::move(*it);
+                it = m_engineObjects.erase(it);
+                if (doomed->m_engineState.hasLoaded)
+                {
+                    doomed->OnGameEnd();
+                }
+                doomed->OnDestroy();
+            }
+            else
+            {
+                ++it;
+            }
+        }
         if (!m_pendingComponentDestroy.empty())
         {
-            std::vector<Component*> components;
+            std::vector<LevelObjectComponent*> components;
             components.swap(m_pendingComponentDestroy);
-            for (Component* component : components)
+            for (LevelObjectComponent* component : components)
             {
-                LevelObjectInstance* owner = component->m_owner;
-                if (!owner || owner->m_isPendingDestroy)
+                LevelObject* owner = component->m_owner;
+                if (!owner || owner->m_engineState.isPendingDestroy)
                 {
                     continue;
                 }
-                if (component->m_isEnabledState)
+                if (component->m_engineState.isEnabledState)
                 {
-                    component->m_isEnabledState = false;
+                    component->m_engineState.isEnabledState = false;
                     component->OnDisable();
                 }
                 component->OnDestroy();
@@ -504,12 +523,12 @@ namespace BrightBox3D::Level
         }
         if (!m_pendingDestroy.empty())
         {
-            std::vector<LevelObjectInstance*> roots = m_pendingDestroy;
-            std::vector<LevelObjectInstance*> order;
-            for (LevelObjectInstance* root : roots)
+            std::vector<LevelObject*> roots = m_pendingDestroy;
+            std::vector<LevelObject*> order;
+            for (LevelObject* root : roots)
             {
                 bool nested = false;
-                for (LevelObjectInstance* other : roots)
+                for (LevelObject* other : roots)
                 {
                     if (other != root && root->IsDescendantOf(other))
                     {
@@ -526,13 +545,13 @@ namespace BrightBox3D::Level
         }
     }
 
-    LevelObjectInstance* Level::FindObject(const Core::Guid& id) const
+    LevelObject* Level::FindObject(const Core::Guid& id) const
     {
         auto it = m_index.find(id);
         return it == m_index.end() ? nullptr : it->second;
     }
 
-    LevelObjectInstance* Level::FindObjectByName(const std::string& name) const
+    LevelObject* Level::FindObjectByName(const std::string& name) const
     {
         for (const auto& object : m_objects)
         {
@@ -544,7 +563,7 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void Level::ForEachObject(const std::function<void(LevelObjectInstance&)>& visitor) const
+    void Level::ForEachObject(const std::function<void(LevelObject&)>& visitor) const
     {
         for (size_t i = 0; i < m_objects.size(); ++i)
         {
@@ -565,13 +584,30 @@ namespace BrightBox3D::Level
         m_frameCount = 0;
         for (auto& subsystem : m_subsystems)
         {
-            subsystem->OnBeginPlay();
+            subsystem->OnGameStart();
         }
         size_t count = m_objects.size();
         for (size_t i = 0; i < count && i < m_objects.size(); ++i)
         {
             ActivateForPlay(*m_objects[i]);
         }
+        size_t engineCount = m_engineObjects.size();
+        for (size_t i = 0; i < engineCount && i < m_engineObjects.size(); ++i)
+        {
+            LoadEngineObject(*m_engineObjects[i]);
+        }
+    }
+
+    void Level::LoadEngineObject(Reflection::EngineObject& object)
+    {
+        Reflection::EngineObjectState& state = object.m_engineState;
+        if (state.hasLoaded || state.isPendingDestroy)
+        {
+            return;
+        }
+        state.hasLoaded = true;
+        state.isEnabledState = true;
+        object.OnGameLoad();
     }
 
     void Level::RunPendingStarts()
@@ -579,24 +615,34 @@ namespace BrightBox3D::Level
         size_t count = m_objects.size();
         for (size_t i = 0; i < count && i < m_objects.size(); ++i)
         {
-            LevelObjectInstance& object = *m_objects[i];
-            if (object.m_isPendingDestroy || !object.m_isEnabledState)
+            LevelObject& object = *m_objects[i];
+            if (object.m_engineState.isPendingDestroy || !object.m_engineState.isEnabledState)
             {
                 continue;
             }
-            if (!object.m_hasStarted)
+            if (!object.m_engineState.hasStarted)
             {
-                object.m_hasStarted = true;
+                object.m_engineState.hasStarted = true;
                 object.OnGameStart();
             }
             for (size_t c = 0; c < object.m_components.size(); ++c)
             {
-                Component& component = *object.m_components[c];
-                if (component.m_isEnabledState && !component.m_hasStarted && !component.m_isPendingDestroy)
+                LevelObjectComponent& component = *object.m_components[c];
+                if (component.m_engineState.isEnabledState && !component.m_engineState.hasStarted && !component.m_engineState.isPendingDestroy)
                 {
-                    component.m_hasStarted = true;
+                    component.m_engineState.hasStarted = true;
                     component.OnGameStart();
                 }
+            }
+        }
+        size_t engineCount = m_engineObjects.size();
+        for (size_t i = 0; i < engineCount && i < m_engineObjects.size(); ++i)
+        {
+            Reflection::EngineObject* object = m_engineObjects[i].get();
+            if (object && object->m_engineState.isEnabledState && !object->m_engineState.hasStarted && !object->m_engineState.isPendingDestroy)
+            {
+                object->m_engineState.hasStarted = true;
+                object->OnGameStart();
             }
         }
     }
@@ -627,7 +673,7 @@ namespace BrightBox3D::Level
 
     void Level::Tick(float deltaTime, bool stepping)
     {
-        deltaTime = std::clamp(deltaTime, 0.0f, 0.25f);
+        deltaTime = std::clamp(deltaTime, 0.0f, MaxTickDeltaTime);
         m_unscaledDeltaTime = deltaTime;
         m_deltaTime = deltaTime * m_timeScale;
         m_unscaledTime += deltaTime;
@@ -648,28 +694,7 @@ namespace BrightBox3D::Level
             {
                 subsystem->OnPreFixedUpdate(m_fixedDeltaTime);
             }
-            size_t count = m_objects.size();
-            for (size_t i = 0; i < count && i < m_objects.size(); ++i)
-            {
-                LevelObjectInstance& object = *m_objects[i];
-                if (!object.m_isEnabledState || object.m_isPendingDestroy || !object.m_hasStarted)
-                {
-                    continue;
-                }
-                object.OnGameUpdateFixed(m_fixedDeltaTime);
-                for (size_t c = 0; c < object.m_components.size(); ++c)
-                {
-                    Component& component = *object.m_components[c];
-                    if (component.m_isEnabledState && component.m_hasStarted && !component.m_isPendingDestroy)
-                    {
-                        component.OnGameUpdateFixed(m_fixedDeltaTime);
-                    }
-                }
-            }
-            for (auto& subsystem : m_subsystems)
-            {
-                subsystem->OnFixedUpdate(m_fixedDeltaTime);
-            }
+            DispatchUpdate(&Reflection::EngineObject::OnGameUpdateFixed, m_fixedDeltaTime);
             m_fixedAccumulator -= m_fixedDeltaTime;
             ++steps;
         }
@@ -678,53 +703,50 @@ namespace BrightBox3D::Level
             m_fixedAccumulator = std::min(m_fixedAccumulator, m_fixedDeltaTime);
         }
 
+        DispatchUpdate(&Reflection::EngineObject::OnGameUpdate, m_deltaTime);
+        DispatchUpdate(&Reflection::EngineObject::OnGameUpdateLate, m_deltaTime);
+        FlushDestroyed();
+    }
+
+    void Level::DispatchUpdate(void (Reflection::EngineObject::*callback)(float), float deltaTime)
+    {
         size_t count = m_objects.size();
         for (size_t i = 0; i < count && i < m_objects.size(); ++i)
         {
-            LevelObjectInstance& object = *m_objects[i];
-            if (!object.m_isEnabledState || object.m_isPendingDestroy || !object.m_hasStarted)
+            LevelObject& object = *m_objects[i];
+            if (!IsUpdatable(object))
             {
                 continue;
             }
-            object.OnGameUpdate(m_deltaTime);
+            (object.*callback)(deltaTime);
             for (size_t c = 0; c < object.m_components.size(); ++c)
             {
-                Component& component = *object.m_components[c];
-                if (component.m_isEnabledState && component.m_hasStarted && !component.m_isPendingDestroy)
+                LevelObjectComponent& component = *object.m_components[c];
+                if (IsUpdatable(component))
                 {
-                    component.OnGameUpdate(m_deltaTime);
+                    (component.*callback)(deltaTime);
                 }
+            }
+        }
+        size_t engineCount = m_engineObjects.size();
+        for (size_t i = 0; i < engineCount && i < m_engineObjects.size(); ++i)
+        {
+            Reflection::EngineObject* object = m_engineObjects[i].get();
+            if (object && IsUpdatable(*object))
+            {
+                (object->*callback)(deltaTime);
             }
         }
         for (auto& subsystem : m_subsystems)
         {
-            subsystem->OnUpdate(m_deltaTime);
+            (subsystem.get()->*callback)(deltaTime);
         }
+    }
 
-        count = m_objects.size();
-        for (size_t i = 0; i < count && i < m_objects.size(); ++i)
-        {
-            LevelObjectInstance& object = *m_objects[i];
-            if (!object.m_isEnabledState || object.m_isPendingDestroy || !object.m_hasStarted)
-            {
-                continue;
-            }
-            object.OnGameUpdateLate(m_deltaTime);
-            for (size_t c = 0; c < object.m_components.size(); ++c)
-            {
-                Component& component = *object.m_components[c];
-                if (component.m_isEnabledState && component.m_hasStarted && !component.m_isPendingDestroy)
-                {
-                    component.OnGameUpdateLate(m_deltaTime);
-                }
-            }
-        }
-        for (auto& subsystem : m_subsystems)
-        {
-            subsystem->OnLateUpdate(m_deltaTime);
-        }
-
-        FlushDestroyed();
+    bool Level::IsUpdatable(const Reflection::EngineObject& object)
+    {
+        const Reflection::EngineObjectState& state = object.m_engineState;
+        return state.isEnabledState && state.hasStarted && !state.isPendingDestroy;
     }
 
     void Level::EndPlay()
@@ -735,34 +757,51 @@ namespace BrightBox3D::Level
         }
         FlushDestroyed();
         m_isEnding = true;
+        for (auto it = m_engineObjects.rbegin(); it != m_engineObjects.rend(); ++it)
+        {
+            Reflection::EngineObject& object = **it;
+            if (object.m_engineState.hasLoaded)
+            {
+                object.m_engineState.isEnabledState = false;
+                object.OnGameEnd();
+            }
+        }
+        for (auto it = m_engineObjects.rbegin(); it != m_engineObjects.rend(); ++it)
+        {
+            Reflection::EngineObject& object = **it;
+            if (object.m_engineState.hasLoaded)
+            {
+                object.OnDestroy();
+            }
+        }
         for (size_t i = 0; i < m_objects.size(); ++i)
         {
-            LevelObjectInstance& object = *m_objects[i];
+            LevelObject& object = *m_objects[i];
             for (const auto& component : object.m_components)
             {
-                if (component->m_isEnabledState)
+                if (component->m_engineState.isEnabledState)
                 {
-                    component->m_isEnabledState = false;
+                    component->m_engineState.isEnabledState = false;
                     component->OnDisable();
                 }
             }
-            if (object.m_isEnabledState)
+            if (object.m_engineState.isEnabledState)
             {
-                object.m_isEnabledState = false;
+                object.m_engineState.isEnabledState = false;
                 object.OnDisable();
             }
         }
         for (size_t i = 0; i < m_objects.size(); ++i)
         {
-            LevelObjectInstance& object = *m_objects[i];
-            if (!object.m_hasLoaded)
+            LevelObject& object = *m_objects[i];
+            if (!object.m_engineState.hasLoaded)
             {
                 continue;
             }
             object.OnGameEnd();
             for (const auto& component : object.m_components)
             {
-                if (component->m_hasLoaded)
+                if (component->m_engineState.hasLoaded)
                 {
                     component->OnGameEnd();
                 }
@@ -770,28 +809,65 @@ namespace BrightBox3D::Level
         }
         for (size_t i = 0; i < m_objects.size(); ++i)
         {
-            LevelObjectInstance& object = *m_objects[i];
+            LevelObject& object = *m_objects[i];
             for (const auto& component : object.m_components)
             {
-                if (component->m_hasLoaded)
+                if (component->m_engineState.hasLoaded)
                 {
                     component->OnDestroy();
                 }
             }
-            if (object.m_hasLoaded)
+            if (object.m_engineState.hasLoaded)
             {
                 object.OnDestroy();
             }
         }
         for (auto& subsystem : m_subsystems)
         {
-            subsystem->OnEndPlay();
+            subsystem->OnGameEnd();
         }
         m_isEnding = false;
         m_isPlaying = false;
     }
 
-    std::unique_ptr<LevelObjectInstance> Level::ReleaseObjectForReplacement(LevelObjectInstance& object)
+    LevelObjectRuntimeState Level::GetRuntimeState(const LevelObject& object)
+    {
+        return { object.m_engineState, object.m_state };
+    }
+
+    void Level::SetRuntimeState(LevelObject& object, const LevelObjectRuntimeState& state)
+    {
+        object.m_engineState = state.engine;
+        object.m_state = state.object;
+    }
+
+    ComponentRuntimeState Level::GetRuntimeState(const LevelObjectComponent& component)
+    {
+        return { component.m_engineState, component.m_state };
+    }
+
+    void Level::SetRuntimeState(LevelObjectComponent& component, const ComponentRuntimeState& state)
+    {
+        component.m_engineState = state.engine;
+        component.m_state = state.component;
+    }
+
+    Reflection::EngineObjectState Level::GetRuntimeState(const Reflection::EngineObject& object)
+    {
+        return object.m_engineState;
+    }
+
+    void Level::SetRuntimeState(Reflection::EngineObject& object, const Reflection::EngineObjectState& state)
+    {
+        object.m_engineState = state;
+    }
+
+    void Level::AttachComponent(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, int index)
+    {
+        object.AttachComponent(std::move(component), index);
+    }
+
+    std::unique_ptr<LevelObject> Level::ReleaseObjectForReplacement(LevelObject& object, std::vector<LevelObject*>& children, std::vector<std::unique_ptr<LevelObjectComponent>>& components)
     {
         for (const auto& component : object.m_components)
         {
@@ -800,6 +876,13 @@ namespace BrightBox3D::Level
                 subsystem->OnComponentRemoved(*component);
             }
         }
+        auto queued = std::find(m_pendingDestroy.begin(), m_pendingDestroy.end(), &object);
+        if (queued != m_pendingDestroy.end())
+        {
+            m_pendingDestroy.erase(queued);
+            m_replacedPendingDestroy.insert(object.GetId());
+        }
+        m_pendingComponentDestroy.erase(std::remove_if(m_pendingComponentDestroy.begin(), m_pendingComponentDestroy.end(), [&](LevelObjectComponent* component) { return component->m_owner == &object; }), m_pendingComponentDestroy.end());
         if (object.m_parent)
         {
             auto& siblings = object.m_parent->m_children;
@@ -809,12 +892,16 @@ namespace BrightBox3D::Level
         {
             object.m_collection->RemoveRoot(&object);
         }
+        children = std::move(object.m_children);
+        object.m_children.clear();
+        components = std::move(object.m_components);
+        object.m_components.clear();
         m_index.erase(object.GetId());
         for (auto it = m_objects.begin(); it != m_objects.end(); ++it)
         {
             if (it->get() == &object)
             {
-                std::unique_ptr<LevelObjectInstance> released = std::move(*it);
+                std::unique_ptr<LevelObject> released = std::move(*it);
                 m_objects.erase(it);
                 return released;
             }
@@ -822,9 +909,9 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void Level::InstallReplacement(std::unique_ptr<LevelObjectInstance> replacement, LevelObjectInstance* parent, LevelCollection* collection, int siblingIndex)
+    void Level::InstallReplacement(std::unique_ptr<LevelObject> replacement, const std::vector<LevelObject*>& children, LevelObject* parent, LevelCollection* collection, int siblingIndex)
     {
-        LevelObjectInstance* raw = replacement.get();
+        LevelObject* raw = replacement.get();
         raw->m_level = this;
         raw->m_collection = collection;
         raw->m_parent = parent;
@@ -845,21 +932,180 @@ namespace BrightBox3D::Level
         {
             collection->AddRoot(raw, siblingIndex);
         }
-        for (LevelObjectInstance* child : raw->m_children)
+        for (LevelObject* child : children)
         {
+            raw->m_children.push_back(child);
             child->m_parent = raw;
         }
         for (const auto& component : raw->m_components)
         {
             component->m_owner = raw;
+            if (component->m_engineState.isPendingDestroy)
+            {
+                m_pendingComponentDestroy.push_back(component.get());
+            }
             for (auto& subsystem : m_subsystems)
             {
                 subsystem->OnComponentAdded(*component);
             }
         }
+        if (m_replacedPendingDestroy.erase(raw->GetId()))
+        {
+            m_pendingDestroy.push_back(raw);
+        }
         raw->m_transform.MarkDirty();
         m_index[raw->GetId()] = raw;
         m_objects.push_back(std::move(replacement));
         MarkHierarchyChanged();
+    }
+
+    std::unique_ptr<LevelObjectComponent> Level::ReleaseComponentForReplacement(LevelObject& object, size_t index)
+    {
+        LevelObjectComponent* component = object.m_components[index].get();
+        for (auto& subsystem : m_subsystems)
+        {
+            subsystem->OnComponentRemoved(*component);
+        }
+        m_pendingComponentDestroy.erase(std::remove(m_pendingComponentDestroy.begin(), m_pendingComponentDestroy.end(), component), m_pendingComponentDestroy.end());
+        std::unique_ptr<LevelObjectComponent> released = std::move(object.m_components[index]);
+        object.m_components.erase(object.m_components.begin() + static_cast<std::ptrdiff_t>(index));
+        return released;
+    }
+
+    void Level::InstallComponentReplacement(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, size_t index)
+    {
+        LevelObjectComponent* raw = component.get();
+        raw->m_owner = &object;
+        index = std::min(index, object.m_components.size());
+        object.m_components.insert(object.m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(component));
+        if (raw->m_engineState.isPendingDestroy)
+        {
+            m_pendingComponentDestroy.push_back(raw);
+        }
+        for (auto& subsystem : m_subsystems)
+        {
+            subsystem->OnComponentAdded(*raw);
+        }
+        MarkHierarchyChanged();
+    }
+
+    Reflection::EngineObject* Level::CreateEngineObject(const Reflection::TypeInfo& type)
+    {
+        if (type.IsA(LevelObject::StaticType()) || type.IsA(LevelObjectComponent::StaticType()))
+        {
+            Core::Log::Error("'" + type.GetName() + "' lives in the world; create it as a LevelObject or component instead");
+            return nullptr;
+        }
+        std::unique_ptr<Reflection::EngineObject> object(type.CreateInstance());
+        if (!object)
+        {
+            Core::Log::Error("'" + type.GetName() + "' is abstract and cannot be created");
+            return nullptr;
+        }
+        Reflection::EngineObject* raw = object.get();
+        raw->m_level = this;
+        m_engineObjects.push_back(std::move(object));
+        if (m_isPlaying)
+        {
+            LoadEngineObject(*raw);
+        }
+        return raw;
+    }
+
+    void Level::DestroyEngineObject(Reflection::EngineObject* object)
+    {
+        auto it = std::find_if(m_engineObjects.begin(), m_engineObjects.end(), [&](const auto& entry) { return entry.get() == object; });
+        if (it == m_engineObjects.end() || object->m_engineState.isPendingDestroy)
+        {
+            return;
+        }
+        object->m_engineState.isPendingDestroy = true;
+        if (!m_isPlaying)
+        {
+            std::unique_ptr<Reflection::EngineObject> doomed = std::move(*it);
+            m_engineObjects.erase(it);
+            doomed->OnDestroy();
+        }
+    }
+
+    std::unique_ptr<Reflection::EngineObject> Level::ReleaseEngineObjectForReplacement(size_t index)
+    {
+        return std::move(m_engineObjects[index]);
+    }
+
+    void Level::InstallEngineObjectReplacement(std::unique_ptr<Reflection::EngineObject> replacement, size_t index)
+    {
+        if (replacement)
+        {
+            replacement->m_level = this;
+        }
+        m_engineObjects[index] = std::move(replacement);
+    }
+
+    void Level::RemapReferences(const Reflection::ReferenceRemap& remap, const std::unordered_set<const Reflection::EngineObject*>& skip)
+    {
+        Reflection::ReferenceList unused;
+        auto remapObject = [&](Reflection::EngineObject& object)
+        {
+            if (!skip.count(&object))
+            {
+                Reflection::ReferenceCarrier carrier(Reflection::ReferenceCarrier::Mode::Remap, unused, remap);
+                object.CarryReferences(carrier);
+            }
+        };
+        for (const auto& object : m_engineObjects)
+        {
+            if (object)
+            {
+                remapObject(*object);
+            }
+        }
+        for (const auto& object : m_objects)
+        {
+            remapObject(*object);
+            remapObject(object->GetTransform());
+            for (const auto& component : object->m_components)
+            {
+                remapObject(*component);
+            }
+        }
+        for (const auto& subsystem : m_subsystems)
+        {
+            remapObject(*subsystem);
+        }
+    }
+
+    void Level::RemoveEmptyEngineObjects()
+    {
+        m_engineObjects.erase(std::remove(m_engineObjects.begin(), m_engineObjects.end(), nullptr), m_engineObjects.end());
+    }
+
+    LevelCollection* Level::GetRuntimeCollection()
+    {
+        LevelCollection* collection = FindCollectionByName(RuntimeCollectionName);
+        return collection ? collection : AddCollection(RuntimeCollectionName);
+    }
+
+    LevelObject* Level::Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent)
+    {
+        LevelCollection* collection = parent ? parent->GetCollection() : (m_isPlaying ? GetRuntimeCollection() : GetDefaultCollection());
+        LevelObject* object = LevelSerializer::Instantiate(*this, variant.guid, collection, parent, {}, false);
+        if (!object)
+        {
+            return nullptr;
+        }
+        object->GetTransform().SetPositionAndRotation(position, rotation);
+        InitializeHierarchy(*object);
+        return object;
+    }
+
+    void Level::InitializeHierarchy(LevelObject& root)
+    {
+        InitializeObject(root);
+        std::vector<LevelObject*> children = root.GetChildren();
+        for (LevelObject* child : children)
+        {
+            InitializeHierarchy(*child);
+        }
     }
 }

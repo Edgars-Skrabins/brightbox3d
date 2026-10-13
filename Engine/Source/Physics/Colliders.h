@@ -1,14 +1,16 @@
 #pragma once
 
 #include "Assets/AssetDatabase.h"
-#include "Level/Component.h"
+#include "Geometry/Categories.h"
+#include "Geometry/ModelAsset.h"
+#include "Level/LevelObjectComponent.h"
 #include "Math/Vector3.h"
-#include "Rendering/ModelAsset.h"
+#include "Physics/Categories.h"
 
 namespace BrightBox3D::Physics
 {
-    BrightClass(Abstract)
-    class Collider : public Level::Component
+    BrightClass(.icon = Icon::SquareDashed, .abstract = true)
+    class Collider : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
@@ -21,20 +23,20 @@ namespace BrightBox3D::Physics
         float GetRestitution() const { return m_restitution; }
 
     protected:
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         bool m_isTrigger = false;
 
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         Math::Vector3 m_center;
 
-        BrightProperty(EditAnywhere, Category = "Material")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Material)
         float m_friction = 0.5f;
 
-        BrightProperty(EditAnywhere, Category = "Material")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Material)
         float m_restitution = 0.0f;
     };
 
-    BrightClass(Category = "Physics")
+    BrightClass(.category = Categories::Physics)
     class BoxCollider : public Collider
     {
         BrightBody()
@@ -43,11 +45,11 @@ namespace BrightBox3D::Physics
         void SetSize(const Math::Vector3& size) { m_size = size; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         Math::Vector3 m_size{ 1.0f, 1.0f, 1.0f };
     };
 
-    BrightClass(Category = "Physics")
+    BrightClass(.category = Categories::Physics)
     class SphereCollider : public Collider
     {
         BrightBody()
@@ -56,11 +58,11 @@ namespace BrightBox3D::Physics
         void SetRadius(float radius) { m_radius = radius; }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         float m_radius = 0.5f;
     };
 
-    BrightClass(Category = "Physics")
+    BrightClass(.category = Categories::Physics)
     class CapsuleCollider : public Collider
     {
         BrightBody()
@@ -74,36 +76,36 @@ namespace BrightBox3D::Physics
         }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         float m_radius = 0.5f;
 
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         float m_height = 2.0f;
     };
 
-    BrightClass(Category = "Physics")
+    BrightClass(.category = Categories::Physics)
     class MeshCollider : public Collider
     {
         BrightBody()
     public:
         bool IsConvex() const { return m_convex; }
         void SetConvex(bool convex) { m_convex = convex; }
-        const Assets::AssetReference<Rendering::ModelAsset>& GetModel() const { return m_model; }
+        const Assets::AssetReference<Geometry::ModelAsset>& GetModel() const { return m_model; }
         int32_t GetMeshIndex() const { return m_meshIndex; }
-        void SetMesh(const Assets::AssetReference<Rendering::ModelAsset>& model, int32_t meshIndex)
+        void SetMesh(const Assets::AssetReference<Geometry::ModelAsset>& model, int32_t meshIndex)
         {
             m_model = model;
             m_meshIndex = meshIndex;
         }
 
     private:
-        BrightProperty(EditAnywhere, Category = "Collider")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Collider)
         bool m_convex = false;
 
-        BrightProperty(EditAnywhere, Category = "Mesh")
-        Assets::AssetReference<Rendering::ModelAsset> m_model;
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Mesh)
+        Assets::AssetReference<Geometry::ModelAsset> m_model;
 
-        BrightProperty(EditAnywhere, Category = "Mesh")
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Mesh)
         int32_t m_meshIndex = 0;
     };
 }

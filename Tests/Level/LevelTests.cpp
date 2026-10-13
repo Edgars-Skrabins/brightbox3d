@@ -2,8 +2,9 @@
 #include "Level/Level.h"
 #include "Level/LevelAssets.h"
 #include "Level/LevelSerializer.h"
-#include "Level/MissingComponent.h"
 #include "Level/LevelTestTypes.h"
+#include "Level/MissingComponent.h"
+#include "Level/ObjectReplacer.h"
 #include "Serialization/ObjectSerializer.h"
 
 #include <gtest/gtest.h>
@@ -11,7 +12,7 @@
 #include <filesystem>
 
 using namespace BrightBox3D;
-using BrightBox3D::Level::LevelObjectInstance;
+using BrightBox3D::Level::LevelObject;
 using BrightBox3D::Level::LevelCollection;
 using BrightBox3D::Level::LevelSerializer;
 using BrightBox3D::Level::LevelObjectLibrary;
@@ -78,8 +79,8 @@ namespace
 TEST(LevelTests, TransformHierarchyComposesAndKeepsWorld)
 {
     RuntimeLevel level;
-    LevelObjectInstance* parent = level.CreateObject(LevelObjectInstance::StaticType());
-    LevelObjectInstance* child = level.CreateObject(LevelObjectInstance::StaticType(), nullptr, parent);
+    LevelObject* parent = level.CreateObject(LevelObject::StaticType());
+    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, parent);
     parent->GetTransform().SetLocalPosition({ 10.0f, 0.0f, 0.0f });
     parent->GetTransform().SetLocalEulerAngles({ 0.0f, 90.0f, 0.0f });
     child->GetTransform().SetLocalPosition({ 0.0f, 0.0f, 1.0f });
@@ -148,8 +149,8 @@ TEST(LevelTests, DestroyIsDeferredDuringPlay)
 {
     LifecycleLog().clear();
     RuntimeLevel level;
-    LevelObjectInstance* parent = level.CreateObject(LevelObjectInstance::StaticType());
-    LevelObjectInstance* child = level.CreateObject(LevelObjectInstance::StaticType(), nullptr, parent);
+    LevelObject* parent = level.CreateObject(LevelObject::StaticType());
+    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, parent);
     child->AddComponent<RecordingComponent>()->m_label = "child";
     level.BeginPlay();
     level.Update(0.016f);
@@ -172,7 +173,7 @@ TEST(LevelTests, SpawnDuringPlayLoadsImmediatelyAndStartsNextFrame)
     LifecycleLog().clear();
     RuntimeLevel level;
     level.BeginPlay();
-    LevelObjectInstance* spawned = level.CreateObject(LevelObjectInstance::StaticType());
+    LevelObject* spawned = level.CreateObject(LevelObject::StaticType());
     spawned->AddComponent<RecordingComponent>()->m_label = "spawned";
     EXPECT_TRUE(Contains(LifecycleLog(), "component:Load"));
     EXPECT_FALSE(Contains(LifecycleLog(), "spawned:Start"));
@@ -192,7 +193,7 @@ TEST(LevelTests, CollectionRoundTripPreservesEverything)
     auto* component = player->AddComponent<RecordingComponent>();
     component->m_power = 4.5f;
     component->SetEnabled(false);
-    LevelObjectInstance* child = level.CreateObject(LevelObjectInstance::StaticType(), nullptr, player);
+    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, player);
     child->SetName("Weapon");
     child->SetActive(false);
 
@@ -243,7 +244,7 @@ TEST(LevelTests, MissingTypesArePreserved)
     LevelCollection* collection = level.AddCollection("Main");
     LevelSerializer::ReadCollection(level, *collection, document);
     ASSERT_EQ(collection->GetRoots().size(), 1u);
-    LevelObjectInstance* ghost = collection->GetRoots()[0];
+    LevelObject* ghost = collection->GetRoots()[0];
     EXPECT_EQ(ghost->GetMissingTypeName(), "DeletedGameplayClass");
     ASSERT_EQ(ghost->GetComponents().size(), 1u);
     EXPECT_NE(Reflection::Cast<MissingComponent>(ghost->GetComponents()[0].get()), nullptr);
@@ -255,6 +256,147 @@ TEST(LevelTests, MissingTypesArePreserved)
     EXPECT_NE(text.find("\"m_secret\": 42"), std::string::npos);
     EXPECT_NE(text.find("DeletedComponent"), std::string::npos);
     EXPECT_NE(text.find("\"kept\""), std::string::npos);
+}
+
+TEST(LevelTests, LevelsSavedWithOldClassNamesLoad)
+{
+    const char* json = R"({
+        "name": "Main",
+        "objects": [{
+            "id": "0123456789abcdef0123456789abcdef",
+            "name": "Old",
+            "$type": "LevelObjectInstance",
+            "active": true,
+            "transform": { "m_localPosition": [1, 2, 3] },
+            "components": [],
+            "children": []
+        }]
+    })";
+    Serialization::JsonDocument document;
+    ASSERT_TRUE(Serialization::ParseJson(json, document));
+    RuntimeLevel level;
+    LevelCollection* collection = level.AddCollection("Main");
+    LevelSerializer::ReadCollection(level, *collection, document);
+    ASSERT_EQ(collection->GetRoots().size(), 1u);
+    LevelObject* loaded = collection->GetRoots()[0];
+    EXPECT_TRUE(loaded->GetMissingTypeName().empty());
+    EXPECT_EQ(&loaded->GetType(), &LevelObject::StaticType());
+    EXPECT_FLOAT_EQ(loaded->GetTransform().GetLocalPosition().y, 2.0f);
+
+    Serialization::JsonDocument written;
+    LevelSerializer::WriteCollection(*collection, written, written.GetAllocator());
+    std::string text = Serialization::WriteJson(written);
+    EXPECT_EQ(text.find("LevelObjectInstance"), std::string::npos);
+    EXPECT_NE(text.find("\"LevelObject\""), std::string::npos);
+}
+
+namespace
+{
+    void ReplaceTypes(RuntimeLevel& level, std::initializer_list<const Reflection::TypeInfo*> types)
+    {
+        std::vector<const Reflection::TypeInfo*> replaced(types);
+        BrightBox3D::Level::ReplacementBatch batch;
+        BrightBox3D::Level::ObjectReplacer::Extract(level, [&](const Reflection::TypeInfo& type) { return std::find(replaced.begin(), replaced.end(), &type) != replaced.end(); }, batch);
+        BrightBox3D::Level::ObjectReplacer::DestroyExtracted(batch);
+        BrightBox3D::Level::ObjectReplacer::Restore(batch);
+    }
+}
+
+TEST(ReplacementTests, DestroyedObjectReplacedBeforeUpdateIsRemovedSafely)
+{
+    RuntimeLevel level;
+    LevelObject* player = level.CreateObject(TestPlayer::StaticType());
+    Core::Guid id = player->GetId();
+    level.BeginPlay();
+    level.Update(0.016f);
+    player->Destroy();
+    ReplaceTypes(level, { &TestPlayer::StaticType() });
+    LevelObject* replaced = level.FindObject(id);
+    ASSERT_NE(replaced, nullptr);
+    EXPECT_TRUE(replaced->IsPendingDestroy());
+    level.Update(0.016f);
+    EXPECT_EQ(level.FindObject(id), nullptr);
+    level.EndPlay();
+}
+
+TEST(ReplacementTests, DestroyedComponentReplacedBeforeUpdateIsRemovedSafely)
+{
+    RuntimeLevel level;
+    LevelObject* object = level.CreateObject(LevelObject::StaticType());
+    RecordingComponent* component = object->AddComponent<RecordingComponent>();
+    level.BeginPlay();
+    level.Update(0.016f);
+    object->RemoveComponent(component);
+    ReplaceTypes(level, { &RecordingComponent::StaticType() });
+    level.Update(0.016f);
+    EXPECT_EQ(object->GetComponent<RecordingComponent>(), nullptr);
+    EXPECT_EQ(object->GetComponents().size(), 0u);
+    level.EndPlay();
+}
+
+TEST(ReplacementTests, RuntimeStateStructsSurviveReplacementWhole)
+{
+    RuntimeLevel level;
+    auto* player = static_cast<TestPlayer*>(level.CreateObject(TestPlayer::StaticType()));
+    player->SetName("Hero");
+    player->SetOwnerId(Core::Guid::Generate());
+    player->SetHideInLevelContents(true);
+    player->SetLink({ Core::Guid::Generate(), Core::Guid::Generate(), true });
+    player->GetTransform().SetLocalPosition({ 1.0f, 2.0f, 3.0f });
+    player->m_lives = 7;
+    RecordingComponent* component = player->AddComponent<RecordingComponent>();
+    component->SetEnabled(false);
+    level.BeginPlay();
+    level.Update(0.016f);
+
+    BrightBox3D::Level::LevelObjectRuntimeState objectBefore = RuntimeLevel::GetRuntimeState(*player);
+    BrightBox3D::Level::ComponentRuntimeState componentBefore = RuntimeLevel::GetRuntimeState(*component);
+    BrightBox3D::Level::ComponentRuntimeState transformBefore = RuntimeLevel::GetRuntimeState(player->GetTransform());
+    Core::Guid id = player->GetId();
+    ReplaceTypes(level, { &TestPlayer::StaticType(), &RecordingComponent::StaticType() });
+
+    auto* replaced = static_cast<TestPlayer*>(level.FindObject(id));
+    ASSERT_NE(replaced, nullptr);
+    BrightBox3D::Level::LevelObjectRuntimeState objectAfter = RuntimeLevel::GetRuntimeState(*replaced);
+    EXPECT_EQ(objectAfter.object.id, objectBefore.object.id);
+    EXPECT_EQ(objectAfter.object.name, objectBefore.object.name);
+    EXPECT_EQ(objectAfter.object.isActive, objectBefore.object.isActive);
+    EXPECT_EQ(objectAfter.object.link.asset, objectBefore.object.link.asset);
+    EXPECT_EQ(objectAfter.object.link.sourceId, objectBefore.object.link.sourceId);
+    EXPECT_EQ(objectAfter.object.link.isRoot, objectBefore.object.link.isRoot);
+    EXPECT_EQ(objectAfter.object.ownerId, objectBefore.object.ownerId);
+    EXPECT_EQ(objectAfter.object.hideInLevelContents, objectBefore.object.hideInLevelContents);
+    EXPECT_EQ(objectAfter.engine.hasLoaded, objectBefore.engine.hasLoaded);
+    EXPECT_EQ(objectAfter.engine.hasStarted, objectBefore.engine.hasStarted);
+    EXPECT_EQ(objectAfter.engine.isEnabledState, objectBefore.engine.isEnabledState);
+    EXPECT_EQ(replaced->m_lives, 7);
+    EXPECT_FLOAT_EQ(replaced->GetTransform().GetLocalPosition().z, 3.0f);
+    EXPECT_EQ(RuntimeLevel::GetRuntimeState(replaced->GetTransform()).component.localId, transformBefore.component.localId);
+    ASSERT_EQ(replaced->GetComponents().size(), 1u);
+    BrightBox3D::Level::ComponentRuntimeState componentAfter = RuntimeLevel::GetRuntimeState(*replaced->GetComponents()[0]);
+    EXPECT_EQ(componentAfter.component.localId, componentBefore.component.localId);
+    EXPECT_EQ(componentAfter.component.isEnabled, componentBefore.component.isEnabled);
+    EXPECT_EQ(componentAfter.engine.hasStarted, componentBefore.engine.hasStarted);
+    level.EndPlay();
+}
+
+TEST(ReplacementTests, LevelOwnedEngineObjectsAreReplacedAndReferencesRemapped)
+{
+    RuntimeLevel level;
+    LevelObject* player = level.CreateObject(TestPlayer::StaticType());
+    auto* rules = level.CreateEngineObject<TestRules>();
+    ASSERT_NE(rules, nullptr);
+    rules->m_score = 12;
+    rules->m_target = player;
+    Core::Guid id = player->GetId();
+    ReplaceTypes(level, { &TestPlayer::StaticType(), &TestRules::StaticType() });
+
+    ASSERT_EQ(level.GetEngineObjects().size(), 1u);
+    auto* replacedRules = Reflection::Cast<TestRules>(level.GetEngineObjects()[0].get());
+    ASSERT_NE(replacedRules, nullptr);
+    EXPECT_EQ(replacedRules->m_score, 12);
+    EXPECT_EQ(replacedRules->m_target, level.FindObject(id));
+    EXPECT_EQ(level.CreateEngineObject(LevelObject::StaticType()), nullptr);
 }
 
 TEST(LevelTests, CloneLevelCopiesForPlayMode)
@@ -308,17 +450,17 @@ TEST(LevelObjectLinkTests, InstancesFollowAssetAndKeepOverrides)
     source->m_lives = 3;
     auto* sourceComponent = source->AddComponent<RecordingComponent>();
     sourceComponent->m_power = 1.0f;
-    LevelObjectInstance* sourceChild = authoring.CreateObject(LevelObjectInstance::StaticType(), nullptr, source);
+    LevelObject* sourceChild = authoring.CreateObject(LevelObject::StaticType(), nullptr, source);
     sourceChild->SetName("Hat");
 
     Serialization::JsonDocument document;
-    LevelSerializer::MakeLevelObjectDocument(*source, document);
-    Core::Guid asset = database.CreateJsonAsset("Enemy.levelobject", document);
+    LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectVariant);
+    Core::Guid asset = database.CreateJsonAsset("Enemy.variant", document);
     ASSERT_TRUE(asset.IsValid());
 
     RuntimeLevel level;
-    LevelObjectInstance* first = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
-    LevelObjectInstance* second = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
+    LevelObject* first = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
+    LevelObject* second = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
     ASSERT_NE(first, nullptr);
     ASSERT_NE(second, nullptr);
     EXPECT_NE(first->GetId(), second->GetId());
@@ -362,7 +504,7 @@ TEST(LevelObjectLinkTests, InstancesFollowAssetAndKeepOverrides)
     ASSERT_NE(refreshedFirst, nullptr);
     EXPECT_EQ(refreshedFirst->m_lives, 99);
     EXPECT_EQ(refreshedFirst->GetComponent<RecordingComponent>()->m_power, 8.0f);
-    LevelObjectInstance* refreshedSecond = level.FindObject(secondId);
+    LevelObject* refreshedSecond = level.FindObject(secondId);
     EXPECT_FALSE(LevelSerializer::IsPropertyOverridden(*refreshedSecond, refreshedSecond->GetComponent<RecordingComponent>(), "m_power"));
 
     LevelSerializer::RevertProperty(*refreshedFirst, nullptr, "m_lives");
@@ -374,9 +516,9 @@ TEST(LevelObjectLinkTests, TemplatesCannotBeInstantiated)
 {
     TempProject project;
     RuntimeLevel authoring;
-    LevelObjectInstance* source = authoring.CreateObject(LevelObjectInstance::StaticType());
+    LevelObject* source = authoring.CreateObject(LevelObject::StaticType());
     Serialization::JsonDocument document;
-    LevelSerializer::MakeLevelObjectDocument(*source, document);
+    LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectTemplate);
     Core::Guid templateAsset = Assets::AssetDatabase::Get().CreateJsonAsset("Base.template", document);
     ASSERT_TRUE(templateAsset.IsValid());
     RuntimeLevel level;

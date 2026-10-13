@@ -1,29 +1,29 @@
 #include "Level/Level.h"
 #include "Physics/Colliders.h"
+#include "Physics/PhysicsTestTypes.h"
 #include "Physics/PhysicsWorld.h"
 #include "Physics/Rigidbody.h"
-#include "Physics/PhysicsTestTypes.h"
 
 #include <gtest/gtest.h>
 
 using namespace BrightBox3D;
 using namespace BrightBox3D::Physics;
-using BrightBox3D::Level::LevelObjectInstance;
+using BrightBox3D::Level::LevelObject;
 
 namespace
 {
-    LevelObjectInstance* MakeGround(Level::Level& level)
+    LevelObject* MakeGround(Level::Level& level)
     {
-        LevelObjectInstance* ground = level.CreateObject(LevelObjectInstance::StaticType());
+        LevelObject* ground = level.CreateObject(LevelObject::StaticType());
         ground->SetName("Ground");
         ground->GetTransform().SetLocalPosition({ 0.0f, -0.5f, 0.0f });
         ground->AddComponent<BoxCollider>()->SetSize({ 40.0f, 1.0f, 40.0f });
         return ground;
     }
 
-    LevelObjectInstance* MakeBox(Level::Level& level, const Math::Vector3& position)
+    LevelObject* MakeBox(Level::Level& level, const Math::Vector3& position)
     {
-        LevelObjectInstance* box = level.CreateObject(LevelObjectInstance::StaticType());
+        LevelObject* box = level.CreateObject(LevelObject::StaticType());
         box->SetName("Box");
         box->GetTransform().SetLocalPosition(position);
         box->AddComponent<BoxCollider>();
@@ -45,7 +45,7 @@ TEST(PhysicsTests, BodiesFallAndRestOnStaticColliders)
 {
     Level::Level level;
     MakeGround(level);
-    LevelObjectInstance* box = MakeBox(level, { 0.0f, 5.0f, 0.0f });
+    LevelObject* box = MakeBox(level, { 0.0f, 5.0f, 0.0f });
     auto* recorder = box->AddComponent<Tests::CollisionRecorder>();
     level.BeginPlay();
     ASSERT_NE(PhysicsWorld::Get(&level), nullptr);
@@ -65,13 +65,13 @@ TEST(PhysicsTests, BodiesFallAndRestOnStaticColliders)
 TEST(PhysicsTests, TriggersReportEnterAndExit)
 {
     Level::Level level;
-    LevelObjectInstance* zone = level.CreateObject(LevelObjectInstance::StaticType());
+    LevelObject* zone = level.CreateObject(LevelObject::StaticType());
     zone->GetTransform().SetLocalPosition({ 0.0f, 3.0f, 0.0f });
     auto* trigger = zone->AddComponent<BoxCollider>();
     trigger->SetSize({ 4.0f, 1.0f, 4.0f });
     trigger->SetTrigger(true);
     auto* zoneRecorder = zone->AddComponent<Tests::CollisionRecorder>();
-    LevelObjectInstance* ball = level.CreateObject(LevelObjectInstance::StaticType());
+    LevelObject* ball = level.CreateObject(LevelObject::StaticType());
     ball->GetTransform().SetLocalPosition({ 0.0f, 6.0f, 0.0f });
     ball->AddComponent<SphereCollider>()->SetRadius(0.25f);
     ball->AddComponent<Rigidbody>();
@@ -87,8 +87,8 @@ TEST(PhysicsTests, TriggersReportEnterAndExit)
 TEST(PhysicsTests, RaycastsHitCollidersWithNormals)
 {
     Level::Level level;
-    LevelObjectInstance* ground = MakeGround(level);
-    LevelObjectInstance* wall = level.CreateObject(LevelObjectInstance::StaticType());
+    LevelObject* ground = MakeGround(level);
+    LevelObject* wall = level.CreateObject(LevelObject::StaticType());
     wall->GetTransform().SetLocalPosition({ 0.0f, 1.0f, 5.0f });
     wall->AddComponent<BoxCollider>()->SetSize({ 4.0f, 2.0f, 0.5f });
     level.BeginPlay();
@@ -109,7 +109,7 @@ TEST(PhysicsTests, VelocityApiAndRuntimeChanges)
 {
     Level::Level level;
     PhysicsWorld::Get(&level)->SetGravity({ 0.0f, 0.0f, 0.0f });
-    LevelObjectInstance* box = MakeBox(level, { 0.0f, 0.0f, 0.0f });
+    LevelObject* box = MakeBox(level, { 0.0f, 0.0f, 0.0f });
     level.BeginPlay();
     level.Update(1.0f / 60.0f);
     auto* body = box->GetComponent<Rigidbody>();
@@ -120,7 +120,7 @@ TEST(PhysicsTests, VelocityApiAndRuntimeChanges)
     level.Update(1.0f / 60.0f);
     EXPECT_GT(box->GetTransform().GetPosition().x, 9.9f);
 
-    LevelObjectInstance* spawned = MakeBox(level, { 0.0f, 3.0f, 0.0f });
+    LevelObject* spawned = MakeBox(level, { 0.0f, 3.0f, 0.0f });
     spawned->GetTransform().SetLocalScale({ 2.0f, 2.0f, 2.0f });
     level.Update(1.0f / 60.0f);
     RaycastHit hit;

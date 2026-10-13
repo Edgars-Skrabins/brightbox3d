@@ -46,7 +46,7 @@ namespace BrightBox3D::Level
 
     bool LevelStreaming::IsLoaded(const Core::Guid& collection) const
     {
-        return GetLevel().FindCollection(collection) != nullptr;
+        return GetLevel()->FindCollection(collection) != nullptr;
     }
 
     bool LevelStreaming::IsLoading(const Core::Guid& collection) const
@@ -63,7 +63,7 @@ namespace BrightBox3D::Level
 
     void LevelStreaming::LoadCollectionAsync(const Core::Guid& collection, Callback callback)
     {
-        if (LevelCollection* loaded = GetLevel().FindCollection(collection))
+        if (LevelCollection* loaded = GetLevel()->FindCollection(collection))
         {
             if (callback)
             {
@@ -102,10 +102,10 @@ namespace BrightBox3D::Level
         {
             Core::Log::Error("Streaming failed: LevelCollection " + request.collection.ToString() + " could not be loaded");
         }
-        else if (!(collection = GetLevel().FindCollection(request.collection)))
+        else if (!(collection = GetLevel()->FindCollection(request.collection)))
         {
-            collection = GetLevel().AddCollection(Serialization::GetString(asset->GetDocument(), "name", asset->GetName()), request.collection);
-            LevelSerializer::ReadCollection(GetLevel(), *collection, asset->GetDocument());
+            collection = GetLevel()->AddCollection(Serialization::GetString(asset->GetDocument(), "name", asset->GetName()), request.collection);
+            LevelSerializer::ReadCollection(*GetLevel(), *collection, asset->GetDocument());
             collection->SetDirty(false);
         }
         for (Callback& callback : request.callbacks)
@@ -114,15 +114,15 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelStreaming::OnUpdate(float deltaTime)
+    void LevelStreaming::OnGameUpdate(float deltaTime)
     {
         std::vector<Core::Guid> removals;
         removals.swap(m_pendingRemovals);
         for (const Core::Guid& guid : removals)
         {
-            if (LevelCollection* collection = GetLevel().FindCollection(guid))
+            if (LevelCollection* collection = GetLevel()->FindCollection(guid))
             {
-                GetLevel().RemoveCollection(collection);
+                GetLevel()->RemoveCollection(collection);
             }
         }
         for (size_t i = 0; i < m_requests.size();)
@@ -149,7 +149,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelStreaming::OnEndPlay()
+    void LevelStreaming::OnGameEnd()
     {
         for (auto& request : m_requests)
         {
@@ -163,20 +163,20 @@ namespace BrightBox3D::Level
 
     bool LevelStreaming::UnloadCollection(const Core::Guid& collection)
     {
-        LevelCollection* loaded = GetLevel().FindCollection(collection);
+        LevelCollection* loaded = GetLevel()->FindCollection(collection);
         if (!loaded)
         {
             return false;
         }
-        if (!GetLevel().IsPlaying())
+        if (!GetLevel()->IsPlaying())
         {
-            GetLevel().RemoveCollection(loaded);
+            GetLevel()->RemoveCollection(loaded);
             return true;
         }
-        std::vector<LevelObjectInstance*> roots = loaded->GetRoots();
-        for (LevelObjectInstance* root : roots)
+        std::vector<LevelObject*> roots = loaded->GetRoots();
+        for (LevelObject* root : roots)
         {
-            GetLevel().DestroyObject(root);
+            GetLevel()->DestroyObject(root);
         }
         m_pendingRemovals.push_back(collection);
         return true;

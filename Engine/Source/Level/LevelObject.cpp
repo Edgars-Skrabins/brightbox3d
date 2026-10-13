@@ -1,29 +1,35 @@
-#include "Level/LevelObjectInstance.h"
+#include "Level/LevelObject.h"
 
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Level/LevelCollection.h"
+#include "Reflection/TypeRedirects.h"
 
 #include <algorithm>
 
 namespace BrightBox3D::Level
 {
-    LevelObjectInstance::LevelObjectInstance()
+    namespace
     {
-        m_id = Core::Guid::Generate();
+        Reflection::TypeRedirectRegistration s_levelObjectRedirect("LevelObjectInstance", "LevelObject");
+    }
+
+    LevelObject::LevelObject()
+    {
+        m_state.id = Core::Guid::Generate();
         m_transform.m_owner = this;
     }
 
-    LevelObjectInstance::~LevelObjectInstance()
+    LevelObject::~LevelObject()
     {
         m_components.clear();
     }
 
-    bool LevelObjectInstance::IsActiveInHierarchy() const
+    bool LevelObject::IsActiveInHierarchy() const
     {
-        for (const LevelObjectInstance* object = this; object; object = object->m_parent)
+        for (const LevelObject* object = this; object; object = object->m_parent)
         {
-            if (!object->m_isActive)
+            if (!object->m_state.isActive)
             {
                 return false;
             }
@@ -31,29 +37,29 @@ namespace BrightBox3D::Level
         return true;
     }
 
-    void LevelObjectInstance::SetActive(bool active)
+    void LevelObject::SetActive(bool active)
     {
-        if (m_isActive == active)
+        if (m_state.isActive == active)
         {
             return;
         }
-        m_isActive = active;
-        if (m_level)
+        m_state.isActive = active;
+        if (GetLevel())
         {
-            m_level->RefreshEnabledState(*this);
+            GetLevel()->RefreshEnabledState(*this);
         }
     }
 
-    void LevelObjectInstance::SetParent(LevelObjectInstance* parent, bool keepWorldTransform, int siblingIndex)
+    void LevelObject::SetParent(LevelObject* parent, bool keepWorldTransform, int siblingIndex)
     {
         if (parent == this || (parent && parent->IsDescendantOf(this)))
         {
-            Core::Log::Warning("Cannot parent '" + m_name + "' to itself or one of its descendants");
+            Core::Log::Warning("Cannot parent '" + m_state.name + "' to itself or one of its descendants");
             return;
         }
-        if (parent && parent->m_level != m_level)
+        if (parent && parent->GetLevel() != GetLevel())
         {
-            Core::Log::Warning("Cannot parent '" + m_name + "' to an object in another level");
+            Core::Log::Warning("Cannot parent '" + m_state.name + "' to an object in another level");
             return;
         }
 
@@ -81,9 +87,9 @@ namespace BrightBox3D::Level
             {
                 siblings.insert(siblings.begin() + siblingIndex, this);
             }
-            if (parent->m_collection != m_collection && m_level)
+            if (parent->m_collection != m_collection && GetLevel())
             {
-                m_level->MoveToCollection(*this, parent->m_collection);
+                GetLevel()->MoveToCollection(*this, parent->m_collection);
             }
         }
         else if (m_collection)
@@ -100,16 +106,16 @@ namespace BrightBox3D::Level
             m_transform.MarkDirty();
         }
 
-        if (m_level)
+        if (GetLevel())
         {
-            m_level->RefreshEnabledState(*this);
-            m_level->MarkHierarchyChanged();
+            GetLevel()->RefreshEnabledState(*this);
+            GetLevel()->MarkHierarchyChanged();
         }
     }
 
-    int LevelObjectInstance::GetSiblingIndex() const
+    int LevelObject::GetSiblingIndex() const
     {
-        const std::vector<LevelObjectInstance*>* siblings = nullptr;
+        const std::vector<LevelObject*>* siblings = nullptr;
         if (m_parent)
         {
             siblings = &m_parent->m_children;
@@ -126,7 +132,7 @@ namespace BrightBox3D::Level
         return it == siblings->end() ? 0 : static_cast<int>(it - siblings->begin());
     }
 
-    void LevelObjectInstance::SetSiblingIndex(int index)
+    void LevelObject::SetSiblingIndex(int index)
     {
         if (m_parent)
         {
@@ -140,15 +146,15 @@ namespace BrightBox3D::Level
             m_collection->RemoveRoot(this);
             m_collection->AddRoot(this, index);
         }
-        if (m_level)
+        if (GetLevel())
         {
-            m_level->MarkHierarchyChanged();
+            GetLevel()->MarkHierarchyChanged();
         }
     }
 
-    bool LevelObjectInstance::IsDescendantOf(const LevelObjectInstance* ancestor) const
+    bool LevelObject::IsDescendantOf(const LevelObject* ancestor) const
     {
-        for (const LevelObjectInstance* object = m_parent; object; object = object->m_parent)
+        for (const LevelObject* object = m_parent; object; object = object->m_parent)
         {
             if (object == ancestor)
             {
@@ -158,9 +164,9 @@ namespace BrightBox3D::Level
         return false;
     }
 
-    LevelObjectInstance* LevelObjectInstance::GetRoot()
+    LevelObject* LevelObject::GetRoot()
     {
-        LevelObjectInstance* object = this;
+        LevelObject* object = this;
         while (object->m_parent)
         {
             object = object->m_parent;
@@ -168,20 +174,20 @@ namespace BrightBox3D::Level
         return object;
     }
 
-    LevelObjectInstance* LevelObjectInstance::FindChild(const std::string& name, bool recursive) const
+    LevelObject* LevelObject::FindChild(const std::string& name, bool recursive) const
     {
-        for (LevelObjectInstance* child : m_children)
+        for (LevelObject* child : m_children)
         {
-            if (child->m_name == name)
+            if (child->m_state.name == name)
             {
                 return child;
             }
         }
         if (recursive)
         {
-            for (LevelObjectInstance* child : m_children)
+            for (LevelObject* child : m_children)
             {
-                if (LevelObjectInstance* found = child->FindChild(name, true))
+                if (LevelObject* found = child->FindChild(name, true))
                 {
                     return found;
                 }
@@ -190,30 +196,30 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    Component* LevelObjectInstance::AddComponent(const Reflection::TypeInfo& type)
+    LevelObjectComponent* LevelObject::AddComponent(const Reflection::TypeInfo& type)
     {
-        if (!type.IsA(Component::StaticType()) || type.IsA(Transform::StaticType()))
+        if (!type.IsA(LevelObjectComponent::StaticType()) || type.IsA(Transform::StaticType()))
         {
             Core::Log::Error("'" + type.GetName() + "' cannot be added as a component");
             return nullptr;
         }
-        std::unique_ptr<Reflection::Object> object(type.CreateInstance());
+        std::unique_ptr<Reflection::EngineObject> object(type.CreateInstance());
         if (!object)
         {
             Core::Log::Error("Component type '" + type.GetName() + "' is abstract");
             return nullptr;
         }
-        std::unique_ptr<Component> component(static_cast<Component*>(object.release()));
-        component->m_localId = Core::Guid::Generate();
-        Component* result = component.get();
+        std::unique_ptr<LevelObjectComponent> component(static_cast<LevelObjectComponent*>(object.release()));
+        component->m_state.localId = Core::Guid::Generate();
+        LevelObjectComponent* result = component.get();
         AttachComponent(std::move(component));
         return result;
     }
 
-    void LevelObjectInstance::AttachComponent(std::unique_ptr<Component> component, int index)
+    void LevelObject::AttachComponent(std::unique_ptr<LevelObjectComponent> component, int index)
     {
         component->m_owner = this;
-        Component* raw = component.get();
+        LevelObjectComponent* raw = component.get();
         if (index < 0 || index > static_cast<int>(m_components.size()))
         {
             m_components.push_back(std::move(component));
@@ -222,19 +228,19 @@ namespace BrightBox3D::Level
         {
             m_components.insert(m_components.begin() + index, std::move(component));
         }
-        if (m_level)
+        if (GetLevel())
         {
-            m_level->OnComponentAttached(*raw);
+            GetLevel()->OnComponentAttached(*raw);
         }
     }
 
-    std::unique_ptr<Component> LevelObjectInstance::DetachComponent(Component* component)
+    std::unique_ptr<LevelObjectComponent> LevelObject::DetachComponent(LevelObjectComponent* component)
     {
         for (auto it = m_components.begin(); it != m_components.end(); ++it)
         {
             if (it->get() == component)
             {
-                std::unique_ptr<Component> detached = std::move(*it);
+                std::unique_ptr<LevelObjectComponent> detached = std::move(*it);
                 m_components.erase(it);
                 return detached;
             }
@@ -242,23 +248,23 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void LevelObjectInstance::RemoveComponent(Component* component)
+    void LevelObject::RemoveComponent(LevelObjectComponent* component)
     {
         if (!component || component == &m_transform || component->m_owner != this)
         {
             return;
         }
-        if (m_level)
+        if (GetLevel())
         {
-            m_level->RemoveComponent(*component);
+            GetLevel()->RemoveComponent(*component);
             return;
         }
         DetachComponent(component);
     }
 
-    bool LevelObjectInstance::MoveComponent(Component* component, int index)
+    bool LevelObject::MoveComponent(LevelObjectComponent* component, int index)
     {
-        std::unique_ptr<Component> detached = DetachComponent(component);
+        std::unique_ptr<LevelObjectComponent> detached = DetachComponent(component);
         if (!detached)
         {
             return false;
@@ -268,7 +274,7 @@ namespace BrightBox3D::Level
         return true;
     }
 
-    Component* LevelObjectInstance::GetComponent(const Reflection::TypeInfo& type) const
+    LevelObjectComponent* LevelObject::GetComponent(const Reflection::TypeInfo& type) const
     {
         if (m_transform.IsA(type))
         {
@@ -276,7 +282,7 @@ namespace BrightBox3D::Level
         }
         for (const auto& component : m_components)
         {
-            if (component->IsA(type) && !component->m_isPendingDestroy)
+            if (component->IsA(type) && !component->IsPendingDestroy())
             {
                 return component.get();
             }
@@ -284,15 +290,15 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    Component* LevelObjectInstance::FindComponentByLocalId(const Core::Guid& localId) const
+    LevelObjectComponent* LevelObject::FindComponentByLocalId(const Core::Guid& localId) const
     {
-        if (m_transform.m_localId == localId)
+        if (m_transform.m_state.localId == localId)
         {
             return const_cast<Transform*>(&m_transform);
         }
         for (const auto& component : m_components)
         {
-            if (component->m_localId == localId)
+            if (component->m_state.localId == localId)
             {
                 return component.get();
             }
@@ -300,19 +306,19 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void LevelObjectInstance::Destroy()
+    void LevelObject::Destroy()
     {
-        if (m_level)
+        if (GetLevel())
         {
-            m_level->DestroyObject(this);
+            GetLevel()->DestroyObject(this);
         }
     }
 
-    LevelObjectInstance* LevelObjectInstance::GetLinkRoot()
+    LevelObject* LevelObject::GetLinkRoot()
     {
-        for (LevelObjectInstance* object = this; object; object = object->m_parent)
+        for (LevelObject* object = this; object; object = object->m_parent)
         {
-            if (object->m_link.isRoot)
+            if (object->m_state.link.isRoot)
             {
                 return object;
             }
@@ -324,9 +330,9 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void LevelObjectInstance::SetMissingType(const std::string& typeName, const std::string& data)
+    void LevelObject::SetMissingType(const std::string& typeName, const std::string& data)
     {
-        m_missingTypeName = typeName;
-        m_missingTypeData = data;
+        m_state.missingTypeName = typeName;
+        m_state.missingTypeData = data;
     }
 }

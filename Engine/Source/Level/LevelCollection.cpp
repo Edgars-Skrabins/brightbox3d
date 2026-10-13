@@ -8,7 +8,7 @@ namespace BrightBox3D::Level
     {
     }
 
-    void LevelCollection::AddRoot(LevelObjectInstance* object, int index)
+    void LevelCollection::AddRoot(LevelObject* object, int index)
     {
         if (std::find(m_roots.begin(), m_roots.end(), object) != m_roots.end())
         {
@@ -24,7 +24,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelCollection::RemoveRoot(LevelObjectInstance* object)
+    void LevelCollection::RemoveRoot(LevelObject* object)
     {
         m_roots.erase(std::remove(m_roots.begin(), m_roots.end(), object), m_roots.end());
     }

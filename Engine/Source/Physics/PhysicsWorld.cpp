@@ -1,10 +1,11 @@
 #include "Physics/PhysicsWorld.h"
 
 #include "Core/Log.h"
+#include "Geometry/ModelAsset.h"
 #include "Level/Level.h"
 #include "Physics/Colliders.h"
+#include "Physics/CollisionInfo.h"
 #include "Physics/Rigidbody.h"
-#include "Rendering/ModelAsset.h"
 
 #include <Jolt/Jolt.h>
 
@@ -197,7 +198,7 @@ namespace BrightBox3D::Physics
 
     PhysicsWorld::~PhysicsWorld()
     {
-        OnEndPlay();
+        OnGameEnd();
     }
 
     PhysicsWorld* PhysicsWorld::Get(const Level::Level* level)
@@ -210,7 +211,7 @@ namespace BrightBox3D::Physics
         return m_implementation->system != nullptr;
     }
 
-    void PhysicsWorld::OnBeginPlay()
+    void PhysicsWorld::OnGameStart()
     {
         JoltRuntime& runtime = Runtime();
         auto system = std::make_unique<JPH::PhysicsSystem>();
@@ -218,7 +219,7 @@ namespace BrightBox3D::Physics
         system->SetGravity(ToJolt(m_implementation->gravity));
         system->SetContactListener(&m_implementation->contacts);
         m_implementation->system = std::move(system);
-        GetLevel().ForEachObject([&](Level::LevelObjectInstance& object)
+        GetLevel()->ForEachObject([&](Level::LevelObject& object)
         {
             if (object.GetComponent<Collider>() || object.GetComponent<Rigidbody>())
             {
@@ -229,7 +230,7 @@ namespace BrightBox3D::Physics
         m_implementation->system->OptimizeBroadPhase();
     }
 
-    void PhysicsWorld::OnEndPlay()
+    void PhysicsWorld::OnGameEnd()
     {
         if (!m_implementation->system)
         {
@@ -254,12 +255,12 @@ namespace BrightBox3D::Physics
         m_implementation->system.reset();
     }
 
-    void PhysicsWorld::MarkDirty(Level::LevelObjectInstance& object)
+    void PhysicsWorld::MarkDirty(Level::LevelObject& object)
     {
         m_implementation->dirty.insert(object.GetId());
     }
 
-    void PhysicsWorld::OnComponentAdded(Level::Component& component)
+    void PhysicsWorld::OnComponentAdded(Level::LevelObjectComponent& component)
     {
         if (component.IsA<Collider>() || component.IsA<Rigidbody>())
         {
@@ -267,7 +268,7 @@ namespace BrightBox3D::Physics
         }
     }
 
-    void PhysicsWorld::OnComponentRemoved(Level::Component& component)
+    void PhysicsWorld::OnComponentRemoved(Level::LevelObjectComponent& component)
     {
         if (!component.IsA<Collider>() && !component.IsA<Rigidbody>())
         {
@@ -321,7 +322,7 @@ namespace BrightBox3D::Physics
             else if (auto* mesh = Reflection::Cast<MeshCollider>(&collider))
             {
                 auto model = mesh->GetModel().Load();
-                const Rendering::MeshData* data = model ? model->GetMesh(mesh->GetMeshIndex()) : nullptr;
+                const Geometry::MeshData* data = model ? model->GetMesh(mesh->GetMeshIndex()) : nullptr;
                 if (!data || data->vertices.empty())
                 {
                     return nullptr;
@@ -335,7 +336,7 @@ namespace BrightBox3D::Physics
                 {
                     JPH::Array<JPH::Vec3> points;
                     points.reserve(data->vertices.size());
-                    for (const Rendering::MeshVertex& vertex : data->vertices)
+                    for (const Geometry::MeshVertex& vertex : data->vertices)
                     {
                         points.push_back(ToJolt(vertex.position));
                     }
@@ -352,7 +353,7 @@ namespace BrightBox3D::Physics
                 {
                     JPH::VertexList vertices;
                     vertices.reserve(data->vertices.size());
-                    for (const Rendering::MeshVertex& vertex : data->vertices)
+                    for (const Geometry::MeshVertex& vertex : data->vertices)
                     {
                         vertices.push_back(JPH::Float3(vertex.position.x, vertex.position.y, vertex.position.z));
                     }
@@ -425,7 +426,7 @@ namespace BrightBox3D::Physics
 
         for (auto& [id, record] : implementation.records)
         {
-            Level::LevelObjectInstance* object = GetLevel().FindObject(id);
+            Level::LevelObject* object = GetLevel()->FindObject(id);
             if (!object)
             {
                 continue;
@@ -455,7 +456,7 @@ namespace BrightBox3D::Physics
                 }
                 implementation.records.erase(existing);
             }
-            Level::LevelObjectInstance* object = GetLevel().FindObject(id);
+            Level::LevelObject* object = GetLevel()->FindObject(id);
             if (!object || object->IsPendingDestroy() || !object->IsActiveInHierarchy())
             {
                 continue;
@@ -555,7 +556,7 @@ namespace BrightBox3D::Physics
 
         for (auto& [id, record] : implementation.records)
         {
-            Level::LevelObjectInstance* object = GetLevel().FindObject(id);
+            Level::LevelObject* object = GetLevel()->FindObject(id);
             if (!object)
             {
                 continue;
@@ -590,7 +591,7 @@ namespace BrightBox3D::Physics
         }
     }
 
-    void PhysicsWorld::OnFixedUpdate(float fixedDeltaTime)
+    void PhysicsWorld::OnGameUpdateFixed(float fixedDeltaTime)
     {
         Implementation& implementation = *m_implementation;
         if (!implementation.system || fixedDeltaTime <= 0.0f)
@@ -606,7 +607,7 @@ namespace BrightBox3D::Physics
             {
                 continue;
             }
-            Level::LevelObjectInstance* object = GetLevel().FindObject(id);
+            Level::LevelObject* object = GetLevel()->FindObject(id);
             if (!object)
             {
                 continue;
@@ -639,8 +640,8 @@ namespace BrightBox3D::Physics
             {
                 continue;
             }
-            Level::LevelObjectInstance* first = GetLevel().FindObject(firstOwner->second);
-            Level::LevelObjectInstance* second = GetLevel().FindObject(secondOwner->second);
+            Level::LevelObject* first = GetLevel()->FindObject(firstOwner->second);
+            Level::LevelObject* second = GetLevel()->FindObject(secondOwner->second);
             if (!first || !second)
             {
                 continue;
@@ -651,9 +652,9 @@ namespace BrightBox3D::Physics
                 return record != implementation.records.end() && record->second.sensor == body;
             };
             bool trigger = isSensor(event.first) || isSensor(event.second);
-            auto dispatch = [&](Level::LevelObjectInstance& target, Level::LevelObjectInstance& other, const Math::Vector3& normal)
+            auto dispatch = [&](Level::LevelObject& target, Level::LevelObject& other, const Math::Vector3& normal)
             {
-                Level::CollisionInfo info;
+                CollisionInfo info;
                 info.other = &other;
                 info.point = event.point;
                 info.normal = normal;
@@ -706,7 +707,7 @@ namespace BrightBox3D::Physics
             return false;
         }
         auto owner = implementation.owners.find(result.mBodyID.GetIndexAndSequenceNumber());
-        hit.object = owner == implementation.owners.end() ? nullptr : GetLevel().FindObject(owner->second);
+        hit.object = owner == implementation.owners.end() ? nullptr : GetLevel()->FindObject(owner->second);
         hit.distance = result.mFraction * maxDistance;
         hit.point = origin + normalized * hit.distance;
         JPH::BodyLockRead lock(implementation.system->GetBodyLockInterface(), result.mBodyID);

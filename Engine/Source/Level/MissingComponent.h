@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Level/Component.h"
+#include "Level/LevelObjectComponent.h"
 
 #include <string>
 
 namespace BrightBox3D::Level
 {
     BrightClass()
-    class MissingComponent : public Component
+    class MissingComponent : public LevelObjectComponent
     {
         BrightBody()
     public:

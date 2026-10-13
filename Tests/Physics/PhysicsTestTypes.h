@@ -1,23 +1,24 @@
 #pragma once
 
-#include "Level/Component.h"
+#include "Level/LevelObjectComponent.h"
+#include "Physics/CollisionInfo.h"
 
 namespace BrightBox3D::Tests
 {
     BrightClass()
-    class CollisionRecorder : public Level::Component
+    class CollisionRecorder : public Level::LevelObjectComponent
     {
         BrightBody()
     public:
-        void OnCollisionEnter(const Level::CollisionInfo& collision) override { ++collisionEnter; }
-        void OnCollisionExit(const Level::CollisionInfo& collision) override { ++collisionExit; }
-        void OnTriggerEnter(const Level::CollisionInfo& collision) override { ++triggerEnter; lastOther = collision.other; }
-        void OnTriggerExit(const Level::CollisionInfo& collision) override { ++triggerExit; }
+        void OnCollisionEnter(const Physics::CollisionInfo& collision) override { ++collisionEnter; }
+        void OnCollisionExit(const Physics::CollisionInfo& collision) override { ++collisionExit; }
+        void OnTriggerEnter(const Physics::CollisionInfo& collision) override { ++triggerEnter; lastOther = collision.other; }
+        void OnTriggerExit(const Physics::CollisionInfo& collision) override { ++triggerExit; }
 
         int collisionEnter = 0;
         int collisionExit = 0;
         int triggerEnter = 0;
         int triggerExit = 0;
-        Level::LevelObjectInstance* lastOther = nullptr;
+        Level::LevelObject* lastOther = nullptr;
     };
 }

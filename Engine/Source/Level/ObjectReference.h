@@ -23,7 +23,7 @@ namespace BrightBox3D::Level
             {
                 return nullptr;
             }
-            LevelObjectInstance* object = level->FindObject(guid);
+            LevelObject* object = level->FindObject(guid);
             return object && object->IsA(T::StaticType()) && !object->IsPendingDestroy() ? static_cast<T*>(object) : nullptr;
         }
 

@@ -13,16 +13,18 @@ namespace BrightBox3D::Level
     class LevelCollection;
     class LevelCollectionAsset;
 
+    BrightClass()
     class LevelStreaming : public LevelSubsystem
     {
+        BrightBody()
     public:
         using Callback = std::function<void(LevelCollection*)>;
 
         explicit LevelStreaming(Level& level);
         ~LevelStreaming() override;
 
-        void OnUpdate(float deltaTime) override;
-        void OnEndPlay() override;
+        void OnGameUpdate(float deltaTime) override;
+        void OnGameEnd() override;
 
         void LoadCollectionAsync(const Core::Guid& collection, Callback callback = {});
         bool UnloadCollection(const Core::Guid& collection);
