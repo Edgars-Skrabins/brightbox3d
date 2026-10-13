@@ -9,7 +9,7 @@ namespace BrightBox3D::Level
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Level";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Level;
     };
 
     BrightClass()
@@ -17,7 +17,7 @@ namespace BrightBox3D::Level
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "LevelCollection";
+        static constexpr Assets::AssetType Type = Assets::AssetType::LevelCollection;
     };
 
     BrightClass()
@@ -25,7 +25,7 @@ namespace BrightBox3D::Level
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "LevelObjectVariant";
+        static constexpr Assets::AssetType Type = Assets::AssetType::LevelObjectVariant;
 
         const Serialization::JsonValue* GetRoot() const;
         Core::Guid GetParentTemplate() const;
@@ -36,7 +36,7 @@ namespace BrightBox3D::Level
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "LevelObjectTemplate";
+        static constexpr Assets::AssetType Type = Assets::AssetType::LevelObjectTemplate;
 
         const Serialization::JsonValue* GetRoot() const;
     };

@@ -28,7 +28,7 @@ namespace BrightBox3D::Rendering
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Material";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Material;
 
         BrightProperty(.edit = Edit::Anywhere, .category = Categories::Surface)
         ShadingModel m_shadingModel = ShadingModel::Lit;

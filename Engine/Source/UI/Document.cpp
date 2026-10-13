@@ -157,7 +157,7 @@ Image { width: 64px; height: 64px; }
         m_root.reset();
     }
 
-    Core::Guid Document::ResolveAsset(const std::string& reference, const char* expectedType)
+    Core::Guid Document::ResolveAsset(const std::string& reference, Assets::AssetType expectedType)
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         Core::Guid guid = Core::Guid::Parse(reference);
@@ -179,14 +179,14 @@ Image { width: 64px; height: 64px; }
         }
         else
         {
-            Core::Log::Warning(std::string("UI ") + expectedType + " '" + reference + "' was not found");
+            Core::Log::Warning(std::string("UI ") + Assets::AssetTypeName(expectedType) + " '" + reference + "' was not found");
         }
         return guid;
     }
 
     bool Document::LoadStyleSheet(const std::string& reference)
     {
-        Core::Guid guid = ResolveAsset(reference, "stylesheet");
+        Core::Guid guid = ResolveAsset(reference, StyleSheetAsset::Type);
         auto asset = Assets::AssetDatabase::Get().Load<StyleSheetAsset>(guid);
         if (!asset)
         {
@@ -236,7 +236,7 @@ Image { width: 64px; height: 64px; }
         pugi::xml_node source = node;
         if (markup == MarkupElement::Use)
         {
-            Core::Guid guid = ResolveAsset(node.attribute(MarkupAttributeName(MarkupAttribute::Widget)).value(), "widget");
+            Core::Guid guid = ResolveAsset(node.attribute(MarkupAttributeName(MarkupAttribute::Widget)).value(), WidgetAsset::Type);
             auto widget = Assets::AssetDatabase::Get().Load<WidgetAsset>(guid);
             if (!widget)
             {
@@ -378,7 +378,7 @@ Image { width: 64px; height: 64px; }
         bindOrApplyIfSet(MarkupAttribute::OnClick, [](const std::string&) {});
         if (element.GetElementType() == ElementType::Image && value(MarkupAttribute::Src))
         {
-            element.SetImage(ResolveAsset(*value(MarkupAttribute::Src), "image"));
+            element.SetImage(ResolveAsset(*value(MarkupAttribute::Src), Assets::AssetType::Texture));
         }
     }
 

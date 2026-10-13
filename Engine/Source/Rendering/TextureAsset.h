@@ -43,7 +43,7 @@ namespace BrightBox3D::Rendering
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Texture";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Texture;
 
         uint32_t GetWidth() const { return m_mips.empty() ? 0 : m_mips[0].width; }
         uint32_t GetHeight() const { return m_mips.empty() ? 0 : m_mips[0].height; }

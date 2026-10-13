@@ -35,7 +35,7 @@ namespace BrightBox3D::Editor
         ImGui::SeparatorText(Text(EditorText::SettingsStartup));
         Core::Guid startup = project.GetStartupLevel();
         PropertyDrawer::BeginRow(Text(EditorText::StartupLevel), false);
-        if (PropertyDrawer::AssetField("##startup", "Level", startup, false))
+        if (PropertyDrawer::AssetField("##startup", Assets::AssetType::Level, startup, false))
         {
             project.SetStartupLevel(startup);
             changed = true;

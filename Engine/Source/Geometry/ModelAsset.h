@@ -12,7 +12,7 @@ namespace BrightBox3D::Geometry
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Model";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Model;
 
         std::vector<MeshData>& GetMeshes() { return m_meshes; }
         const std::vector<MeshData>& GetMeshes() const { return m_meshes; }

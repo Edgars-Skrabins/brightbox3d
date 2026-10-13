@@ -7,6 +7,11 @@
 #include <string>
 #include <vector>
 
+namespace BrightBox3D::Assets
+{
+    enum class AssetType : uint8_t;
+}
+
 namespace BrightBox3D::Reflection
 {
     class EngineObject;
@@ -79,6 +84,7 @@ namespace BrightBox3D::Reflection
         PropertyKind kind = PropertyKind::Int32;
         const EnumInfo* enumInfo = nullptr;
         std::string referenceType;
+        Assets::AssetType assetType{};
         const TypeInfo& (*baseType)() = nullptr;
         size_t size = 0;
     };

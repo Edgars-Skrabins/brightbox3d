@@ -2,104 +2,88 @@
 
 #include "Core/StringUtils.h"
 
+#include <iterator>
+#include <span>
+#include <string_view>
+
 namespace BrightBox3D::Assets
 {
     namespace
     {
-        struct TypeEntry
+        constexpr const char* NoExtensions[] = { "" };
+        constexpr const char* LevelExtensions[] = { ".level" };
+        constexpr const char* CollectionExtensions[] = { ".collection" };
+        constexpr const char* VariantExtensions[] = { ".variant" };
+        constexpr const char* TemplateExtensions[] = { ".template" };
+        constexpr const char* MaterialExtensions[] = { ".material" };
+        constexpr const char* ModelExtensions[] = { ".fbx" };
+        constexpr const char* TextureExtensions[] = { ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".hdr" };
+        constexpr const char* ScreenExtensions[] = { ".screen.xml" };
+        constexpr const char* WidgetExtensions[] = { ".widget.xml" };
+        constexpr const char* StyleSheetExtensions[] = { ".css" };
+        constexpr const char* FontExtensions[] = { ".ttf", ".otf" };
+
+        struct AssetTypeInfo
         {
-            AssetType type;
             const char* name;
-            const char* extension;
+            std::span<const char* const> extensions;
         };
 
-        const TypeEntry s_entries[] = {
-            { AssetType::Unknown, "Unknown", "" },
-            { AssetType::Folder, "Folder", "" },
-            { AssetType::Level, "Level", ".level" },
-            { AssetType::LevelCollection, "LevelCollection", ".collection" },
-            { AssetType::LevelObjectVariant, "LevelObjectVariant", ".variant" },
-            { AssetType::LevelObjectTemplate, "LevelObjectTemplate", ".template" },
-            { AssetType::Material, "Material", ".material" },
-            { AssetType::Model, "Model", ".fbx" },
-            { AssetType::Texture, "Texture", ".png" },
-            { AssetType::Screen, "Screen", ".screen.xml" },
-            { AssetType::Widget, "Widget", ".widget.xml" },
-            { AssetType::StyleSheet, "StyleSheet", ".css" },
-            { AssetType::Font, "Font", ".ttf" }
+        constexpr AssetTypeInfo TypeInfos[] = {
+            { "Unknown", NoExtensions },
+            { "Folder", NoExtensions },
+            { "Level", LevelExtensions },
+            { "LevelCollection", CollectionExtensions },
+            { "LevelObjectVariant", VariantExtensions },
+            { "LevelObjectTemplate", TemplateExtensions },
+            { "Material", MaterialExtensions },
+            { "Model", ModelExtensions },
+            { "Texture", TextureExtensions },
+            { "Screen", ScreenExtensions },
+            { "Widget", WidgetExtensions },
+            { "StyleSheet", StyleSheetExtensions },
+            { "Font", FontExtensions },
         };
+
+        static_assert(std::size(TypeInfos) == static_cast<size_t>(AssetType::Count));
+
+        const AssetTypeInfo& Info(AssetType type)
+        {
+            return TypeInfos[static_cast<size_t>(type)];
+        }
     }
 
     AssetType AssetTypeFromPath(const std::filesystem::path& path)
     {
         std::string name = Core::ToLower(path.filename().string());
-        if (Core::EndsWith(name, ".screen.xml"))
+        AssetType match = AssetType::Unknown;
+        size_t matchLength = 0;
+        for (size_t index = 0; index < std::size(TypeInfos); ++index)
         {
-            return AssetType::Screen;
+            for (std::string_view extension : TypeInfos[index].extensions)
+            {
+                if (extension.size() > matchLength && Core::EndsWith(name, extension))
+                {
+                    match = static_cast<AssetType>(index);
+                    matchLength = extension.size();
+                }
+            }
         }
-        if (Core::EndsWith(name, ".widget.xml"))
-        {
-            return AssetType::Widget;
-        }
-        std::string extension = Core::ToLower(path.extension().string());
-        if (extension == ".level")
-        {
-            return AssetType::Level;
-        }
-        if (extension == ".collection")
-        {
-            return AssetType::LevelCollection;
-        }
-        if (extension == ".variant")
-        {
-            return AssetType::LevelObjectVariant;
-        }
-        if (extension == ".template")
-        {
-            return AssetType::LevelObjectTemplate;
-        }
-        if (extension == ".material")
-        {
-            return AssetType::Material;
-        }
-        if (extension == ".fbx")
-        {
-            return AssetType::Model;
-        }
-        if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".tga" || extension == ".bmp" || extension == ".hdr")
-        {
-            return AssetType::Texture;
-        }
-        if (extension == ".css")
-        {
-            return AssetType::StyleSheet;
-        }
-        if (extension == ".ttf" || extension == ".otf")
-        {
-            return AssetType::Font;
-        }
-        return AssetType::Unknown;
+        return match;
     }
 
     const char* AssetTypeName(AssetType type)
     {
-        for (const TypeEntry& entry : s_entries)
-        {
-            if (entry.type == type)
-            {
-                return entry.name;
-            }
-        }
-        return "Unknown";
+        return Info(type).name;
     }
 
     AssetType AssetTypeFromName(const std::string& name)
     {
-        for (const TypeEntry& entry : s_entries)
+        for (size_t index = 0; index < std::size(TypeInfos); ++index)
         {
-            if (name == entry.name)
+            if (name == TypeInfos[index].name)
             {
-                return entry.type;
+                return static_cast<AssetType>(index);
             }
         }
         return AssetType::Unknown;
@@ -107,13 +91,11 @@ namespace BrightBox3D::Assets
 
     const char* AssetTypeExtension(AssetType type)
     {
-        for (const TypeEntry& entry : s_entries)
-        {
-            if (entry.type == type)
-            {
-                return entry.extension;
-            }
-        }
-        return "";
+        return Info(type).extensions.front();
+    }
+
+    std::span<const char* const> AssetTypeExtensions(AssetType type)
+    {
+        return Info(type).extensions;
     }
 }

@@ -58,7 +58,7 @@ TEST(ReflectionTests, CollectsPropertiesWithFlags)
     const PropertyInfo* references = type.FindProperty("m_references");
     EXPECT_EQ(references->value.kind, PropertyKind::Array);
     EXPECT_EQ(references->element.kind, PropertyKind::AssetReference);
-    EXPECT_EQ(references->element.referenceType, "TestAsset");
+    EXPECT_EQ(references->element.assetType, Assets::AssetType::Texture);
 }
 
 TEST(ReflectionTests, AccessesValuesThroughProperties)

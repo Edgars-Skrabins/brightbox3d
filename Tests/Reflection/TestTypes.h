@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/AssetType.h"
 #include "Core/Guid.h"
 #include "Math/Color.h"
 #include "Math/Quaternion.h"
@@ -22,7 +23,7 @@ namespace BrightBox3D::Tests
     struct TestReference
     {
         static constexpr Reflection::PropertyKind ReflectionKind = Reflection::PropertyKind::AssetReference;
-        static const char* ReflectionReferenceType() { return "TestAsset"; }
+        static constexpr Assets::AssetType ReflectionAssetType = Assets::AssetType::Texture;
 
         Core::Guid guid;
     };

@@ -35,6 +35,12 @@ namespace BrightBox3D::Reflection
     };
 
     template <typename T>
+    concept AssetReferenceLike = requires {
+        { T::ReflectionKind } -> std::convertible_to<PropertyKind>;
+        { T::ReflectionAssetType } -> std::convertible_to<Assets::AssetType>;
+    };
+
+    template <typename T>
     concept ClassReferenceLike = requires {
         { T::ReflectionKind } -> std::convertible_to<PropertyKind>;
         { T::ReflectionBaseType() } -> std::convertible_to<const TypeInfo&>;
@@ -107,6 +113,12 @@ namespace BrightBox3D::Reflection
             static_assert(std::is_standard_layout_v<T>, "Class reference properties must be standard layout with a type name as first member");
             descriptor.kind = PropertyKind::ClassReference;
             descriptor.baseType = &T::ReflectionBaseType;
+        }
+        else if constexpr (AssetReferenceLike<T>)
+        {
+            static_assert(std::is_standard_layout_v<T>, "Asset reference properties must be standard layout with a Guid as first member");
+            descriptor.kind = T::ReflectionKind;
+            descriptor.assetType = T::ReflectionAssetType;
         }
         else if constexpr (ReferenceLike<T>)
         {

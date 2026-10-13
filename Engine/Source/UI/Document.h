@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/AssetType.h"
 #include "Core/Guid.h"
 #include "Math/Vector2.h"
 #include "UI/Binding.h"
@@ -75,7 +76,7 @@ namespace BrightBox3D::UI
         std::unique_ptr<Element> BuildElement(const pugi::xml_node& node, int depth, std::string& error);
         void ApplyAttributes(Element& element, const MarkupValues& values, const pugi::xml_node& source);
         bool LoadStyleSheet(const std::string& reference);
-        Core::Guid ResolveAsset(const std::string& reference, const char* expectedType);
+        Core::Guid ResolveAsset(const std::string& reference, Assets::AssetType expectedType);
         void ComputeStyles(Element& element, const ComputedStyle* parent);
         void SyncLayout(Element& element);
         void ReadLayout(Element& element, float parentX, float parentY);

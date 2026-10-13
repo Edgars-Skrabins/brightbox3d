@@ -10,7 +10,7 @@ namespace BrightBox3D::UI
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Screen";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Screen;
     };
 
     BrightClass()
@@ -18,7 +18,7 @@ namespace BrightBox3D::UI
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Widget";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Widget;
     };
 
     BrightClass()
@@ -26,7 +26,7 @@ namespace BrightBox3D::UI
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "StyleSheet";
+        static constexpr Assets::AssetType Type = Assets::AssetType::StyleSheet;
     };
 
     BrightClass()
@@ -34,7 +34,7 @@ namespace BrightBox3D::UI
     {
         BrightBody()
     public:
-        static constexpr const char* AssetTypeName = "Font";
+        static constexpr Assets::AssetType Type = Assets::AssetType::Font;
 
         FontData& GetData() { return m_data; }
         const FontData& GetData() const { return m_data; }

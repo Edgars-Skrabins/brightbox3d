@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/AssetType.h"
 #include "Core/Guid.h"
 #include "Reflection/EngineObject.h"
 
@@ -37,7 +38,7 @@ namespace BrightBox3D::Editor
         static bool DrawValue(const char* label, const Reflection::ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level);
         static bool IsVisible(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
         static bool IsEditable(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
-        static bool AssetField(const char* label, const std::string& assetType, Core::Guid& guid, bool readOnly);
+        static bool AssetField(const char* label, Assets::AssetType type, Core::Guid& guid, bool readOnly);
         static bool ClassField(const char* label, const Reflection::TypeInfo* baseType, std::string& typeName);
         static void BeginRow(const char* label, bool bold);
         static void EndRow();

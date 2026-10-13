@@ -135,7 +135,7 @@ namespace BrightBox3D::Assets
     struct AssetReference
     {
         static constexpr Reflection::PropertyKind ReflectionKind = Reflection::PropertyKind::AssetReference;
-        static const char* ReflectionReferenceType() { return T::AssetTypeName; }
+        static constexpr AssetType ReflectionAssetType = T::Type;
 
         Core::Guid guid;
 

@@ -123,12 +123,11 @@ namespace BrightBox3D::Editor
         return property.HasFlag(PropertyFlagEditAnywhere) || property.HasFlag(PropertyFlagEditInstanceOnly);
     }
 
-    bool PropertyDrawer::AssetField(const char* label, const std::string& assetType, Core::Guid& guid, bool readOnly)
+    bool PropertyDrawer::AssetField(const char* label, Assets::AssetType type, Core::Guid& guid, bool readOnly)
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-        Assets::AssetType type = Assets::AssetTypeFromName(assetType);
         const Assets::AssetRecord* record = guid.IsValid() ? database.FindRecord(guid) : nullptr;
-        std::string preview = record ? record->name : (guid.IsValid() ? Text(EditorText::MissingAsset, guid.ToString().substr(0, 8)) : Text(EditorText::NoneOfType, assetType));
+        std::string preview = record ? record->name : (guid.IsValid() ? Text(EditorText::MissingAsset, guid.ToString().substr(0, 8)) : Text(EditorText::NoneOfType, Assets::AssetTypeName(type)));
         bool changed = false;
         ImGui::BeginDisabled(readOnly);
         float clearWidth = ImGui::GetFrameHeight();
@@ -307,7 +306,7 @@ namespace BrightBox3D::Editor
         }
         case PropertyKind::AssetReference:
             ImGui::EndDisabled();
-            changed = AssetField(label, descriptor.referenceType, *static_cast<Core::Guid*>(value), readOnly);
+            changed = AssetField(label, descriptor.assetType, *static_cast<Core::Guid*>(value), readOnly);
             ImGui::BeginDisabled(readOnly);
             break;
         case PropertyKind::ObjectReference:
