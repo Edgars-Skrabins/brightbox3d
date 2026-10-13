@@ -21,21 +21,6 @@ namespace BrightBox3D::Level
     using Serialization::JsonValue;
     using Serialization::MakeString;
 
-    class LevelSerializerAccess
-    {
-    public:
-        static void Attach(LevelObjectInstance& object, std::unique_ptr<Component> component)
-        {
-            component->m_owner = &object;
-            object.m_components.push_back(std::move(component));
-        }
-
-        static void SetId(LevelObjectInstance& object, const Core::Guid& id)
-        {
-            object.SetId(id);
-        }
-    };
-
     namespace
     {
         constexpr const char* TransformTarget = "transform";
@@ -54,7 +39,7 @@ namespace BrightBox3D::Level
             }
         }
 
-        void WriteComponent(const Component& component, JsonValue& out, JsonAllocator& allocator)
+        void WriteComponent(const LevelObjectComponent& component, JsonValue& out, JsonAllocator& allocator)
         {
             out.SetObject();
             out.AddMember("id", MakeString(component.GetLocalId().ToString(), allocator), allocator);
@@ -73,7 +58,7 @@ namespace BrightBox3D::Level
             out.AddMember("properties", properties, allocator);
         }
 
-        bool IsInSameLink(const LevelObjectInstance& object, const LevelObjectInstance& linkRoot)
+        bool IsInSameLink(const LevelObject& object, const LevelObject& linkRoot)
         {
             if (&object == &linkRoot)
             {
@@ -83,13 +68,13 @@ namespace BrightBox3D::Level
             {
                 return false;
             }
-            return const_cast<LevelObjectInstance&>(object).GetLinkRoot() == &linkRoot;
+            return const_cast<LevelObject&>(object).GetLinkRoot() == &linkRoot;
         }
 
-        void CollectLinkedSubtree(LevelObjectInstance& linkRoot, LevelObjectInstance& object, std::vector<LevelObjectInstance*>& linked, std::vector<std::pair<LevelObjectInstance*, LevelObjectInstance*>>& foreign)
+        void CollectLinkedSubtree(LevelObject& linkRoot, LevelObject& object, std::vector<LevelObject*>& linked, std::vector<std::pair<LevelObject*, LevelObject*>>& foreign)
         {
             linked.push_back(&object);
-            for (LevelObjectInstance* child : object.GetChildren())
+            for (LevelObject* child : object.GetChildren())
             {
                 if (IsInSameLink(*child, linkRoot))
                 {
@@ -102,7 +87,7 @@ namespace BrightBox3D::Level
             }
         }
 
-        std::string ComponentKey(const LevelObjectInstance& object, const Component* component)
+        std::string ComponentKey(const LevelObject& object, const LevelObjectComponent* component)
         {
             if (!component)
             {
@@ -115,7 +100,7 @@ namespace BrightBox3D::Level
             return component->GetLocalId().ToString();
         }
 
-        Component* ResolveComponent(LevelObjectInstance& object, const std::string& key)
+        LevelObjectComponent* ResolveComponent(LevelObject& object, const std::string& key)
         {
             if (key.empty())
             {
@@ -128,7 +113,7 @@ namespace BrightBox3D::Level
             return object.FindComponentByLocalId(Core::Guid::Parse(key));
         }
 
-        bool PseudoPropertiesEqual(const LevelObjectInstance& a, const Component* componentA, const LevelObjectInstance& b, const Component* componentB, const std::string& property)
+        bool PseudoPropertiesEqual(const LevelObject& a, const LevelObjectComponent* componentA, const LevelObject& b, const LevelObjectComponent* componentB, const std::string& property)
         {
             if (property == "$name")
             {
@@ -145,7 +130,7 @@ namespace BrightBox3D::Level
             return true;
         }
 
-        void WritePseudoProperty(const LevelObjectInstance& object, const Component* component, const std::string& property, JsonValue& out, JsonAllocator& allocator)
+        void WritePseudoProperty(const LevelObject& object, const LevelObjectComponent* component, const std::string& property, JsonValue& out, JsonAllocator& allocator)
         {
             if (property == "$name")
             {
@@ -161,7 +146,7 @@ namespace BrightBox3D::Level
             }
         }
 
-        void ReadPseudoProperty(LevelObjectInstance& object, Component* component, const std::string& property, const JsonValue& value)
+        void ReadPseudoProperty(LevelObject& object, LevelObjectComponent* component, const std::string& property, const JsonValue& value)
         {
             if (property == "$name" && value.IsString())
             {
@@ -177,7 +162,7 @@ namespace BrightBox3D::Level
             }
         }
 
-        void ForEachOverrideCandidate(const LevelObjectInstance& live, const LevelObjectInstance& prototype, bool isRoot, const std::function<void(const Component*, const Component*, const std::string&, bool)>& visitor)
+        void ForEachOverrideCandidate(const LevelObject& live, const LevelObject& prototype, bool isRoot, const std::function<void(const LevelObjectComponent*, const LevelObjectComponent*, const std::string&, bool)>& visitor)
         {
             if (!isRoot)
             {
@@ -200,7 +185,7 @@ namespace BrightBox3D::Level
             }
             for (const auto& component : live.GetComponents())
             {
-                const Component* other = prototype.FindComponentByLocalId(component->GetLocalId());
+                const LevelObjectComponent* other = prototype.FindComponentByLocalId(component->GetLocalId());
                 if (!other || &other->GetType() != &component->GetType() || Reflection::Cast<MissingComponent>(component.get()))
                 {
                     continue;
@@ -216,21 +201,21 @@ namespace BrightBox3D::Level
             }
         }
 
-        void WriteOverrides(const LevelObjectInstance& linkRoot, JsonValue& out, JsonAllocator& allocator)
+        void WriteOverrides(const LevelObject& linkRoot, JsonValue& out, JsonAllocator& allocator)
         {
             out.SetArray();
             LevelObjectLibrary& library = LevelObjectLibrary::Get();
-            std::vector<LevelObjectInstance*> linked;
-            std::vector<std::pair<LevelObjectInstance*, LevelObjectInstance*>> foreign;
-            CollectLinkedSubtree(const_cast<LevelObjectInstance&>(linkRoot), const_cast<LevelObjectInstance&>(linkRoot), linked, foreign);
-            for (LevelObjectInstance* object : linked)
+            std::vector<LevelObject*> linked;
+            std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
+            CollectLinkedSubtree(const_cast<LevelObject&>(linkRoot), const_cast<LevelObject&>(linkRoot), linked, foreign);
+            for (LevelObject* object : linked)
             {
-                LevelObjectInstance* prototype = library.FindPrototypeNode(linkRoot.GetLink().asset, object->GetLink().sourceId);
+                LevelObject* prototype = library.FindPrototypeNode(linkRoot.GetLink().asset, object->GetLink().sourceId);
                 if (!prototype)
                 {
                     continue;
                 }
-                ForEachOverrideCandidate(*object, *prototype, object == &linkRoot, [&](const Component* component, const Component*, const std::string& property, bool equal)
+                ForEachOverrideCandidate(*object, *prototype, object == &linkRoot, [&](const LevelObjectComponent* component, const LevelObjectComponent*, const std::string& property, bool equal)
                 {
                     if (equal)
                     {
@@ -251,7 +236,7 @@ namespace BrightBox3D::Level
                     }
                     else
                     {
-                        const Reflection::Object& target = component ? static_cast<const Reflection::Object&>(*component) : static_cast<const Reflection::Object&>(*object);
+                        const Reflection::EngineObject& target = component ? static_cast<const Reflection::EngineObject&>(*component) : static_cast<const Reflection::EngineObject&>(*object);
                         Serialization::WriteProperty(*target.GetType().FindProperty(property), target, value, allocator);
                     }
                     entry.AddMember("value", value, allocator);
@@ -260,9 +245,9 @@ namespace BrightBox3D::Level
             }
         }
 
-        void WriteNode(const LevelObjectInstance& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode);
+        void WriteNode(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode);
 
-        void WriteLinkedNode(const LevelObjectInstance& root, JsonValue& out, JsonAllocator& allocator)
+        void WriteLinkedNode(const LevelObject& root, JsonValue& out, JsonAllocator& allocator)
         {
             out.SetObject();
             out.AddMember("id", MakeString(root.GetId().ToString(), allocator), allocator);
@@ -276,9 +261,9 @@ namespace BrightBox3D::Level
             WriteOverrides(root, overrides, allocator);
             out.AddMember("overrides", overrides, allocator);
 
-            std::vector<LevelObjectInstance*> linked;
-            std::vector<std::pair<LevelObjectInstance*, LevelObjectInstance*>> foreign;
-            CollectLinkedSubtree(const_cast<LevelObjectInstance&>(root), const_cast<LevelObjectInstance&>(root), linked, foreign);
+            std::vector<LevelObject*> linked;
+            std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
+            CollectLinkedSubtree(const_cast<LevelObject&>(root), const_cast<LevelObject&>(root), linked, foreign);
             JsonValue children(rapidjson::kArrayType);
             for (auto& [attachTo, child] : foreign)
             {
@@ -294,7 +279,7 @@ namespace BrightBox3D::Level
             out.AddMember("children", children, allocator);
         }
 
-        void WriteNode(const LevelObjectInstance& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode)
+        void WriteNode(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode)
         {
             if (object.GetMissingTypeName() == MissingLevelObjectType)
             {
@@ -343,7 +328,7 @@ namespace BrightBox3D::Level
             out.AddMember("components", components, allocator);
 
             JsonValue children(rapidjson::kArrayType);
-            for (const LevelObjectInstance* child : object.GetChildren())
+            for (const LevelObject* child : object.GetChildren())
             {
                 if (child->GetHideInLevelContents() || child->IsPendingDestroy())
                 {
@@ -361,22 +346,27 @@ namespace BrightBox3D::Level
             Core::Guid derivedRoot;
             Core::Guid asset;
             bool freshIds = false;
-            std::unordered_map<Core::Guid, LevelObjectInstance*>* bySource = nullptr;
+            std::unordered_map<Core::Guid, LevelObject*>* bySource = nullptr;
         };
 
-        std::unique_ptr<Component> ReadComponent(const JsonValue& entry)
+        std::unique_ptr<LevelObjectComponent> ReadComponent(const JsonValue& entry)
         {
             std::string typeName = GetString(entry, "$type");
             const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
             const JsonValue* properties = FindMember(entry, "properties");
-            std::unique_ptr<Component> component;
-            if (type && type->IsA(Component::StaticType()) && !type->IsA(Transform::StaticType()) && !type->IsAbstract())
+            std::unique_ptr<LevelObjectComponent> component;
+            if (type && type->IsA(LevelObjectComponent::StaticType()) && !type->IsA(Transform::StaticType()) && !type->IsAbstract())
             {
-                component.reset(static_cast<Component*>(type->CreateInstance()));
+                component.reset(static_cast<LevelObjectComponent*>(type->CreateInstance()));
                 if (properties)
                 {
                     Serialization::DeserializeProperties(*component, *properties);
                 }
+            }
+            else if (type && !type->IsA(LevelObjectComponent::StaticType()))
+            {
+                Core::Log::Info("Dropped the '" + typeName + "' component: '" + type->GetName() + "' is no longer a component");
+                return nullptr;
             }
             else
             {
@@ -391,41 +381,43 @@ namespace BrightBox3D::Level
             return component;
         }
 
-        LevelObjectInstance* ReadNodeInternal(Level& level, LevelCollection* collection, LevelObjectInstance* parent, const JsonValue& node, ReadContext& context, bool isAssetRoot);
+        LevelObject* ReadNodeInternal(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, ReadContext& context, bool isAssetRoot);
 
-        LevelObjectInstance* ReadLinkedNode(Level& level, LevelCollection* collection, LevelObjectInstance* parent, const JsonValue& node, bool freshIds)
+        LevelObject* InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, bool initialize, bool allowTemplate);
+
+        LevelObject* ReadLinkedNode(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const Core::Guid& id, bool freshIds)
         {
-            Core::Guid id = freshIds ? Core::Guid::Generate() : Core::Guid::Parse(GetString(node, "id"));
             Core::Guid asset = Core::Guid::Parse(GetString(node, "levelObject"));
-            LevelObjectInstance* root = LevelSerializer::Instantiate(level, asset, collection, parent, id, false);
+            LevelObjectLibrary::Get().GetPrototype(asset);
+            LevelObject* root = InstantiateAsset(level, asset, collection, parent, id, false, true);
             if (!root)
             {
                 Core::Log::Warning("LevelObject asset " + asset.ToString() + " is missing; the instance is preserved as a placeholder");
-                std::unique_ptr<LevelObjectInstance> placeholder = std::make_unique<LevelObjectInstance>();
+                std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
                 placeholder->SetName(GetString(node, "name", "Missing LevelObject"));
                 placeholder->SetMissingType(MissingLevelObjectType, Serialization::WriteJson(node, false));
                 if (const JsonValue* transform = FindMember(node, "transform"))
                 {
                     Serialization::DeserializeProperties(placeholder->GetTransform(), *transform);
                 }
-                LevelObjectInstance* raw = level.AdoptObject(std::move(placeholder), collection, parent, false);
+                LevelObject* raw = level.AdoptObject(std::move(placeholder), collection, parent, false);
                 return raw;
             }
 
             root->SetName(GetString(node, "name", root->GetName()));
-            root->SetActive(GetBool(node, "active", true));
+            root->SetActive(GetBool(node, "active", root->IsActiveSelf()));
             if (const JsonValue* transform = FindMember(node, "transform"))
             {
                 Serialization::DeserializeProperties(root->GetTransform(), *transform);
             }
 
-            std::unordered_map<Core::Guid, LevelObjectInstance*> bySource;
-            std::function<void(LevelObjectInstance&)> index = [&](LevelObjectInstance& object)
+            std::unordered_map<Core::Guid, LevelObject*> bySource;
+            std::function<void(LevelObject&)> index = [&](LevelObject& object)
             {
                 if (IsInSameLink(object, *root))
                 {
                     bySource[object.GetLink().sourceId] = &object;
-                    for (LevelObjectInstance* child : object.GetChildren())
+                    for (LevelObject* child : object.GetChildren())
                     {
                         index(*child);
                     }
@@ -443,9 +435,9 @@ namespace BrightBox3D::Level
                     {
                         continue;
                     }
-                    LevelObjectInstance& object = *it->second;
+                    LevelObject& object = *it->second;
                     std::string componentKey = GetString(entry, "component");
-                    Component* component = ResolveComponent(object, componentKey);
+                    LevelObjectComponent* component = ResolveComponent(object, componentKey);
                     if (!componentKey.empty() && !component)
                     {
                         continue;
@@ -456,7 +448,7 @@ namespace BrightBox3D::Level
                         ReadPseudoProperty(object, component, property, *value);
                         continue;
                     }
-                    Reflection::Object& target = component ? static_cast<Reflection::Object&>(*component) : static_cast<Reflection::Object&>(object);
+                    Reflection::EngineObject& target = component ? static_cast<Reflection::EngineObject&>(*component) : static_cast<Reflection::EngineObject&>(object);
                     if (const Reflection::PropertyInfo* info = target.GetType().FindProperty(property))
                     {
                         Serialization::ReadProperty(*info, target, *value);
@@ -470,7 +462,7 @@ namespace BrightBox3D::Level
                 for (const JsonValue& child : children->GetArray())
                 {
                     auto it = bySource.find(Core::Guid::Parse(GetString(child, "attachTo")));
-                    LevelObjectInstance* attach = it == bySource.end() ? root : it->second;
+                    LevelObject* attach = it == bySource.end() ? root : it->second;
                     ReadContext childContext;
                     childContext.freshIds = freshIds;
                     ReadNodeInternal(level, collection, attach, child, childContext, false);
@@ -479,22 +471,47 @@ namespace BrightBox3D::Level
             return root;
         }
 
-        LevelObjectInstance* ReadNodeInternal(Level& level, LevelCollection* collection, LevelObjectInstance* parent, const JsonValue& node, ReadContext& context, bool isAssetRoot)
+        LevelObject* ReadVariantOfTemplate(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const ReadContext& context)
+        {
+            Core::Guid parentAsset = Core::Guid::Parse(GetString(node, "levelObject"));
+            const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(parentAsset);
+            if (!record || record->type != Assets::AssetType::LevelObjectTemplate)
+            {
+                Core::Log::Error("A LevelObjectVariant can only be based on a LevelObjectTemplate");
+                return nullptr;
+            }
+            LevelObject* root = ReadLinkedNode(level, collection, parent, node, context.derivedRoot, false);
+            if (root)
+            {
+                root->SetLink({ context.asset, root->GetLink().sourceId, true });
+            }
+            return root;
+        }
+
+        LevelObject* ReadNodeInternal(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, ReadContext& context, bool isAssetRoot)
         {
             if (!node.IsObject())
             {
                 return nullptr;
             }
-            if (FindMember(node, "levelObject") && !context.asset.IsValid())
+            if (FindMember(node, "levelObject"))
             {
-                return ReadLinkedNode(level, collection, parent, node, context.freshIds);
+                if (!context.asset.IsValid())
+                {
+                    Core::Guid id = context.freshIds ? Core::Guid::Generate() : Core::Guid::Parse(GetString(node, "id"));
+                    return ReadLinkedNode(level, collection, parent, node, id, context.freshIds);
+                }
+                if (isAssetRoot)
+                {
+                    return ReadVariantOfTemplate(level, collection, parent, node, context);
+                }
             }
 
-            std::string typeName = GetString(node, "$type", "LevelObjectInstance");
+            std::string typeName = GetString(node, "$type", "LevelObject");
             const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
-            bool missing = !type || !type->IsA(LevelObjectInstance::StaticType()) || type->IsAbstract();
-            std::unique_ptr<Reflection::Object> created((missing ? &LevelObjectInstance::StaticType() : type)->CreateInstance());
-            std::unique_ptr<LevelObjectInstance> object(static_cast<LevelObjectInstance*>(created.release()));
+            bool missing = !type || !type->IsA(LevelObject::StaticType()) || type->IsAbstract();
+            std::unique_ptr<Reflection::EngineObject> created((missing ? &LevelObject::StaticType() : type)->CreateInstance());
+            std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
 
             Core::Guid sourceId = Core::Guid::Parse(GetString(node, "id"));
             Core::Guid id = sourceId;
@@ -514,7 +531,7 @@ namespace BrightBox3D::Level
             if (missing)
             {
                 object->SetMissingType(typeName, properties ? Serialization::WriteJson(*properties, false) : "{}");
-                Core::Log::Warning("Missing LevelObjectInstance type '" + typeName + "' for '" + object->GetName() + "'; its data is preserved");
+                Core::Log::Warning("Missing LevelObject type '" + typeName + "' for '" + object->GetName() + "'; its data is preserved");
             }
             else if (properties)
             {
@@ -528,13 +545,17 @@ namespace BrightBox3D::Level
             {
                 for (const JsonValue& entry : components->GetArray())
                 {
-                    std::unique_ptr<Component> component = ReadComponent(entry);
-                    LevelSerializerAccess::Attach(*object, std::move(component));
+                    if (std::unique_ptr<LevelObjectComponent> component = ReadComponent(entry))
+                    {
+                        Level::AttachComponent(*object, std::move(component));
+                    }
                 }
             }
 
-            LevelSerializerAccess::SetId(*object, id);
-            LevelObjectInstance* raw = level.AdoptObject(std::move(object), collection, parent, false);
+            LevelObjectRuntimeState state = Level::GetRuntimeState(*object);
+            state.object.id = id;
+            Level::SetRuntimeState(*object, state);
+            LevelObject* raw = level.AdoptObject(std::move(object), collection, parent, false);
             if (context.bySource && sourceId.IsValid())
             {
                 (*context.bySource)[sourceId] = raw;
@@ -550,24 +571,53 @@ namespace BrightBox3D::Level
             return raw;
         }
 
-        void InitializeRecursive(Level& level, LevelObjectInstance& object)
-        {
-            level.InitializeObject(object);
-            std::vector<LevelObjectInstance*> children = object.GetChildren();
-            for (LevelObjectInstance* child : children)
-            {
-                InitializeRecursive(level, *child);
-            }
-        }
-
-        const JsonValue* FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder)
+        const JsonValue* FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, bool allowTemplate)
         {
             holder = Assets::AssetDatabase::Get().LoadAsset(asset);
-            if (auto* levelObject = holder ? Reflection::Cast<LevelObjectAsset>(holder.get()) : nullptr)
+            if (auto* variant = holder ? Reflection::Cast<LevelObjectVariantAsset>(holder.get()) : nullptr)
             {
-                return levelObject->GetRoot();
+                return variant->GetRoot();
+            }
+            auto* templateAsset = holder ? Reflection::Cast<LevelObjectTemplateAsset>(holder.get()) : nullptr;
+            if (templateAsset && allowTemplate)
+            {
+                return templateAsset->GetRoot();
+            }
+            if (templateAsset)
+            {
+                Core::Log::Error("LevelObjectTemplates cannot be placed or spawned; create a Variant from this Template first");
             }
             return nullptr;
+        }
+
+        LevelObject* InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, bool initialize, bool allowTemplate)
+        {
+            std::shared_ptr<Assets::Asset> holder;
+            const JsonValue* root = FindAssetRoot(asset, holder, allowTemplate);
+            if (!root)
+            {
+                return nullptr;
+            }
+            ReadContext context;
+            context.asset = asset;
+            context.derivedRoot = instanceId.IsValid() ? instanceId : Core::Guid::Generate();
+            LevelObject* object = ReadNodeInternal(level, collection, parent, *root, context, true);
+            if (object && initialize)
+            {
+                level.InitializeHierarchy(*object);
+            }
+            return object;
+        }
+
+        void TagForEditing(LevelObject& node)
+        {
+            LevelObjectLink link;
+            link.sourceId = node.GetId();
+            node.SetLink(link);
+            for (LevelObject* child : node.GetChildren())
+            {
+                TagForEditing(*child);
+            }
         }
     }
 }
@@ -580,70 +630,88 @@ namespace BrightBox3D::Level
         return id.IsValid() ? id : Core::Guid{ 1, 1 };
     }
 
-    void LevelSerializer::WriteObject(const LevelObjectInstance& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks)
+    void LevelSerializer::WriteObject(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks)
     {
         WriteNode(object, out, allocator, preserveLinks, false);
     }
 
-    LevelObjectInstance* LevelSerializer::ReadObject(Level& level, LevelCollection* collection, LevelObjectInstance* parent, const JsonValue& node, bool initialize)
+    LevelObject* LevelSerializer::ReadObject(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, bool initialize)
     {
         ReadContext context;
-        LevelObjectInstance* object = ReadNodeInternal(level, collection, parent, node, context, false);
+        LevelObject* object = ReadNodeInternal(level, collection, parent, node, context, false);
         if (object && initialize)
         {
-            InitializeRecursive(level, *object);
+            level.InitializeHierarchy(*object);
         }
         return object;
     }
 
-    LevelObjectInstance* LevelSerializer::InstantiateNode(Level& level, const JsonValue& root, LevelCollection* collection, LevelObjectInstance* parent, bool initialize)
+    LevelObject* LevelSerializer::InstantiateNode(Level& level, const JsonValue& root, LevelCollection* collection, LevelObject* parent, bool initialize)
     {
         ReadContext context;
         context.freshIds = true;
-        LevelObjectInstance* object = ReadNodeInternal(level, collection, parent, root, context, false);
+        LevelObject* object = ReadNodeInternal(level, collection, parent, root, context, false);
         if (object && initialize)
         {
-            InitializeRecursive(level, *object);
+            level.InitializeHierarchy(*object);
         }
         return object;
     }
 
-    LevelObjectInstance* LevelSerializer::Instantiate(Level& level, const Core::Guid& levelObjectAsset, LevelCollection* collection, LevelObjectInstance* parent, const Core::Guid& instanceId, bool initialize)
+    LevelObject* LevelSerializer::Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, bool initialize)
+    {
+        LevelObjectLibrary::Get().GetPrototype(variant);
+        return InstantiateAsset(level, variant, collection, parent, instanceId, initialize, false);
+    }
+
+    LevelObject* LevelSerializer::OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset)
     {
         std::shared_ptr<Assets::Asset> holder;
-        const JsonValue* root = FindAssetRoot(levelObjectAsset, holder);
+        const JsonValue* root = FindAssetRoot(asset, holder, true);
         if (!root)
         {
-            if (holder && Reflection::Cast<LevelObjectTemplateAsset>(holder.get()))
-            {
-                Core::Log::Error("LevelObjectTemplates cannot be instantiated; create a LevelObject from the template first");
-            }
             return nullptr;
         }
-        ReadContext context;
-        context.asset = levelObjectAsset;
-        context.derivedRoot = instanceId.IsValid() ? instanceId : Core::Guid::Generate();
-        LevelObjectInstance* object = ReadNodeInternal(level, collection, parent, *root, context, true);
-        if (object && initialize)
+        LevelObject* object = ReadObject(level, collection, nullptr, *root, false);
+        if (object && !(object->GetLink().isRoot && object->GetLink().asset.IsValid()))
         {
-            InitializeRecursive(level, *object);
+            TagForEditing(*object);
         }
         return object;
     }
 
-    void LevelSerializer::WriteAssetNode(const LevelObjectInstance& root, JsonValue& out, JsonAllocator& allocator)
+    bool LevelSerializer::SaveAsset(const LevelObject& root, const Core::Guid& asset)
+    {
+        const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(asset);
+        if (!record)
+        {
+            return false;
+        }
+        JsonDocument document;
+        MakeLevelObjectDocument(root, document, record->type);
+        return Assets::AssetDatabase::Get().SaveJsonAsset(asset, document);
+    }
+
+    void LevelSerializer::WriteAssetNode(const LevelObject& root, JsonValue& out, JsonAllocator& allocator)
     {
         WriteNode(root, out, allocator, false, true);
     }
 
-    void LevelSerializer::MakeLevelObjectDocument(const LevelObjectInstance& root, JsonDocument& document)
+    void LevelSerializer::MakeLevelObjectDocument(const LevelObject& root, JsonDocument& document, Assets::AssetType type)
     {
         document.SetObject();
         auto& allocator = document.GetAllocator();
-        document.AddMember("$asset", "LevelObject", allocator);
+        document.AddMember("$asset", JsonValue(Assets::AssetTypeName(type), allocator), allocator);
         document.AddMember("version", 1, allocator);
         JsonValue node;
-        WriteAssetNode(root, node, allocator);
+        if (type == Assets::AssetType::LevelObjectVariant && root.GetLink().isRoot && root.GetLink().asset.IsValid())
+        {
+            WriteLinkedNode(root, node, allocator);
+        }
+        else
+        {
+            WriteAssetNode(root, node, allocator);
+        }
         document.AddMember("root", node, allocator);
     }
 
@@ -654,7 +722,7 @@ namespace BrightBox3D::Level
         out.AddMember("version", 1, allocator);
         out.AddMember("name", MakeString(collection.GetName(), allocator), allocator);
         JsonValue objects(rapidjson::kArrayType);
-        for (const LevelObjectInstance* root : collection.GetRoots())
+        for (const LevelObject* root : collection.GetRoots())
         {
             if (root->GetHideInLevelContents() || root->IsPendingDestroy())
             {
@@ -678,20 +746,20 @@ namespace BrightBox3D::Level
         {
             collection.SetName(name);
         }
-        std::vector<LevelObjectInstance*> roots;
+        std::vector<LevelObject*> roots;
         if (const JsonValue* objects = FindMember(document, "objects"); objects && objects->IsArray())
         {
             for (const JsonValue& node : objects->GetArray())
             {
-                if (LevelObjectInstance* object = ReadObject(level, &collection, nullptr, node, false))
+                if (LevelObject* object = ReadObject(level, &collection, nullptr, node, false))
                 {
                     roots.push_back(object);
                 }
             }
         }
-        for (LevelObjectInstance* root : roots)
+        for (LevelObject* root : roots)
         {
-            InitializeRecursive(level, *root);
+            level.InitializeHierarchy(*root);
         }
         return true;
     }
@@ -864,7 +932,7 @@ namespace BrightBox3D::Level
         return clone;
     }
 
-    std::vector<PropertyOverride> LevelSerializer::ComputeOverrides(const LevelObjectInstance& linkRoot)
+    std::vector<PropertyOverride> LevelSerializer::ComputeOverrides(const LevelObject& linkRoot)
     {
         std::vector<PropertyOverride> result;
         JsonDocument document;
@@ -882,9 +950,9 @@ namespace BrightBox3D::Level
         return result;
     }
 
-    bool LevelSerializer::IsPropertyOverridden(const LevelObjectInstance& object, const Component* component, const std::string& property)
+    bool LevelSerializer::IsPropertyOverridden(const LevelObject& object, const LevelObjectComponent* component, const std::string& property)
     {
-        LevelObjectInstance* linkRoot = const_cast<LevelObjectInstance&>(object).GetLinkRoot();
+        LevelObject* linkRoot = const_cast<LevelObject&>(object).GetLinkRoot();
         if (!linkRoot)
         {
             return false;
@@ -894,12 +962,12 @@ namespace BrightBox3D::Level
         {
             return false;
         }
-        LevelObjectInstance* prototype = LevelObjectLibrary::Get().FindPrototypeNode(linkRoot->GetLink().asset, object.GetLink().sourceId);
+        LevelObject* prototype = LevelObjectLibrary::Get().FindPrototypeNode(linkRoot->GetLink().asset, object.GetLink().sourceId);
         if (!prototype)
         {
             return false;
         }
-        const Component* other = nullptr;
+        const LevelObjectComponent* other = nullptr;
         if (component)
         {
             other = component == &object.GetTransform() ? &prototype->GetTransform() : prototype->FindComponentByLocalId(component->GetLocalId());
@@ -916,25 +984,25 @@ namespace BrightBox3D::Level
         {
             return !PseudoPropertiesEqual(object, component, *prototype, other, property);
         }
-        const Reflection::Object& live = component ? static_cast<const Reflection::Object&>(*component) : static_cast<const Reflection::Object&>(object);
-        const Reflection::Object& reference = other ? static_cast<const Reflection::Object&>(*other) : static_cast<const Reflection::Object&>(*prototype);
+        const Reflection::EngineObject& live = component ? static_cast<const Reflection::EngineObject&>(*component) : static_cast<const Reflection::EngineObject&>(object);
+        const Reflection::EngineObject& reference = other ? static_cast<const Reflection::EngineObject&>(*other) : static_cast<const Reflection::EngineObject&>(*prototype);
         const Reflection::PropertyInfo* info = live.GetType().FindProperty(property);
         return info && !Serialization::PropertyValuesEqual(*info, live, reference);
     }
 
-    void LevelSerializer::RevertProperty(LevelObjectInstance& object, Component* component, const std::string& property)
+    void LevelSerializer::RevertProperty(LevelObject& object, LevelObjectComponent* component, const std::string& property)
     {
-        LevelObjectInstance* linkRoot = object.GetLinkRoot();
+        LevelObject* linkRoot = object.GetLinkRoot();
         if (!linkRoot)
         {
             return;
         }
-        LevelObjectInstance* prototype = LevelObjectLibrary::Get().FindPrototypeNode(linkRoot->GetLink().asset, object.GetLink().sourceId);
+        LevelObject* prototype = LevelObjectLibrary::Get().FindPrototypeNode(linkRoot->GetLink().asset, object.GetLink().sourceId);
         if (!prototype)
         {
             return;
         }
-        Component* other = nullptr;
+        LevelObjectComponent* other = nullptr;
         if (component)
         {
             other = component == &object.GetTransform() ? &prototype->GetTransform() : prototype->FindComponentByLocalId(component->GetLocalId());
@@ -951,8 +1019,8 @@ namespace BrightBox3D::Level
             ReadPseudoProperty(object, component, property, value);
             return;
         }
-        Reflection::Object& live = component ? static_cast<Reflection::Object&>(*component) : static_cast<Reflection::Object&>(object);
-        Reflection::Object& reference = other ? static_cast<Reflection::Object&>(*other) : static_cast<Reflection::Object&>(*prototype);
+        Reflection::EngineObject& live = component ? static_cast<Reflection::EngineObject&>(*component) : static_cast<Reflection::EngineObject&>(object);
+        Reflection::EngineObject& reference = other ? static_cast<Reflection::EngineObject&>(*other) : static_cast<Reflection::EngineObject&>(*prototype);
         if (const Reflection::PropertyInfo* info = live.GetType().FindProperty(property))
         {
             Serialization::CopyPropertyValue(*info, reference, live);
@@ -964,22 +1032,22 @@ namespace BrightBox3D::Level
         struct EditableAssetCopy
         {
             std::unique_ptr<Level> level;
-            LevelObjectInstance* root = nullptr;
-            std::unordered_map<Core::Guid, LevelObjectInstance*> bySource;
+            LevelObject* root = nullptr;
+            std::unordered_map<Core::Guid, LevelObject*> bySource;
         };
 
         bool MakeEditableAssetCopy(const Core::Guid& asset, EditableAssetCopy& copy)
         {
             copy.level = std::make_unique<Level>("AssetCopy");
-            copy.root = LevelSerializer::Instantiate(*copy.level, asset, nullptr, nullptr, Core::Guid::Generate(), false);
+            copy.root = LevelSerializer::OpenAsset(*copy.level, nullptr, asset);
             if (!copy.root)
             {
                 return false;
             }
-            std::function<void(LevelObjectInstance&)> index = [&](LevelObjectInstance& object)
+            std::function<void(LevelObject&)> index = [&](LevelObject& object)
             {
                 copy.bySource[object.GetLink().sourceId] = &object;
-                for (LevelObjectInstance* child : object.GetChildren())
+                for (LevelObject* child : object.GetChildren())
                 {
                     index(*child);
                 }
@@ -988,9 +1056,9 @@ namespace BrightBox3D::Level
             return true;
         }
 
-        bool CopyValueInto(const LevelObjectInstance& liveObject, const Component* liveComponent, LevelObjectInstance& targetObject, const std::string& property)
+        bool CopyValueInto(const LevelObject& liveObject, const LevelObjectComponent* liveComponent, LevelObject& targetObject, const std::string& property)
         {
-            Component* targetComponent = nullptr;
+            LevelObjectComponent* targetComponent = nullptr;
             if (liveComponent)
             {
                 targetComponent = liveComponent == &liveObject.GetTransform() ? &targetObject.GetTransform() : targetObject.FindComponentByLocalId(liveComponent->GetLocalId());
@@ -1007,8 +1075,8 @@ namespace BrightBox3D::Level
                 ReadPseudoProperty(targetObject, targetComponent, property, value);
                 return true;
             }
-            const Reflection::Object& live = liveComponent ? static_cast<const Reflection::Object&>(*liveComponent) : static_cast<const Reflection::Object&>(liveObject);
-            Reflection::Object& target = targetComponent ? static_cast<Reflection::Object&>(*targetComponent) : static_cast<Reflection::Object&>(targetObject);
+            const Reflection::EngineObject& live = liveComponent ? static_cast<const Reflection::EngineObject&>(*liveComponent) : static_cast<const Reflection::EngineObject&>(liveObject);
+            Reflection::EngineObject& target = targetComponent ? static_cast<Reflection::EngineObject&>(*targetComponent) : static_cast<Reflection::EngineObject&>(targetObject);
             const Reflection::PropertyInfo* info = live.GetType().FindProperty(property);
             if (!info || &live.GetType() != &target.GetType())
             {
@@ -1020,15 +1088,13 @@ namespace BrightBox3D::Level
 
         bool SaveAssetCopy(const Core::Guid& asset, const EditableAssetCopy& copy)
         {
-            JsonDocument document;
-            LevelSerializer::MakeLevelObjectDocument(*copy.root, document);
-            return Assets::AssetDatabase::Get().SaveJsonAsset(asset, document);
+            return LevelSerializer::SaveAsset(*copy.root, asset);
         }
     }
 
-    bool LevelSerializer::ApplyPropertyToAsset(LevelObjectInstance& object, Component* component, const std::string& property)
+    bool LevelSerializer::ApplyPropertyToAsset(LevelObject& object, LevelObjectComponent* component, const std::string& property)
     {
-        LevelObjectInstance* linkRoot = object.GetLinkRoot();
+        LevelObject* linkRoot = object.GetLinkRoot();
         if (!linkRoot)
         {
             return false;
@@ -1047,7 +1113,7 @@ namespace BrightBox3D::Level
         return SaveAssetCopy(asset, copy);
     }
 
-    bool LevelSerializer::ApplyAllToAsset(LevelObjectInstance& linkRoot)
+    bool LevelSerializer::ApplyAllToAsset(LevelObject& linkRoot)
     {
         if (!linkRoot.GetLink().isRoot)
         {
@@ -1060,18 +1126,18 @@ namespace BrightBox3D::Level
             return false;
         }
         LevelObjectLibrary& library = LevelObjectLibrary::Get();
-        std::vector<LevelObjectInstance*> linked;
-        std::vector<std::pair<LevelObjectInstance*, LevelObjectInstance*>> foreign;
+        std::vector<LevelObject*> linked;
+        std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
         CollectLinkedSubtree(linkRoot, linkRoot, linked, foreign);
-        for (LevelObjectInstance* object : linked)
+        for (LevelObject* object : linked)
         {
-            LevelObjectInstance* prototype = library.FindPrototypeNode(asset, object->GetLink().sourceId);
+            LevelObject* prototype = library.FindPrototypeNode(asset, object->GetLink().sourceId);
             auto target = copy.bySource.find(object->GetLink().sourceId);
             if (!prototype || target == copy.bySource.end())
             {
                 continue;
             }
-            ForEachOverrideCandidate(*object, *prototype, object == &linkRoot, [&](const Component* component, const Component*, const std::string& property, bool equal)
+            ForEachOverrideCandidate(*object, *prototype, object == &linkRoot, [&](const LevelObjectComponent* component, const LevelObjectComponent*, const std::string& property, bool equal)
             {
                 if (!equal)
                 {
@@ -1082,7 +1148,7 @@ namespace BrightBox3D::Level
         return SaveAssetCopy(asset, copy);
     }
 
-    void LevelSerializer::RevertAll(LevelObjectInstance& linkRoot)
+    void LevelSerializer::RevertAll(LevelObject& linkRoot)
     {
         if (!linkRoot.GetLink().isRoot)
         {
@@ -1092,26 +1158,26 @@ namespace BrightBox3D::Level
         WriteLinkedNode(linkRoot, document, document.GetAllocator());
         document["overrides"].SetArray();
         Level* level = linkRoot.GetLevel();
-        LevelObjectInstance* parent = linkRoot.GetParent();
+        LevelObject* parent = linkRoot.GetParent();
         LevelCollection* collection = linkRoot.GetCollection();
         int sibling = linkRoot.GetSiblingIndex();
         level->DestroyObjectImmediate(&linkRoot);
-        if (LevelObjectInstance* restored = ReadObject(*level, collection, parent, document, true))
+        if (LevelObject* restored = ReadObject(*level, collection, parent, document, true))
         {
             restored->SetSiblingIndex(sibling);
         }
     }
 
-    LevelObjectInstance* LevelSerializer::RefreshLinkedInstance(LevelObjectInstance& linkRoot)
+    LevelObject* LevelSerializer::RefreshLinkedInstance(LevelObject& linkRoot)
     {
         JsonDocument document;
         WriteLinkedNode(linkRoot, document, document.GetAllocator());
         Level* level = linkRoot.GetLevel();
-        LevelObjectInstance* parent = linkRoot.GetParent();
+        LevelObject* parent = linkRoot.GetParent();
         LevelCollection* collection = linkRoot.GetCollection();
         int sibling = linkRoot.GetSiblingIndex();
         level->DestroyObjectImmediate(&linkRoot);
-        LevelObjectInstance* restored = ReadObject(*level, collection, parent, document, true);
+        LevelObject* restored = ReadObject(*level, collection, parent, document, true);
         if (restored)
         {
             restored->SetSiblingIndex(sibling);
@@ -1124,12 +1190,12 @@ namespace BrightBox3D::Level
         struct Pending
         {
             JsonDocument document;
-            LevelObjectInstance* parent = nullptr;
+            LevelObject* parent = nullptr;
             LevelCollection* collection = nullptr;
             int sibling = 0;
             Core::Guid parentId;
         };
-        std::vector<LevelObjectInstance*> roots;
+        std::vector<LevelObject*> roots;
         for (const auto& object : level.GetObjects())
         {
             if (object->GetLink().isRoot && object->GetLink().asset == levelObjectAsset && !object->IsPendingDestroy())
@@ -1138,7 +1204,7 @@ namespace BrightBox3D::Level
             }
         }
         std::vector<std::unique_ptr<Pending>> pending;
-        for (LevelObjectInstance* root : roots)
+        for (LevelObject* root : roots)
         {
             auto entry = std::make_unique<Pending>();
             WriteLinkedNode(*root, entry->document, entry->document.GetAllocator());
@@ -1148,26 +1214,26 @@ namespace BrightBox3D::Level
             pending.push_back(std::move(entry));
         }
         LevelObjectLibrary::Get().Invalidate(levelObjectAsset);
-        for (LevelObjectInstance* root : roots)
+        for (LevelObject* root : roots)
         {
             level.DestroyObjectImmediate(root);
         }
         for (auto& entry : pending)
         {
-            LevelObjectInstance* parent = entry->parentId.IsValid() ? level.FindObject(entry->parentId) : nullptr;
-            if (LevelObjectInstance* restored = ReadObject(level, entry->collection, parent, entry->document, true))
+            LevelObject* parent = entry->parentId.IsValid() ? level.FindObject(entry->parentId) : nullptr;
+            if (LevelObject* restored = ReadObject(level, entry->collection, parent, entry->document, true))
             {
                 restored->SetSiblingIndex(entry->sibling);
             }
         }
     }
 
-    void LevelSerializer::Unlink(LevelObjectInstance& linkRoot)
+    void LevelSerializer::Unlink(LevelObject& linkRoot)
     {
-        std::vector<LevelObjectInstance*> linked;
-        std::vector<std::pair<LevelObjectInstance*, LevelObjectInstance*>> foreign;
+        std::vector<LevelObject*> linked;
+        std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
         CollectLinkedSubtree(linkRoot, linkRoot, linked, foreign);
-        for (LevelObjectInstance* object : linked)
+        for (LevelObject* object : linked)
         {
             object->ClearLink();
         }
@@ -1185,7 +1251,7 @@ namespace BrightBox3D::Level
 
     LevelObjectLibrary::LevelObjectLibrary() = default;
 
-    LevelObjectInstance* LevelObjectLibrary::GetPrototype(const Core::Guid& asset)
+    LevelObject* LevelObjectLibrary::GetPrototype(const Core::Guid& asset)
     {
         auto it = m_entries.find(asset);
         if (it != m_entries.end())
@@ -1194,26 +1260,26 @@ namespace BrightBox3D::Level
         }
         Entry entry;
         entry.level = std::make_unique<Level>("Prototype");
-        entry.root = LevelSerializer::Instantiate(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), false);
+        entry.root = InstantiateAsset(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), false, true);
         if (!entry.root)
         {
             return nullptr;
         }
-        std::function<void(LevelObjectInstance&)> index = [&](LevelObjectInstance& object)
+        std::function<void(LevelObject&)> index = [&](LevelObject& object)
         {
             entry.bySource[object.GetLink().sourceId] = &object;
-            for (LevelObjectInstance* child : object.GetChildren())
+            for (LevelObject* child : object.GetChildren())
             {
                 index(*child);
             }
         };
         index(*entry.root);
-        LevelObjectInstance* root = entry.root;
+        LevelObject* root = entry.root;
         m_entries[asset] = std::move(entry);
         return root;
     }
 
-    LevelObjectInstance* LevelObjectLibrary::FindPrototypeNode(const Core::Guid& asset, const Core::Guid& sourceId)
+    LevelObject* LevelObjectLibrary::FindPrototypeNode(const Core::Guid& asset, const Core::Guid& sourceId)
     {
         if (!GetPrototype(asset))
         {

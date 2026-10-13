@@ -18,7 +18,7 @@ namespace BrightBox3D::Assets
             { AssetType::Folder, "Folder", "" },
             { AssetType::Level, "Level", ".level" },
             { AssetType::LevelCollection, "LevelCollection", ".collection" },
-            { AssetType::LevelObject, "LevelObject", ".levelobject" },
+            { AssetType::LevelObjectVariant, "LevelObjectVariant", ".variant" },
             { AssetType::LevelObjectTemplate, "LevelObjectTemplate", ".template" },
             { AssetType::Material, "Material", ".material" },
             { AssetType::Model, "Model", ".fbx" },
@@ -50,9 +50,9 @@ namespace BrightBox3D::Assets
         {
             return AssetType::LevelCollection;
         }
-        if (extension == ".levelobject")
+        if (extension == ".variant")
         {
-            return AssetType::LevelObject;
+            return AssetType::LevelObjectVariant;
         }
         if (extension == ".template")
         {

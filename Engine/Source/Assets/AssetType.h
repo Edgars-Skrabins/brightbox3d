@@ -11,7 +11,7 @@ namespace BrightBox3D::Assets
         Folder,
         Level,
         LevelCollection,
-        LevelObject,
+        LevelObjectVariant,
         LevelObjectTemplate,
         Material,
         Model,

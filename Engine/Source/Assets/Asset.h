@@ -2,14 +2,14 @@
 
 #include "Assets/AssetType.h"
 #include "Core/Guid.h"
-#include "Reflection/Object.h"
+#include "Reflection/EngineObject.h"
 
 #include <string>
 
 namespace BrightBox3D::Assets
 {
-    BrightClass(Abstract)
-    class Asset : public Reflection::Object
+    BrightClass(.abstract = true)
+    class Asset : public Reflection::EngineObject
     {
         BrightBody()
     public:

@@ -29,9 +29,15 @@ namespace BrightBox3D::Level
         ImporterRegistration s_importerRegistration;
     }
 
-    const Serialization::JsonValue* LevelObjectAsset::GetRoot() const
+    const Serialization::JsonValue* LevelObjectVariantAsset::GetRoot() const
     {
         return Serialization::FindMember(GetDocument(), "root");
+    }
+
+    Core::Guid LevelObjectVariantAsset::GetParentTemplate() const
+    {
+        const Serialization::JsonValue* root = GetRoot();
+        return root ? Core::Guid::Parse(Serialization::GetString(*root, "levelObject")) : Core::Guid{};
     }
 
     const Serialization::JsonValue* LevelObjectTemplateAsset::GetRoot() const
@@ -44,7 +50,7 @@ namespace BrightBox3D::Level
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         database.RegisterImporter(Assets::AssetType::Level, std::make_shared<TypedJsonImporter<LevelAsset>>());
         database.RegisterImporter(Assets::AssetType::LevelCollection, std::make_shared<TypedJsonImporter<LevelCollectionAsset>>());
-        database.RegisterImporter(Assets::AssetType::LevelObject, std::make_shared<TypedJsonImporter<LevelObjectAsset>>());
+        database.RegisterImporter(Assets::AssetType::LevelObjectVariant, std::make_shared<TypedJsonImporter<LevelObjectVariantAsset>>());
         database.RegisterImporter(Assets::AssetType::LevelObjectTemplate, std::make_shared<TypedJsonImporter<LevelObjectTemplateAsset>>());
     }
 }
