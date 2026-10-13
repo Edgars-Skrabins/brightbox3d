@@ -1,6 +1,6 @@
-#include "Rendering/MeshData.h"
+#include "Geometry/MeshData.h"
 
-namespace BrightBox3D::Rendering
+namespace BrightBox3D::Geometry
 {
     void MeshData::ComputeBounds()
     {

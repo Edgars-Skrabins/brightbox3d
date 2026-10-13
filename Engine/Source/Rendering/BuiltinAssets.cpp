@@ -1,14 +1,14 @@
 #include "Rendering/BuiltinAssets.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Geometry/ModelAsset.h"
 #include "Rendering/MaterialAsset.h"
-#include "Rendering/ModelAsset.h"
 
 namespace BrightBox3D::Rendering
 {
     namespace
     {
-        void AddTriangle(MeshData& mesh, uint32_t a, uint32_t b, uint32_t c, const Math::Vector3& outward)
+        void AddTriangle(Geometry::MeshData& mesh, uint32_t a, uint32_t b, uint32_t c, const Math::Vector3& outward)
         {
             const Math::Vector3& pa = mesh.vertices[a].position;
             const Math::Vector3& pb = mesh.vertices[b].position;
@@ -22,7 +22,7 @@ namespace BrightBox3D::Rendering
             mesh.indices.push_back(c);
         }
 
-        void AddFace(MeshData& mesh, const Math::Vector3& center, const Math::Vector3& normal, const Math::Vector3& up, float halfWidth, float halfHeight)
+        void AddFace(Geometry::MeshData& mesh, const Math::Vector3& center, const Math::Vector3& normal, const Math::Vector3& up, float halfWidth, float halfHeight)
         {
             Math::Vector3 right = Math::Vector3::Cross(normal, up);
             uint32_t base = static_cast<uint32_t>(mesh.vertices.size());
@@ -35,7 +35,7 @@ namespace BrightBox3D::Rendering
             Math::Vector2 uvs[4] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
             for (int i = 0; i < 4; ++i)
             {
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = corners[i];
                 vertex.normal = normal;
                 vertex.tangent = Math::Vector4(right, 1.0f);
@@ -46,7 +46,7 @@ namespace BrightBox3D::Rendering
             AddTriangle(mesh, base, base + 2, base + 3, normal);
         }
 
-        void Finish(MeshData& mesh, const std::string& name)
+        void Finish(Geometry::MeshData& mesh, const std::string& name)
         {
             mesh.name = name;
             mesh.subMeshes = { { 0, static_cast<uint32_t>(mesh.indices.size()), 0 } };
@@ -54,14 +54,14 @@ namespace BrightBox3D::Rendering
             mesh.ComputeBounds();
         }
 
-        std::shared_ptr<Assets::Asset> MakeModel(MeshData mesh)
+        std::shared_ptr<Assets::Asset> MakeModel(Geometry::MeshData mesh)
         {
-            auto model = std::make_shared<ModelAsset>();
-            ModelNode node;
+            auto model = std::make_shared<Geometry::ModelAsset>();
+            Geometry::ModelNode node;
             node.name = mesh.name;
             node.mesh = 0;
             model->GetNodes().push_back(node);
-            EmbeddedMaterial material;
+            Geometry::EmbeddedMaterial material;
             material.name = "Default";
             model->GetMaterials().push_back(material);
             model->GetMeshes().push_back(std::move(mesh));
@@ -69,9 +69,9 @@ namespace BrightBox3D::Rendering
         }
     }
 
-    MeshData BuiltinAssets::CreateCube()
+    Geometry::MeshData BuiltinAssets::CreateCube()
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         AddFace(mesh, { 0, 0, -0.5f }, { 0, 0, -1 }, { 0, 1, 0 }, 0.5f, 0.5f);
         AddFace(mesh, { 0, 0, 0.5f }, { 0, 0, 1 }, { 0, 1, 0 }, 0.5f, 0.5f);
         AddFace(mesh, { -0.5f, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, 0.5f, 0.5f);
@@ -82,9 +82,9 @@ namespace BrightBox3D::Rendering
         return mesh;
     }
 
-    MeshData BuiltinAssets::CreateSphere(int segments, int rings)
+    Geometry::MeshData BuiltinAssets::CreateSphere(int segments, int rings)
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         for (int ring = 0; ring <= rings; ++ring)
         {
             float v = static_cast<float>(ring) / static_cast<float>(rings);
@@ -94,7 +94,7 @@ namespace BrightBox3D::Rendering
                 float u = static_cast<float>(segment) / static_cast<float>(segments);
                 float theta = u * Math::TwoPi;
                 Math::Vector3 normal(std::sin(phi) * std::sin(theta), std::cos(phi), std::sin(phi) * std::cos(theta));
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = normal * 0.5f;
                 vertex.normal = normal;
                 vertex.uv = { u, v };
@@ -122,9 +122,9 @@ namespace BrightBox3D::Rendering
         return mesh;
     }
 
-    MeshData BuiltinAssets::CreatePlane(int subdivisions)
+    Geometry::MeshData BuiltinAssets::CreatePlane(int subdivisions)
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         float size = 10.0f;
         for (int z = 0; z <= subdivisions; ++z)
         {
@@ -132,7 +132,7 @@ namespace BrightBox3D::Rendering
             {
                 float u = static_cast<float>(x) / static_cast<float>(subdivisions);
                 float v = static_cast<float>(z) / static_cast<float>(subdivisions);
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = { (u - 0.5f) * size, 0.0f, (0.5f - v) * size };
                 vertex.normal = { 0, 1, 0 };
                 vertex.uv = { u, v };
@@ -153,17 +153,17 @@ namespace BrightBox3D::Rendering
         return mesh;
     }
 
-    MeshData BuiltinAssets::CreateQuad()
+    Geometry::MeshData BuiltinAssets::CreateQuad()
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         AddFace(mesh, { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 }, 0.5f, 0.5f);
         Finish(mesh, "Quad");
         return mesh;
     }
 
-    MeshData BuiltinAssets::CreateCylinder(int segments)
+    Geometry::MeshData BuiltinAssets::CreateCylinder(int segments)
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         float radius = 0.5f;
         float half = 1.0f;
         for (int side = 0; side <= segments; ++side)
@@ -173,7 +173,7 @@ namespace BrightBox3D::Rendering
             Math::Vector3 normal(std::sin(theta), 0.0f, std::cos(theta));
             for (int level = 0; level < 2; ++level)
             {
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = normal * radius + Math::Vector3(0.0f, level == 0 ? half : -half, 0.0f);
                 vertex.normal = normal;
                 vertex.uv = { u, static_cast<float>(level) };
@@ -192,7 +192,7 @@ namespace BrightBox3D::Rendering
             float y = cap == 0 ? half : -half;
             Math::Vector3 normal(0.0f, cap == 0 ? 1.0f : -1.0f, 0.0f);
             uint32_t center = static_cast<uint32_t>(mesh.vertices.size());
-            MeshVertex middle;
+            Geometry::MeshVertex middle;
             middle.position = { 0.0f, y, 0.0f };
             middle.normal = normal;
             middle.uv = { 0.5f, 0.5f };
@@ -200,7 +200,7 @@ namespace BrightBox3D::Rendering
             for (int side = 0; side <= segments; ++side)
             {
                 float theta = static_cast<float>(side) / static_cast<float>(segments) * Math::TwoPi;
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = { std::sin(theta) * radius, y, std::cos(theta) * radius };
                 vertex.normal = normal;
                 vertex.uv = { 0.5f + std::sin(theta) * 0.5f, 0.5f + std::cos(theta) * 0.5f };
@@ -215,9 +215,9 @@ namespace BrightBox3D::Rendering
         return mesh;
     }
 
-    MeshData BuiltinAssets::CreateCapsule(int segments, int rings)
+    Geometry::MeshData BuiltinAssets::CreateCapsule(int segments, int rings)
     {
-        MeshData mesh;
+        Geometry::MeshData mesh;
         float radius = 0.5f;
         float halfCylinder = 0.5f;
         int totalRings = rings * 2 + 1;
@@ -240,7 +240,7 @@ namespace BrightBox3D::Rendering
                 float u = static_cast<float>(segment) / static_cast<float>(segments);
                 float theta = u * Math::TwoPi;
                 Math::Vector3 normal(std::sin(phi) * std::sin(theta), std::cos(phi), std::sin(phi) * std::cos(theta));
-                MeshVertex vertex;
+                Geometry::MeshVertex vertex;
                 vertex.position = normal * radius + Math::Vector3(0.0f, offset, 0.0f);
                 vertex.normal = normal;
                 vertex.uv = { u, static_cast<float>(ring) / static_cast<float>(totalRings) };

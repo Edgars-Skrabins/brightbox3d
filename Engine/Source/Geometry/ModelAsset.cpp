@@ -1,8 +1,8 @@
-#include "Rendering/ModelAsset.h"
+#include "Geometry/ModelAsset.h"
 
 #include "Serialization/BinaryStream.h"
 
-namespace BrightBox3D::Rendering
+namespace BrightBox3D::Geometry
 {
     namespace
     {

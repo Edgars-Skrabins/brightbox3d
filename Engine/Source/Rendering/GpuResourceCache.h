@@ -2,10 +2,10 @@
 
 #include "Core/Event.h"
 #include "Core/Guid.h"
+#include "Geometry/MeshData.h"
 #include "Math/Geometry.h"
-#include "RHI/Device.h"
-#include "Rendering/MeshData.h"
 #include "Rendering/TextureAsset.h"
+#include "RHI/Device.h"
 
 #include <memory>
 #include <unordered_map>
@@ -17,7 +17,7 @@ namespace BrightBox3D::Rendering
     {
         std::unique_ptr<RHI::Buffer> vertexBuffer;
         std::unique_ptr<RHI::Buffer> indexBuffer;
-        std::vector<SubMesh> subMeshes;
+        std::vector<Geometry::SubMesh> subMeshes;
         Math::Bounds bounds;
         uint32_t indexCount = 0;
     };
@@ -36,7 +36,7 @@ namespace BrightBox3D::Rendering
         ~GpuResourceCache();
 
         GpuMesh* GetMesh(const Core::Guid& model, int32_t meshIndex);
-        GpuMesh* GetMesh(const MeshData& mesh, uint64_t key);
+        GpuMesh* GetMesh(const Geometry::MeshData& mesh, uint64_t key);
         GpuTexture* GetTexture(const Core::Guid& texture);
         RHI::Texture* GetWhiteTexture() const { return m_white.get(); }
         RHI::Texture* GetBlackTexture() const { return m_black.get(); }
@@ -53,7 +53,7 @@ namespace BrightBox3D::Rendering
 
     private:
         std::unique_ptr<RHI::Texture> CreateSolidTexture(uint32_t rgba, const char* name);
-        std::unique_ptr<GpuMesh> Upload(const MeshData& mesh);
+        std::unique_ptr<GpuMesh> Upload(const Geometry::MeshData& mesh);
 
         RHI::Device& m_device;
         std::unordered_map<uint64_t, std::unique_ptr<GpuMesh>> m_meshes;

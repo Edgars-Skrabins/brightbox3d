@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Assets/Asset.h"
-#include "Rendering/MeshData.h"
+#include "Geometry/MeshData.h"
 
 #include <vector>
 
-namespace BrightBox3D::Rendering
+namespace BrightBox3D::Geometry
 {
     BrightClass()
     class ModelAsset : public Assets::Asset

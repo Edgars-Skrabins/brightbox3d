@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
-#include "Rendering/MeshData.h"
+#include "Geometry/MeshData.h"
 
 namespace BrightBox3D::Rendering
 {
@@ -16,12 +16,12 @@ namespace BrightBox3D::Rendering
         static Core::Guid Capsule() { return { 0xb0000000b0000000ull, 0x6ull }; }
         static Core::Guid DefaultMaterial() { return { 0xb0000000b0000000ull, 0x10ull }; }
 
-        static MeshData CreateCube();
-        static MeshData CreateSphere(int segments = 32, int rings = 16);
-        static MeshData CreatePlane(int subdivisions = 10);
-        static MeshData CreateQuad();
-        static MeshData CreateCylinder(int segments = 32);
-        static MeshData CreateCapsule(int segments = 32, int rings = 8);
+        static Geometry::MeshData CreateCube();
+        static Geometry::MeshData CreateSphere(int segments = 32, int rings = 16);
+        static Geometry::MeshData CreatePlane(int subdivisions = 10);
+        static Geometry::MeshData CreateQuad();
+        static Geometry::MeshData CreateCylinder(int segments = 32);
+        static Geometry::MeshData CreateCapsule(int segments = 32, int rings = 8);
 
         static void Register();
     };

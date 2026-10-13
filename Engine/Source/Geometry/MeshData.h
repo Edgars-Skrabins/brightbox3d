@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace BrightBox3D::Rendering
+namespace BrightBox3D::Geometry
 {
     struct MeshVertex
     {

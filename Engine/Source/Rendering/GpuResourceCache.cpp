@@ -2,7 +2,7 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Core/Hash.h"
-#include "Rendering/ModelAsset.h"
+#include "Geometry/ModelAsset.h"
 
 namespace BrightBox3D::Rendering
 {
@@ -44,14 +44,14 @@ namespace BrightBox3D::Rendering
         return texture;
     }
 
-    std::unique_ptr<GpuMesh> GpuResourceCache::Upload(const MeshData& mesh)
+    std::unique_ptr<GpuMesh> GpuResourceCache::Upload(const Geometry::MeshData& mesh)
     {
         if (mesh.vertices.empty() || mesh.indices.empty())
         {
             return nullptr;
         }
         auto gpu = std::make_unique<GpuMesh>();
-        RHI::BufferDesc vertexDesc{ mesh.vertices.size() * sizeof(MeshVertex), RHI::BufferUsage::Vertex, false, mesh.name + ".Vertices" };
+        RHI::BufferDesc vertexDesc{ mesh.vertices.size() * sizeof(Geometry::MeshVertex), RHI::BufferUsage::Vertex, false, mesh.name + ".Vertices" };
         RHI::BufferDesc indexDesc{ mesh.indices.size() * sizeof(uint32_t), RHI::BufferUsage::Index, false, mesh.name + ".Indices" };
         gpu->vertexBuffer = m_device.CreateBuffer(vertexDesc, mesh.vertices.data());
         gpu->indexBuffer = m_device.CreateBuffer(indexDesc, mesh.indices.data());
@@ -73,8 +73,8 @@ namespace BrightBox3D::Rendering
         {
             return it->second.get();
         }
-        auto asset = Assets::AssetDatabase::Get().Load<ModelAsset>(model);
-        const MeshData* mesh = asset ? asset->GetMesh(meshIndex) : nullptr;
+        auto asset = Assets::AssetDatabase::Get().Load<Geometry::ModelAsset>(model);
+        const Geometry::MeshData* mesh = asset ? asset->GetMesh(meshIndex) : nullptr;
         std::unique_ptr<GpuMesh> gpu = mesh ? Upload(*mesh) : nullptr;
         GpuMesh* raw = gpu.get();
         m_meshes[key] = std::move(gpu);
@@ -82,7 +82,7 @@ namespace BrightBox3D::Rendering
         return raw;
     }
 
-    GpuMesh* GpuResourceCache::GetMesh(const MeshData& mesh, uint64_t key)
+    GpuMesh* GpuResourceCache::GetMesh(const Geometry::MeshData& mesh, uint64_t key)
     {
         auto it = m_meshes.find(key);
         if (it != m_meshes.end())
