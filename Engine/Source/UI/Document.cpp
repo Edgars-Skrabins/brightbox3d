@@ -3,11 +3,15 @@
 #include "Assets/AssetDatabase.h"
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
+#include "Core/Utf8.h"
 #include "Level/Level.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/GpuResourceCache.h"
+#include "UI/CssProperties.h"
 #include "UI/DrawList.h"
 #include "UI/Font.h"
+#include "UI/SelectorMatching.h"
+#include "UI/StyleSheet.h"
 #include "UI/UIAssets.h"
 #include "UI/WidgetController.h"
 
@@ -36,66 +40,32 @@ Toggle:checked { background-color: #2a5c96; }
 Image { width: 64px; height: 64px; }
 )";
 
-        YGJustify Justify(const std::string& value)
+        constexpr YGFlexDirection YogaFlexDirections[] = { YGFlexDirectionColumn, YGFlexDirectionRow, YGFlexDirectionColumnReverse, YGFlexDirectionRowReverse };
+        constexpr YGJustify YogaJustify[] = { YGJustifyFlexStart, YGJustifyCenter, YGJustifyFlexEnd, YGJustifySpaceBetween, YGJustifySpaceAround, YGJustifySpaceEvenly };
+        constexpr YGAlign YogaAlign[] = { YGAlignAuto, YGAlignFlexStart, YGAlignCenter, YGAlignFlexEnd, YGAlignStretch, YGAlignBaseline, YGAlignSpaceBetween, YGAlignSpaceAround };
+        constexpr YGWrap YogaWrap[] = { YGWrapNoWrap, YGWrapWrap };
+        constexpr YGPositionType YogaPositionType[] = { YGPositionTypeRelative, YGPositionTypeAbsolute };
+        constexpr YGOverflow YogaOverflow[] = { YGOverflowVisible, YGOverflowHidden };
+
+        static_assert(std::size(YogaFlexDirections) == static_cast<size_t>(FlexDirection::Count));
+        static_assert(std::size(YogaJustify) == static_cast<size_t>(Justify::Count));
+        static_assert(std::size(YogaAlign) == static_cast<size_t>(Align::Count));
+        static_assert(std::size(YogaWrap) == static_cast<size_t>(FlexWrap::Count));
+        static_assert(std::size(YogaPositionType) == static_cast<size_t>(PositionType::Count));
+        static_assert(std::size(YogaOverflow) == static_cast<size_t>(Overflow::Count));
+
+        template <typename Yoga, size_t Size, typename Value>
+        Yoga ToYoga(const Yoga (&table)[Size], Value value)
         {
-            if (value == "center")
-            {
-                return YGJustifyCenter;
-            }
-            if (value == "flex-end" || value == "end")
-            {
-                return YGJustifyFlexEnd;
-            }
-            if (value == "space-between")
-            {
-                return YGJustifySpaceBetween;
-            }
-            if (value == "space-around")
-            {
-                return YGJustifySpaceAround;
-            }
-            if (value == "space-evenly")
-            {
-                return YGJustifySpaceEvenly;
-            }
-            return YGJustifyFlexStart;
+            return table[static_cast<size_t>(value)];
         }
 
-        YGAlign Align(const std::string& value, YGAlign fallback)
+        void LogStyleWarnings(const std::string& source, const std::vector<std::string>& warnings)
         {
-            if (value == "center")
+            for (const std::string& warning : warnings)
             {
-                return YGAlignCenter;
+                Core::Log::Warning("UI style '" + source + "': " + warning);
             }
-            if (value == "flex-start" || value == "start")
-            {
-                return YGAlignFlexStart;
-            }
-            if (value == "flex-end" || value == "end")
-            {
-                return YGAlignFlexEnd;
-            }
-            if (value == "stretch")
-            {
-                return YGAlignStretch;
-            }
-            if (value == "baseline")
-            {
-                return YGAlignBaseline;
-            }
-            if (value == "space-between")
-            {
-                return YGAlignSpaceBetween;
-            }
-            if (value == "space-around")
-            {
-                return YGAlignSpaceAround;
-            }
-            if (value == "auto")
-            {
-                return YGAlignAuto;
-            }
-            return fallback;
         }
 
         const std::string& DisplayText(const Element& element)
@@ -147,47 +117,6 @@ Image { width: 64px; height: 64px; }
         {
             ElementType type = element.GetElementType();
             return element.GetChildren().empty() && (type == ElementType::Label || type == ElementType::Button || type == ElementType::TextField);
-        }
-
-        std::string Encode(char32_t codepoint)
-        {
-            std::string result;
-            if (codepoint < 0x80)
-            {
-                result += static_cast<char>(codepoint);
-            }
-            else if (codepoint < 0x800)
-            {
-                result += static_cast<char>(0xC0 | (codepoint >> 6));
-                result += static_cast<char>(0x80 | (codepoint & 0x3F));
-            }
-            else if (codepoint < 0x10000)
-            {
-                result += static_cast<char>(0xE0 | (codepoint >> 12));
-                result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-                result += static_cast<char>(0x80 | (codepoint & 0x3F));
-            }
-            else
-            {
-                result += static_cast<char>(0xF0 | (codepoint >> 18));
-                result += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
-                result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-                result += static_cast<char>(0x80 | (codepoint & 0x3F));
-            }
-            return result;
-        }
-
-        void PopCodepoint(std::string& text)
-        {
-            while (!text.empty())
-            {
-                unsigned char c = static_cast<unsigned char>(text.back());
-                text.pop_back();
-                if ((c & 0xC0) != 0x80)
-                {
-                    break;
-                }
-            }
         }
     }
 
@@ -269,6 +198,7 @@ Image { width: 64px; height: 64px; }
             Core::Log::Error("Stylesheet '" + reference + "': " + error);
             return false;
         }
+        LogStyleWarnings(reference, sheet.GetWarnings());
         m_styles.Append(sheet);
         return true;
     }
@@ -293,6 +223,7 @@ Image { width: 64px; height: 64px; }
                 std::string styleError;
                 if (sheet.Parse(node.child_value(), styleError))
                 {
+                    LogStyleWarnings(name, sheet.GetWarnings());
                     m_styles.Append(sheet);
                 }
             }
@@ -344,10 +275,9 @@ Image { width: 64px; height: 64px; }
                 }
                 else if (key == "style")
                 {
-                    for (auto& declaration : ParseDeclarations(value))
-                    {
-                        element->GetInlineStyle().push_back(declaration);
-                    }
+                    std::vector<std::string> warnings;
+                    element->GetInlineStyle() = ParseDeclarations(value, warnings);
+                    LogStyleWarnings(element->GetTypeName(), warnings);
                 }
                 else if (key != "widget")
                 {
@@ -491,18 +421,18 @@ Image { width: 64px; height: 64px; }
         });
         for (const auto& [rule, specificity] : matches)
         {
-            for (const auto& [property, value] : rule->declarations)
+            for (const CssDeclaration& declaration : rule->declarations)
             {
-                ApplyDeclaration(style, property, value);
+                declaration.apply(style);
             }
         }
-        for (const auto& [property, value] : element.GetInlineStyle())
+        for (const CssDeclaration& declaration : element.GetInlineStyle())
         {
-            ApplyDeclaration(style, property, value);
+            declaration.apply(style);
         }
-        if (element.HasAttribute("visible") && element.GetAttribute("visible") == "false")
+        if ((element.HasAttribute("visible") && element.GetAttribute("visible") == "false") || element.IsBindingHidden())
         {
-            style.displayNone = true;
+            style.display = Display::None;
         }
         element.GetStyle() = style;
         for (const auto& child : element.GetChildren())
@@ -515,28 +445,15 @@ Image { width: 64px; height: 64px; }
     {
         const ComputedStyle& style = element.GetStyle();
         YGNodeRef node = element.GetNode();
-        YGNodeStyleSetDisplay(node, style.displayNone ? YGDisplayNone : YGDisplayFlex);
-        YGFlexDirection direction = YGFlexDirectionColumn;
-        if (style.flexDirection == "row")
-        {
-            direction = YGFlexDirectionRow;
-        }
-        else if (style.flexDirection == "row-reverse")
-        {
-            direction = YGFlexDirectionRowReverse;
-        }
-        else if (style.flexDirection == "column-reverse")
-        {
-            direction = YGFlexDirectionColumnReverse;
-        }
-        YGNodeStyleSetFlexDirection(node, direction);
-        YGNodeStyleSetJustifyContent(node, Justify(style.justifyContent));
-        YGNodeStyleSetAlignItems(node, Align(style.alignItems, YGAlignStretch));
-        YGNodeStyleSetAlignSelf(node, Align(style.alignSelf, YGAlignAuto));
-        YGNodeStyleSetAlignContent(node, Align(style.alignContent, YGAlignFlexStart));
-        YGNodeStyleSetFlexWrap(node, style.flexWrap == "wrap" ? YGWrapWrap : YGWrapNoWrap);
-        YGNodeStyleSetPositionType(node, style.position == "absolute" ? YGPositionTypeAbsolute : YGPositionTypeRelative);
-        YGNodeStyleSetOverflow(node, style.overflow == "hidden" ? YGOverflowHidden : YGOverflowVisible);
+        YGNodeStyleSetDisplay(node, style.IsHidden() ? YGDisplayNone : YGDisplayFlex);
+        YGNodeStyleSetFlexDirection(node, ToYoga(YogaFlexDirections, style.flexDirection));
+        YGNodeStyleSetJustifyContent(node, ToYoga(YogaJustify, style.justifyContent));
+        YGNodeStyleSetAlignItems(node, ToYoga(YogaAlign, style.alignItems));
+        YGNodeStyleSetAlignSelf(node, ToYoga(YogaAlign, style.alignSelf));
+        YGNodeStyleSetAlignContent(node, ToYoga(YogaAlign, style.alignContent));
+        YGNodeStyleSetFlexWrap(node, ToYoga(YogaWrap, style.flexWrap));
+        YGNodeStyleSetPositionType(node, ToYoga(YogaPositionType, style.position));
+        YGNodeStyleSetOverflow(node, ToYoga(YogaOverflow, style.overflow));
         YGNodeStyleSetFlexGrow(node, style.flexGrow);
         YGNodeStyleSetFlexShrink(node, style.flexShrink);
 
@@ -711,15 +628,10 @@ Image { width: 64px; height: 64px; }
         {
             bool visible = true;
             readNumber("visible", [&](float number) { visible = number != 0.0f; }, BindingAccess::Read);
-            element.GetStyle().displayNone = element.GetStyle().displayNone || !visible;
+            element.SetBindingHidden(!visible);
             if (!visible)
             {
-                element.GetInlineStyle().erase(std::remove_if(element.GetInlineStyle().begin(), element.GetInlineStyle().end(), [](const auto& entry) { return entry.first == "display"; }), element.GetInlineStyle().end());
-                element.GetInlineStyle().emplace_back("display", "none");
-            }
-            else
-            {
-                element.GetInlineStyle().erase(std::remove_if(element.GetInlineStyle().begin(), element.GetInlineStyle().end(), [](const auto& entry) { return entry.first == "display"; }), element.GetInlineStyle().end());
+                element.GetStyle().display = Display::None;
             }
         }
         if (element.HasAttribute("disabled") && element.GetAttribute("disabled").find('{') != std::string::npos)
@@ -775,12 +687,12 @@ Image { width: 64px; height: 64px; }
 
     Element* Document::HitTest(Element& element, float x, float y)
     {
-        if (element.GetStyle().displayNone)
+        if (element.GetStyle().IsHidden())
         {
             return nullptr;
         }
         bool inside = element.Contains(x, y);
-        if (element.GetStyle().overflow == "hidden" && !inside)
+        if (element.GetStyle().overflow == Overflow::Hidden && !inside)
         {
             return nullptr;
         }
@@ -873,13 +785,13 @@ Image { width: 64px; height: 64px; }
             {
                 if (codepoint >= 0x20)
                 {
-                    text += Encode(codepoint);
+                    text += Core::Utf8::Encode(codepoint);
                     changed = true;
                 }
             }
             if (input.backspace && !text.empty())
             {
-                PopCodepoint(text);
+                Core::Utf8::PopCodepoint(text);
                 changed = true;
             }
             if (changed)
@@ -928,7 +840,7 @@ Image { width: 64px; height: 64px; }
     void Document::DrawElement(const Element& element, DrawList& drawList, RHI::Device& device, Rendering::GpuResourceCache& resources, float parentOpacity) const
     {
         const ComputedStyle& style = element.GetStyle();
-        if (style.displayNone)
+        if (style.IsHidden())
         {
             return;
         }
@@ -1019,7 +931,7 @@ Image { width: 64px; height: 64px; }
                     }
                     float baseline = top + data.ascender * size;
                     uint32_t previous = 0;
-                    for (uint32_t codepoint : Font::Decode(line.text))
+                    for (uint32_t codepoint : Core::Utf8::Decode(line.text))
                     {
                         const FontGlyph* glyph = data.FindGlyph(codepoint);
                         if (!glyph)
@@ -1064,7 +976,7 @@ Image { width: 64px; height: 64px; }
 
         drawList.AddBorder(x, y, width, height, faded(style.borderColor), style.borderRadius, style.borderWidth);
 
-        bool clip = style.overflow == "hidden";
+        bool clip = style.overflow == Overflow::Hidden;
         if (clip)
         {
             drawList.PushClip(x, y, width, height);

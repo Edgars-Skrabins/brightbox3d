@@ -5,6 +5,7 @@
 #include "UI/Binding.h"
 #include "UI/Element.h"
 #include "UI/Style.h"
+#include "UI/StyleSheet.h"
 
 #include <memory>
 #include <string>

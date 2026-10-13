@@ -82,7 +82,9 @@ namespace BrightBox3D::UI
 
         ComputedStyle& GetStyle() { return m_style; }
         const ComputedStyle& GetStyle() const { return m_style; }
-        std::vector<std::pair<std::string, std::string>>& GetInlineStyle() { return m_inlineStyle; }
+        std::vector<CssDeclaration>& GetInlineStyle() { return m_inlineStyle; }
+        bool IsBindingHidden() const { return m_bindingHidden; }
+        void SetBindingHidden(bool hidden) { m_bindingHidden = hidden; }
         YGNode* GetNode() const { return m_node; }
 
         float GetX() const { return m_x; }
@@ -110,7 +112,8 @@ namespace BrightBox3D::UI
         std::string m_name;
         std::vector<std::string> m_classes;
         std::unordered_map<std::string, std::string> m_attributes;
-        std::vector<std::pair<std::string, std::string>> m_inlineStyle;
+        std::vector<CssDeclaration> m_inlineStyle;
+        bool m_bindingHidden = false;
         Element* m_parent = nullptr;
         std::vector<std::unique_ptr<Element>> m_children;
         ComputedStyle m_style;

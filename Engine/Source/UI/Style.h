@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Math/Color.h"
+#include "UI/CssKeywords.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace BrightBox3D::UI
@@ -30,24 +31,26 @@ namespace BrightBox3D::UI
         bool IsSet() const { return unit != LengthUnit::Undefined; }
     };
 
-    enum class TextAlign
+    enum BoxSide
     {
-        Left,
-        Center,
-        Right
+        BoxTop,
+        BoxRight,
+        BoxBottom,
+        BoxLeft,
+        BoxSideCount
     };
 
     struct ComputedStyle
     {
-        bool displayNone = false;
-        std::string flexDirection = "column";
-        std::string justifyContent = "flex-start";
-        std::string alignItems = "stretch";
-        std::string alignSelf = "auto";
-        std::string alignContent = "flex-start";
-        std::string flexWrap = "nowrap";
-        std::string position = "relative";
-        std::string overflow = "visible";
+        Display display = Display::Flex;
+        FlexDirection flexDirection = FlexDirection::Column;
+        Justify justifyContent = Justify::FlexStart;
+        Align alignItems = Align::Stretch;
+        Align alignSelf = Align::Auto;
+        Align alignContent = Align::FlexStart;
+        FlexWrap flexWrap = FlexWrap::NoWrap;
+        PositionType position = PositionType::Relative;
+        Overflow overflow = Overflow::Visible;
         float flexGrow = 0.0f;
         float flexShrink = 1.0f;
         Length flexBasis = Length::Auto();
@@ -57,9 +60,9 @@ namespace BrightBox3D::UI
         Length minHeight;
         Length maxWidth;
         Length maxHeight;
-        Length margin[4];
-        Length padding[4];
-        Length inset[4];
+        Length margin[BoxSideCount];
+        Length padding[BoxSideCount];
+        Length inset[BoxSideCount];
         float gap = 0.0f;
         float borderWidth = 0.0f;
         float borderRadius = 0.0f;
@@ -71,6 +74,15 @@ namespace BrightBox3D::UI
         std::string fontFamily;
         TextAlign textAlign = TextAlign::Left;
         float opacity = 1.0f;
+
+        bool IsHidden() const { return display == Display::None; }
+    };
+
+    using CssSetter = std::function<void(ComputedStyle&)>;
+
+    struct CssDeclaration
+    {
+        CssSetter apply;
     };
 
     struct SimpleSelector
@@ -78,7 +90,7 @@ namespace BrightBox3D::UI
         std::string type;
         std::string id;
         std::vector<std::string> classes;
-        std::vector<std::string> pseudo;
+        std::vector<PseudoClass> pseudo;
     };
 
     struct Selector
@@ -90,24 +102,7 @@ namespace BrightBox3D::UI
     struct StyleRule
     {
         std::vector<Selector> selectors;
-        std::vector<std::pair<std::string, std::string>> declarations;
+        std::vector<CssDeclaration> declarations;
         uint32_t order = 0;
     };
-
-    class StyleSheet
-    {
-    public:
-        bool Parse(const std::string& text, std::string& error);
-        const std::vector<StyleRule>& GetRules() const { return m_rules; }
-        void Append(const StyleSheet& other);
-
-    private:
-        std::vector<StyleRule> m_rules;
-    };
-
-    std::vector<std::pair<std::string, std::string>> ParseDeclarations(const std::string& text);
-    bool Matches(const Selector& selector, const Element& element);
-    void ApplyDeclaration(ComputedStyle& style, const std::string& property, const std::string& value);
-    bool ParseColor(const std::string& text, Math::Color& color);
-    Length ParseLength(const std::string& text);
 }
