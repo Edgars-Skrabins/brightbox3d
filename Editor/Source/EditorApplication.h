@@ -1,9 +1,11 @@
 #pragma once
 
-#include "Core/FileWatcher.h"
 #include "EditorCommandLine.h"
 #include "EditorContext.h"
+#include "FileChangeRouter.h"
+#include "NewLevelDialog.h"
 #include "Platform/Window.h"
+#include "ProjectLauncher.h"
 #include "RecentProjects.h"
 #include "Runtime/RenderContext.h"
 
@@ -70,15 +72,20 @@ namespace BrightBox3D::Editor
         void RevealInFileBrowser(const std::filesystem::path& path);
 
     private:
+        bool CreateWindowAndDevice();
+        void InitializeImGui();
+        void CreatePanels();
+        void SubscribeWindowEvents();
+        void ApplyCommandLine();
         void Frame(float deltaTime);
-        void DrawLauncher();
         void DrawMainMenu();
         void DrawToolbar();
         void DrawDockSpace();
-        void DrawStatusBar();
+        void DrawEditor(float deltaTime);
+        void UpdatePlayMode(float deltaTime);
+        void RenderFrame();
         bool OpenProject(const std::filesystem::path& path);
         void AddRecentProject(const std::filesystem::path& path);
-        void ProcessFileChanges();
         void UpdateTitle();
         void SaveScreenshot(RHI::CommandList& commands);
         std::filesystem::path GetUserDirectory() const;
@@ -97,22 +104,18 @@ namespace BrightBox3D::Editor
         std::unique_ptr<PreferencesPanel> m_preferences;
         std::unique_ptr<EditorPlaySession> m_playSession;
         std::unique_ptr<HotReload> m_hotReload;
-        Core::FileWatcher m_fileWatcher;
+        FileChangeRouter m_fileChanges;
         EditorContext m_context;
         std::vector<ViewRenderRequest> m_renderRequests;
         RecentProjects m_recentProjects;
-        std::string m_launcherPath;
-        std::string m_launcherName = "MyGame";
-        std::string m_launcherLocation;
-        std::string m_launcherError;
+        ProjectLauncher m_launcher{ m_recentProjects };
+        NewLevelDialog m_newLevelDialog;
         std::string m_lastTitle;
         bool m_resetLayout = false;
         uint32_t m_themeRevision = 0;
         bool m_running = true;
         bool m_requestPlay = false;
         bool m_requestStop = false;
-        std::string m_newLevelName;
-        bool m_openNewLevelPopup = false;
         std::string m_iniPath;
         EditorOptions m_options;
         int m_exitAfterFrames = -1;

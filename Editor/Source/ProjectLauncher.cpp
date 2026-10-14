@@ -1,0 +1,108 @@
+#include "ProjectLauncher.h"
+
+#include "Core/EngineInfo.h"
+#include "EditorPreferences.h"
+#include "EditorText.h"
+#include "Platform/Shell.h"
+#include "RecentProjects.h"
+#include "Runtime/Project.h"
+
+#include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
+
+#include <algorithm>
+
+namespace BrightBox3D::Editor
+{
+    namespace
+    {
+        constexpr const char* DefaultProjectsFolder = "BrightBox3DProjects";
+    }
+
+    ProjectLauncher::ProjectLauncher(const RecentProjects& recentProjects) : m_recentProjects(recentProjects)
+    {
+        std::filesystem::path home = Platform::Shell::UserDirectory();
+        m_location = home.empty() ? std::string() : (home / DefaultProjectsFolder).generic_string();
+    }
+
+    std::optional<std::filesystem::path> ProjectLauncher::Draw()
+    {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::Begin("Launcher", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        float width = std::min(760.0f, viewport->WorkSize.x - 40.0f);
+        ImGui::SetCursorPos(ImVec2((viewport->WorkSize.x - width) * 0.5f, 60.0f));
+        ImGui::BeginChild("LauncherContent", ImVec2(width, 0), ImGuiChildFlags_None);
+        ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 2.0f);
+        ImGui::TextUnformatted(Core::EngineName);
+        ImGui::PopFont();
+        ImGui::TextDisabled("%s", Text(EditorText::LauncherSubtitle));
+        ImGui::Spacing();
+
+        std::optional<std::filesystem::path> toOpen;
+        DrawRecentProjects(toOpen);
+        DrawNewProject(toOpen);
+        DrawOpenProject(toOpen);
+        if (!m_error.empty())
+        {
+            ImGui::TextColored(EditorColorVec4(EditorColor::Error), "%s", m_error.c_str());
+        }
+        ImGui::EndChild();
+        ImGui::End();
+        return toOpen;
+    }
+
+    void ProjectLauncher::DrawRecentProjects(std::optional<std::filesystem::path>& toOpen)
+    {
+        ImGui::SeparatorText(Text(EditorText::RecentProjects));
+        if (m_recentProjects.GetProjects().empty())
+        {
+            ImGui::TextDisabled("%s", Text(EditorText::NoRecentProjects));
+        }
+        for (const std::string& path : m_recentProjects.GetProjects())
+        {
+            if (ImGui::Selectable(path.c_str()))
+            {
+                toOpen = path;
+            }
+        }
+    }
+
+    void ProjectLauncher::DrawNewProject(std::optional<std::filesystem::path>& toOpen)
+    {
+        ImGui::SeparatorText(Text(EditorText::NewProject));
+        ImGui::InputText(Text(EditorText::Name), &m_name);
+        ImGui::InputText(Text(EditorText::Location), &m_location);
+        std::filesystem::path target = std::filesystem::path(m_location) / m_name;
+        ImGui::TextDisabled("%s", target.generic_string().c_str());
+        if (!ImGui::Button(Text(EditorText::CreateProject), ImVec2(160, 0)))
+        {
+            return;
+        }
+        std::string error;
+        if (m_name.empty())
+        {
+            m_error = Text(EditorText::EnterProjectName);
+        }
+        else if (Runtime::Project::Create(target, m_name, error))
+        {
+            toOpen = target.generic_string();
+        }
+        else
+        {
+            m_error = error;
+        }
+    }
+
+    void ProjectLauncher::DrawOpenProject(std::optional<std::filesystem::path>& toOpen)
+    {
+        ImGui::SeparatorText(Text(EditorText::OpenProject));
+        ImGui::InputTextWithHint("##openpath", Text(EditorText::OpenProjectHint, Runtime::Project::FileName).c_str(), &m_openPath);
+        ImGui::SameLine();
+        if (ImGui::Button(Text(EditorText::Open)))
+        {
+            toOpen = m_openPath;
+        }
+    }
+}
