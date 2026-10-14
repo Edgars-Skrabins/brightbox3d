@@ -7,6 +7,7 @@
 #include "EditorText.h"
 #include "Level/LevelSerializer.h"
 #include "PropertyDrawer.h"
+#include "Theme.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -19,7 +20,6 @@ namespace BrightBox3D::Editor
 
     namespace
     {
-        constexpr float PropertyIndent = 4.0f;
         constexpr float LinkBarBackgroundAlpha = 0.12f;
         constexpr float LinkBarHeightInRows = 2.2f;
     }
@@ -159,9 +159,9 @@ namespace BrightBox3D::Editor
         {
             AddOverrideHandlers(options, context, object, nullptr);
         }
-        ImGui::Indent(PropertyIndent);
+        ImGui::Indent(ScaledMetric(EditorMetric::PropertyIndent));
         bool changed = PropertyDrawer::DrawObject(object, options);
-        ImGui::Unindent(PropertyIndent);
+        ImGui::Unindent(ScaledMetric(EditorMetric::PropertyIndent));
         return changed;
     }
 

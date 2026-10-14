@@ -12,6 +12,7 @@
 #include "PropertyDrawer.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
+#include "Theme.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -27,7 +28,6 @@ namespace BrightBox3D::Editor
 
     namespace
     {
-        constexpr float PropertyIndent = 4.0f;
 
         struct TransformLabel
         {
@@ -203,9 +203,9 @@ namespace BrightBox3D::Editor
 
         if (open)
         {
-            ImGui::Indent(PropertyIndent);
+            ImGui::Indent(ScaledMetric(EditorMetric::PropertyIndent));
             changed |= DrawProperties(object, component);
-            ImGui::Unindent(PropertyIndent);
+            ImGui::Unindent(ScaledMetric(EditorMetric::PropertyIndent));
         }
         ImGui::PopID();
         if (removed)
@@ -218,7 +218,7 @@ namespace BrightBox3D::Editor
 
     bool ComponentInspector::DrawAddComponent(LevelObject& object)
     {
-        float width = std::min(260.0f, ImGui::GetContentRegionAvail().x);
+        float width = std::min(ScaledMetric(EditorMetric::AddComponentButtonWidth), ImGui::GetContentRegionAvail().x);
         ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - width) * 0.5f + ImGui::GetCursorPosX());
         if (ImGui::Button(Text(EditorText::AddComponent), ImVec2(width, 0.0f)))
         {

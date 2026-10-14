@@ -7,11 +7,41 @@
 #include <imgui.h>
 
 #include <filesystem>
+#include <iterator>
 
 namespace BrightBox3D::Editor
 {
     namespace
     {
+        constexpr float EditorMetrics[] = {
+            4.0f,
+            110.0f,
+            40.0f,
+            120.0f,
+            260.0f,
+            10.0f,
+            8.0f,
+            5.0f,
+            8.0f,
+            2.0f,
+            760.0f,
+            40.0f,
+            60.0f,
+            160.0f,
+            560.0f,
+            640.0f,
+            520.0f,
+            480.0f
+        };
+
+        static_assert(std::size(EditorMetrics) == static_cast<size_t>(EditorMetric::Count));
+
+        float& ThemeScale()
+        {
+            static float scale = 1.0f;
+            return scale;
+        }
+
         ImVec4 Mix(const ImVec4& a, const ImVec4& b, float t)
         {
             return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t);
@@ -163,6 +193,12 @@ namespace BrightBox3D::Editor
         colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0, 0, 0, 0.5f);
         colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.5f);
         style.ScaleAllSizes(scale);
+        ThemeScale() = scale;
+    }
+
+    float ScaledMetric(EditorMetric metric)
+    {
+        return EditorMetrics[static_cast<size_t>(metric)] * ThemeScale();
     }
 
     void LoadEditorFonts(float contentScale)

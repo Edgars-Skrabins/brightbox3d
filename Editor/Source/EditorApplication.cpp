@@ -446,12 +446,12 @@ namespace BrightBox3D::Editor
     void EditorApplication::DrawDockSpace()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
-        float toolbarHeight = ImGui::GetFrameHeight() + 10.0f;
+        float toolbarHeight = ImGui::GetFrameHeight() + ScaledMetric(EditorMetric::ToolbarExtraHeight);
         float statusHeight = ImGui::GetFrameHeight();
 
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, toolbarHeight));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 5));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ScaledMetric(EditorMetric::ToolbarPaddingX), ScaledMetric(EditorMetric::ToolbarPaddingY)));
         ImGui::Begin("##Toolbar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar);
         DrawToolbar();
         ImGui::End();
@@ -473,7 +473,7 @@ namespace BrightBox3D::Editor
 
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - statusHeight));
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, statusHeight));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(ScaledMetric(EditorMetric::StatusBarPaddingX), ScaledMetric(EditorMetric::StatusBarPaddingY)));
         ImGui::Begin("##Status", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking);
         StatusBar::Draw(GetDevice().GetName(), GetRenderer().GetStatistics(), m_context.GetLevelService().GetActiveLevel());
         ImGui::End();

@@ -5,6 +5,7 @@
 #include "EditorWindows.h"
 #include "Labels.h"
 #include "PropertyDrawer.h"
+#include "Theme.h"
 
 #include <imgui.h>
 
@@ -65,7 +66,7 @@ namespace BrightBox3D::Editor
             m_capturing.reset();
             return;
         }
-        ImGui::SetNextWindowSize(ImVec2(560, 640), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(ScaledMetric(EditorMetric::PreferencesWindowWidth), ScaledMetric(EditorMetric::PreferencesWindowHeight)), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin(WindowTitle(EditorWindow::Preferences).c_str(), &m_open))
         {
             ImGui::End();

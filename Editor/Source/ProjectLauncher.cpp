@@ -6,6 +6,7 @@
 #include "Platform/Shell.h"
 #include "RecentProjects.h"
 #include "Runtime/Project.h"
+#include "Theme.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -17,6 +18,7 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr const char* DefaultProjectsFolder = "BrightBox3DProjects";
+        constexpr float TitleFontScale = 2.0f;
     }
 
     ProjectLauncher::ProjectLauncher(const RecentProjects& recentProjects) : m_recentProjects(recentProjects)
@@ -31,10 +33,10 @@ namespace BrightBox3D::Editor
         ImGui::SetNextWindowPos(viewport->WorkPos);
         ImGui::SetNextWindowSize(viewport->WorkSize);
         ImGui::Begin("Launcher", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
-        float width = std::min(760.0f, viewport->WorkSize.x - 40.0f);
-        ImGui::SetCursorPos(ImVec2((viewport->WorkSize.x - width) * 0.5f, 60.0f));
+        float width = std::min(ScaledMetric(EditorMetric::LauncherMaxWidth), viewport->WorkSize.x - ScaledMetric(EditorMetric::LauncherMargin));
+        ImGui::SetCursorPos(ImVec2((viewport->WorkSize.x - width) * 0.5f, ScaledMetric(EditorMetric::LauncherTopOffset)));
         ImGui::BeginChild("LauncherContent", ImVec2(width, 0), ImGuiChildFlags_None);
-        ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 2.0f);
+        ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * TitleFontScale);
         ImGui::TextUnformatted(Core::EngineName);
         ImGui::PopFont();
         ImGui::TextDisabled("%s", Text(EditorText::LauncherSubtitle));
@@ -76,7 +78,7 @@ namespace BrightBox3D::Editor
         ImGui::InputText(Text(EditorText::Location), &m_location);
         std::filesystem::path target = std::filesystem::path(m_location) / m_name;
         ImGui::TextDisabled("%s", target.generic_string().c_str());
-        if (!ImGui::Button(Text(EditorText::CreateProject), ImVec2(160, 0)))
+        if (!ImGui::Button(Text(EditorText::CreateProject), ImVec2(ScaledMetric(EditorMetric::LauncherButtonWidth), 0)))
         {
             return;
         }

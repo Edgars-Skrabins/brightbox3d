@@ -16,7 +16,6 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr float FolderColumnWidth = 180.0f;
-        constexpr float DialogButtonWidth = 120.0f;
         constexpr const char* DeletePopupId = "DeleteAsset";
     }
 
@@ -44,7 +43,7 @@ namespace BrightBox3D::Editor
         SelectionService& selection = m_application.GetContext().GetSelectionService();
         const Assets::AssetRecord* record = database.FindRecord(m_pendingDelete);
         ImGui::TextUnformatted(Text(EditorText::DeleteAssetConfirm, record ? record->path : std::string(Text(EditorText::AssetBadgeUnknown))).c_str());
-        if (ImGui::Button(Text(EditorText::Delete), ImVec2(DialogButtonWidth, 0)))
+        if (ImGui::Button(Text(EditorText::Delete), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
             database.DeleteAsset(m_pendingDelete);
             if (selection.GetSelectedAsset() == m_pendingDelete)
@@ -55,7 +54,7 @@ namespace BrightBox3D::Editor
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button(Text(EditorText::Cancel), ImVec2(DialogButtonWidth, 0)))
+        if (ImGui::Button(Text(EditorText::Cancel), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
             m_pendingDelete = {};
             ImGui::CloseCurrentPopup();

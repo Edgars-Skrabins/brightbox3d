@@ -3,6 +3,7 @@
 #include "EditorText.h"
 #include "Labels.h"
 #include "Services/LevelService.h"
+#include "Theme.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -36,7 +37,7 @@ namespace BrightBox3D::Editor
             return;
         }
         ImGui::InputText(Text(EditorText::Name), &m_name);
-        if (ImGui::Button(Text(EditorText::Create), ImVec2(120, 0)) && !m_name.empty())
+        if (ImGui::Button(Text(EditorText::Create), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)) && !m_name.empty())
         {
             if (levels.IsDirty())
             {
@@ -46,7 +47,7 @@ namespace BrightBox3D::Editor
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button(Text(EditorText::Cancel), ImVec2(120, 0)))
+        if (ImGui::Button(Text(EditorText::Cancel), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
             ImGui::CloseCurrentPopup();
         }
