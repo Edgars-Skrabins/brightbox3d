@@ -12,12 +12,21 @@ namespace BrightBox3D::Core
     {
         Info = 0,
         Warning = 1,
-        Error = 2
+        Error = 2,
+        Count
+    };
+
+    enum class LogSource
+    {
+        Engine,
+        Game,
+        Count
     };
 
     struct LogEntry
     {
         LogLevel level = LogLevel::Info;
+        LogSource source = LogSource::Engine;
         std::string message;
         std::string timestamp;
         std::string category;
@@ -32,12 +41,14 @@ namespace BrightBox3D::Core
         static void Info(const std::string& message);
         static void Warning(const std::string& message);
         static void Error(const std::string& message);
-        static void Write(LogLevel level, const std::string& message, const std::string& category = {}, const std::string& file = {}, int line = 0);
+        static void Write(LogLevel level, const std::string& message, LogSource source = LogSource::Engine, const std::string& category = {}, const std::string& file = {}, int line = 0);
 
         static void ForEach(const std::function<void(const LogEntry&)>& visitor);
         static void Clear();
         static uint64_t Revision();
-        static int Count(LogLevel level);
+        static int Count(LogLevel level, LogSource source);
+        static int Count(LogSource source);
+        static bool HasErrors(LogSource source);
         static void SetEcho(bool echo);
     };
 }

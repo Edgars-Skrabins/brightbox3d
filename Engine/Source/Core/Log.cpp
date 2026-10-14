@@ -2,10 +2,13 @@
 
 #include "Core/EngineText.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <ctime>
 #include <deque>
+#include <iterator>
+#include <numeric>
 
 namespace BrightBox3D::Core
 {
@@ -24,7 +27,7 @@ namespace BrightBox3D::Core
             std::deque<LogEntry> entries;
             uint64_t serial = 0;
             uint64_t revision = 0;
-            int counts[3] = { 0, 0, 0 };
+            int counts[static_cast<size_t>(LogSource::Count)][static_cast<size_t>(LogLevel::Count)] = {};
             bool echo = true;
         };
 
@@ -32,6 +35,11 @@ namespace BrightBox3D::Core
         {
             static LogState state;
             return state;
+        }
+
+        int& CountOf(LogState& state, LogSource source, LogLevel level)
+        {
+            return state.counts[static_cast<size_t>(source)][static_cast<size_t>(level)];
         }
 
         std::string CurrentTimestamp()
@@ -65,13 +73,14 @@ namespace BrightBox3D::Core
         Write(LogLevel::Error, message);
     }
 
-    void Log::Write(LogLevel level, const std::string& message, const std::string& category, const std::string& file, int line)
+    void Log::Write(LogLevel level, const std::string& message, LogSource source, const std::string& category, const std::string& file, int line)
     {
         std::lock_guard<std::mutex> lock(Mutex());
         LogState& state = State();
 
         LogEntry entry;
         entry.level = level;
+        entry.source = source;
         entry.message = message;
         entry.timestamp = CurrentTimestamp();
         entry.category = category;
@@ -94,11 +103,11 @@ namespace BrightBox3D::Core
             std::fflush(stream);
         }
 
-        state.counts[static_cast<int>(level)]++;
+        CountOf(state, source, level)++;
         state.entries.push_back(std::move(entry));
         if (state.entries.size() > MaxEntries)
         {
-            state.counts[static_cast<int>(state.entries.front().level)]--;
+            CountOf(state, state.entries.front().source, state.entries.front().level)--;
             state.entries.pop_front();
         }
         state.revision++;
@@ -118,7 +127,10 @@ namespace BrightBox3D::Core
         std::lock_guard<std::mutex> lock(Mutex());
         LogState& state = State();
         state.entries.clear();
-        state.counts[0] = state.counts[1] = state.counts[2] = 0;
+        for (auto& levels : state.counts)
+        {
+            std::fill(std::begin(levels), std::end(levels), 0);
+        }
         state.revision++;
     }
 
@@ -128,10 +140,22 @@ namespace BrightBox3D::Core
         return State().revision;
     }
 
-    int Log::Count(LogLevel level)
+    int Log::Count(LogLevel level, LogSource source)
     {
         std::lock_guard<std::mutex> lock(Mutex());
-        return State().counts[static_cast<int>(level)];
+        return CountOf(State(), source, level);
+    }
+
+    int Log::Count(LogSource source)
+    {
+        std::lock_guard<std::mutex> lock(Mutex());
+        const auto& levels = State().counts[static_cast<size_t>(source)];
+        return std::accumulate(std::begin(levels), std::end(levels), 0);
+    }
+
+    bool Log::HasErrors(LogSource source)
+    {
+        return Count(LogLevel::Error, source) > 0;
     }
 
     void Log::SetEcho(bool echo)

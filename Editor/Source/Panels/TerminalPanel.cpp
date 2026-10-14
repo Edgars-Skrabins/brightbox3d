@@ -41,11 +41,11 @@ namespace BrightBox3D::Editor
             }
             ImGui::PopStyleColor();
         };
-        toggle(EditorText::LogInfoCount, m_showInfo, Core::Log::Count(Core::LogLevel::Info), EditorColorVec4(EditorColor::Text));
+        toggle(EditorText::LogInfoCount, m_showInfo, Core::Log::Count(Core::LogLevel::Info, Core::LogSource::Game) + Core::Log::Count(Core::LogLevel::Info, Core::LogSource::Engine), EditorColorVec4(EditorColor::Text));
         ImGui::SameLine();
-        toggle(EditorText::LogWarningCount, m_showWarnings, Core::Log::Count(Core::LogLevel::Warning), EditorColorVec4(EditorColor::Warning));
+        toggle(EditorText::LogWarningCount, m_showWarnings, Core::Log::Count(Core::LogLevel::Warning, Core::LogSource::Game) + Core::Log::Count(Core::LogLevel::Warning, Core::LogSource::Engine), EditorColorVec4(EditorColor::Warning));
         ImGui::SameLine();
-        toggle(EditorText::LogErrorCount, m_showErrors, Core::Log::Count(Core::LogLevel::Error), EditorColorVec4(EditorColor::Error));
+        toggle(EditorText::LogErrorCount, m_showErrors, Core::Log::Count(Core::LogLevel::Error, Core::LogSource::Game) + Core::Log::Count(Core::LogLevel::Error, Core::LogSource::Engine), EditorColorVec4(EditorColor::Error));
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
         ImGui::InputTextWithHint("##filter", Text(EditorText::FilterHint), &m_filter);

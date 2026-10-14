@@ -145,7 +145,7 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
     outputDesc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
     auto output = device.CreateTexture(outputDesc);
 
-    int errorsBefore = Core::Log::Count(Core::LogLevel::Error);
+    int errorsBefore = Core::Log::Count(Core::LogLevel::Error, Core::LogSource::Engine);
     const char* names[] = { "None", "FXAA", "SMAA", "TAA" };
     for (int mode = 0; mode < 4; ++mode)
     {
@@ -177,5 +177,5 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
         }
         EXPECT_GT(sum / (pixels.size() / 4), 60u) << names[mode];
     }
-    EXPECT_EQ(Core::Log::Count(Core::LogLevel::Error), errorsBefore);
+    EXPECT_EQ(Core::Log::Count(Core::LogLevel::Error, Core::LogSource::Engine), errorsBefore);
 }
