@@ -4,6 +4,7 @@
 #include "Commands/CommandRegistry.h"
 #include "Commands/CommandWidgets.h"
 #include "Core/Log.h"
+#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -399,9 +400,9 @@ namespace BrightBox3D::Editor
             return;
         }
         EditorContext& context = m_application.GetContext();
-        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_ASSET"))
+        if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Asset))
         {
-            Core::Guid guid = *static_cast<const Core::Guid*>(payload->Data);
+            const Core::Guid& guid = *dropped;
             const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(guid);
             Math::Ray ray = ScreenRay(view, projection, origin, size, ImGui::GetIO().MousePos);
             Math::Vector3 point = PlacementPoint(ray);

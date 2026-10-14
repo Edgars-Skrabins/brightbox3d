@@ -1,6 +1,7 @@
 #include "PropertyDrawer.h"
 
 #include "Assets/AssetDatabase.h"
+#include "DragDrop.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
 #include "Level/Level.h"
@@ -175,13 +176,12 @@ namespace BrightBox3D::Editor
         }
         if (!readOnly && ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_ASSET"))
+            if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Asset))
             {
-                Core::Guid dropped = *static_cast<const Core::Guid*>(payload->Data);
-                const Assets::AssetRecord* droppedRecord = database.FindRecord(dropped);
+                const Assets::AssetRecord* droppedRecord = database.FindRecord(*dropped);
                 if (droppedRecord && (droppedRecord->type == type || type == Assets::AssetType::Unknown))
                 {
-                    guid = dropped;
+                    guid = *dropped;
                     changed = true;
                 }
             }
@@ -317,9 +317,9 @@ namespace BrightBox3D::Editor
             ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
             if (!readOnly && ImGui::BeginDragDropTarget())
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
+                if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Object))
                 {
-                    guid = *static_cast<const Core::Guid*>(payload->Data);
+                    guid = *dropped;
                     changed = true;
                 }
                 ImGui::EndDragDropTarget();

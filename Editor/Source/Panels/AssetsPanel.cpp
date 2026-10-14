@@ -3,6 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
+#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
@@ -313,12 +314,11 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_ASSET"))
+            if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Asset))
             {
-                Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                if (const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(dragged))
+                if (const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(*dragged))
                 {
-                    Assets::AssetDatabase::Get().MoveAsset(dragged, (folder.empty() ? "" : folder + "/") + record->name);
+                    Assets::AssetDatabase::Get().MoveAsset(*dragged, (folder.empty() ? "" : folder + "/") + record->name);
                 }
             }
             ImGui::EndDragDropTarget();
@@ -458,18 +458,17 @@ namespace BrightBox3D::Editor
                 }
                 if (ImGui::BeginDragDropSource())
                 {
-                    ImGui::SetDragDropPayload("BRIGHT_ASSET", &record.guid, sizeof(record.guid));
+                    SetPayload(record.guid, DragDropPayload::Asset);
                     ImGui::TextUnformatted(record.name.c_str());
                     ImGui::EndDragDropSource();
                 }
                 if (record.type == Assets::AssetType::Folder && ImGui::BeginDragDropTarget())
                 {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_ASSET"))
+                    if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Asset))
                     {
-                        Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                        if (const Assets::AssetRecord* draggedRecord = database.FindRecord(dragged); draggedRecord && dragged != record.guid)
+                        if (const Assets::AssetRecord* draggedRecord = database.FindRecord(*dragged); draggedRecord && *dragged != record.guid)
                         {
-                            database.MoveAsset(dragged, record.path + "/" + draggedRecord->name);
+                            database.MoveAsset(*dragged, record.path + "/" + draggedRecord->name);
                         }
                     }
                     ImGui::EndDragDropTarget();
@@ -554,12 +553,11 @@ namespace BrightBox3D::Editor
             ImGui::InvisibleButton("##dropzone", ImVec2(std::max(1.0f, ImGui::GetContentRegionAvail().x), std::max(40.0f, ImGui::GetContentRegionAvail().y)));
             if (ImGui::BeginDragDropTarget())
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
+                if (std::optional<Core::Guid> id = AcceptPayload(DragDropPayload::Object))
                 {
-                    Core::Guid id = *static_cast<const Core::Guid*>(payload->Data);
                     if (Level::Level* level = context.GetLevelService().GetActiveLevel(); level && !context.GetLevelService().IsPlaying())
                     {
-                        if (Level::LevelObject* object = level->FindObject(id))
+                        if (Level::LevelObject* object = level->FindObject(*id))
                         {
                             context.GetAssetCreationService().CreateVariantAsset(*object, CurrentFolder());
                         }

@@ -5,6 +5,7 @@
 #include "Commands/CommandWidgets.h"
 #include "Core/EngineInfo.h"
 #include "Core/Log.h"
+#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -395,17 +396,15 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::BeginDragDropSource())
         {
-            Core::Guid id = object.GetId();
-            ImGui::SetDragDropPayload("BRIGHT_OBJECT", &id, sizeof(id));
+            SetPayload(object.GetId(), DragDropPayload::Object);
             ImGui::TextUnformatted(object.GetName().c_str());
             ImGui::EndDragDropSource();
         }
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
+            if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Object))
             {
-                Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(dragged);
+                Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(*dragged);
                 if (draggedObject && draggedObject != &object && !object.IsDescendantOf(draggedObject))
                 {
                     if (ImGui::GetIO().KeyAlt)
@@ -418,9 +417,9 @@ namespace BrightBox3D::Editor
                     }
                 }
             }
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_ASSET"))
+            if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Asset))
             {
-                Core::Guid guid = *static_cast<const Core::Guid*>(payload->Data);
+                const Core::Guid& guid = *dropped;
                 const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(guid);
                 if (record && record->type == Assets::AssetType::LevelObjectVariant)
                 {
@@ -487,10 +486,9 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("BRIGHT_OBJECT"))
+            if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Object))
             {
-                Core::Guid dragged = *static_cast<const Core::Guid*>(payload->Data);
-                if (Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(dragged))
+                if (Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(*dragged))
                 {
                     context.GetObjectEditService().Reparent(*draggedObject, nullptr, &collection, -1);
                 }
