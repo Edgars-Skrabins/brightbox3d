@@ -160,7 +160,7 @@ namespace BrightBox3D::UI::DocumentPainter
             return penX;
         }
 
-        void DrawText(const Element& element, const std::string& text, const ElementBox& box, PaintContext& context)
+        void DrawElementText(const Element& element, const std::string& text, const ElementBox& box, PaintContext& context)
         {
             const ComputedStyle& style = element.GetStyle();
             Font* font = FontLibrary::Get().Get(style.fontFamily);
@@ -220,7 +220,7 @@ namespace BrightBox3D::UI::DocumentPainter
             const std::string& text = element.GetDisplayText();
             if (!text.empty() && element.ShowsText())
             {
-                DrawText(element, text, box, context);
+                DrawElementText(element, text, box, context);
             }
             else if (ShowsCaret(element))
             {
