@@ -2,6 +2,7 @@
 
 #include "EditorText.h"
 #include "Math/Color.h"
+#include "Serialization/Json.h"
 
 #include <imgui.h>
 
@@ -67,6 +68,13 @@ namespace BrightBox3D::Editor
 
     EditorText ColorCategoryLabel(EditorColorCategory category);
 
+    enum class AssetsLayout
+    {
+        OneColumn,
+        TwoColumn,
+        Count
+    };
+
     struct EditorColorInfo
     {
         const char* key;
@@ -93,12 +101,28 @@ namespace BrightBox3D::Editor
         bool IsDefault(EditorColor color) const;
         bool HasChanges() const;
 
+        AssetsLayout GetAssetsLayout() const { return m_assetsLayout; }
+        void SetAssetsLayout(AssetsLayout layout);
+        int GetAssetIconSize() const { return m_assetIconSize; }
+        void SetAssetIconSize(int size);
+        bool IsAssetListMode() const { return m_assetIconSize == AssetListIconSize; }
+
+        static constexpr AssetsLayout DefaultAssetsLayout = AssetsLayout::TwoColumn;
+        static constexpr int AssetListIconSize = 0;
+        static constexpr int MinAssetIconSize = 56;
+        static constexpr int MaxAssetIconSize = 160;
+        static constexpr int DefaultAssetIconSize = 84;
+
         uint32_t GetRevision() const { return m_revision; }
 
     private:
         EditorPreferences();
 
+        void LoadAssets(const Serialization::JsonValue& assets);
+
         std::array<Math::Color, static_cast<size_t>(EditorColor::Count)> m_colors;
+        AssetsLayout m_assetsLayout = DefaultAssetsLayout;
+        int m_assetIconSize = DefaultAssetIconSize;
         std::filesystem::path m_path;
         uint32_t m_revision = 1;
     };

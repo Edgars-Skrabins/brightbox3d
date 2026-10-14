@@ -20,6 +20,17 @@ namespace BrightBox3D::Editor
 
         constexpr const char* ColorsSection = "colors";
         constexpr const char* ShortcutsSection = "shortcuts";
+        constexpr const char* AssetsSection = "assets";
+        constexpr const char* AssetsLayoutKey = "layout";
+        constexpr const char* AssetIconSizeKey = "iconSize";
+        constexpr const char* AssetsLayoutNames[] = { "OneColumn", "TwoColumn" };
+
+        static_assert(std::size(AssetsLayoutNames) == static_cast<size_t>(AssetsLayout::Count));
+
+        bool IsValidAssetIconSize(int size)
+        {
+            return size == EditorPreferences::AssetListIconSize || (size >= EditorPreferences::MinAssetIconSize && size <= EditorPreferences::MaxAssetIconSize);
+        }
 
         const EditorColorInfo ColorInfos[] = {
             { "Accent", EditorText::ColorAccent, EditorColorCategory::Interface, Hex(0xFF8A3D) },
@@ -125,6 +136,8 @@ namespace BrightBox3D::Editor
     void EditorPreferences::Load(const std::filesystem::path& path)
     {
         m_path = path;
+        m_assetsLayout = DefaultAssetsLayout;
+        m_assetIconSize = DefaultAssetIconSize;
         Serialization::JsonDocument document;
         if (!std::filesystem::exists(path))
         {
@@ -151,7 +164,28 @@ namespace BrightBox3D::Editor
         {
             ReadShortcutBindings(CommandRegistry::Get(), *shortcuts);
         }
+        if (const Serialization::JsonValue* assets = Serialization::FindMember(document, AssetsSection); assets && assets->IsObject())
+        {
+            LoadAssets(*assets);
+        }
         ++m_revision;
+    }
+
+    void EditorPreferences::LoadAssets(const Serialization::JsonValue& assets)
+    {
+        std::string layout = Serialization::GetString(assets, AssetsLayoutKey);
+        for (size_t i = 0; i < std::size(AssetsLayoutNames); ++i)
+        {
+            if (layout == AssetsLayoutNames[i])
+            {
+                m_assetsLayout = static_cast<AssetsLayout>(i);
+            }
+        }
+        const Serialization::JsonValue* iconSize = Serialization::FindMember(assets, AssetIconSizeKey);
+        if (iconSize && iconSize->IsInt() && IsValidAssetIconSize(iconSize->GetInt()))
+        {
+            m_assetIconSize = iconSize->GetInt();
+        }
     }
 
     void EditorPreferences::Save() const
@@ -172,6 +206,10 @@ namespace BrightBox3D::Editor
         }
         Serialization::SetMember(document, ColorsSection, std::move(colors), document.GetAllocator());
         Serialization::SetMember(document, ShortcutsSection, WriteShortcutBindings(CommandRegistry::Get(), document.GetAllocator()), document.GetAllocator());
+        Serialization::JsonValue assets(rapidjson::kObjectType);
+        Serialization::SetMember(assets, AssetsLayoutKey, Serialization::MakeString(AssetsLayoutNames[static_cast<size_t>(m_assetsLayout)], document.GetAllocator()), document.GetAllocator());
+        Serialization::SetMember(assets, AssetIconSizeKey, Serialization::JsonValue(m_assetIconSize), document.GetAllocator());
+        Serialization::SetMember(document, AssetsSection, std::move(assets), document.GetAllocator());
         Serialization::SaveJsonFile(m_path, document);
     }
 
@@ -209,6 +247,18 @@ namespace BrightBox3D::Editor
     bool EditorPreferences::IsDefault(EditorColor color) const
     {
         return SameAsStored(GetColor(color), GetColorInfo(color).defaultValue);
+    }
+
+    void EditorPreferences::SetAssetsLayout(AssetsLayout layout)
+    {
+        m_assetsLayout = layout;
+        ++m_revision;
+    }
+
+    void EditorPreferences::SetAssetIconSize(int size)
+    {
+        m_assetIconSize = size <= AssetListIconSize ? AssetListIconSize : std::clamp(size, MinAssetIconSize, MaxAssetIconSize);
+        ++m_revision;
     }
 
     bool EditorPreferences::HasChanges() const
