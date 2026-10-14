@@ -95,6 +95,7 @@ namespace BrightBox3D::Assets
         bool WriteSourceFile(const Core::Guid& guid, const std::string& content);
         bool MoveAsset(const Core::Guid& guid, const std::string& newRelativePath);
         bool DeleteAsset(const Core::Guid& guid);
+        Core::Guid DuplicateAsset(const Core::Guid& guid);
         std::string MakeUniquePath(const std::string& relativePath) const;
 
         std::unique_ptr<Reflection::EngineObject> LoadImportSettings(const AssetRecord& record) const;

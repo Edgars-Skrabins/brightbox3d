@@ -171,6 +171,43 @@ TEST(AssetDatabaseTests, DeletedAssetRemovesFileMetaAndRecord)
     EXPECT_FALSE(database.DeleteAsset(file));
 }
 
+TEST(AssetDatabaseTests, DuplicatedAssetsGetNumberedCopiesWithNewGuids)
+{
+    AssetProject project;
+    ASSERT_TRUE(project.Write("Styles/Main.css", "a { color: red; }"));
+    ASSERT_TRUE(project.Write("Styles/Nested/Inner.css", "b {}"));
+    ASSERT_TRUE(project.Open());
+    AssetDatabase& database = AssetDatabase::Get();
+    Core::Guid original = project.GuidOf("Styles/Main.css");
+
+    Core::Guid copy = database.DuplicateAsset(original);
+    ASSERT_TRUE(copy.IsValid());
+    EXPECT_NE(copy, original);
+    EXPECT_EQ(database.FindRecord(copy)->path, "Styles/Main 1.css");
+    EXPECT_EQ(Core::FileSystem::ReadText(project.Assets() / "Styles" / "Main 1.css"), "a { color: red; }");
+    EXPECT_EQ(project.GuidOf("Styles/Main.css"), original);
+    EXPECT_EQ(database.FindRecordByPath("Styles/Main 2.css"), nullptr);
+    EXPECT_EQ(database.FindRecord(database.DuplicateAsset(original))->path, "Styles/Main 2.css");
+
+    Core::Guid folder = project.GuidOf("Styles");
+    Core::Guid folderCopy = database.DuplicateAsset(folder);
+    ASSERT_TRUE(folderCopy.IsValid());
+    EXPECT_EQ(database.FindRecord(folderCopy)->path, "Styles 1");
+    Core::Guid innerCopy = project.GuidOf("Styles 1/Nested/Inner.css");
+    Core::Guid mainCopy = project.GuidOf("Styles 1/Main.css");
+    ASSERT_TRUE(innerCopy.IsValid());
+    ASSERT_TRUE(mainCopy.IsValid());
+    EXPECT_NE(innerCopy, project.GuidOf("Styles/Nested/Inner.css"));
+    EXPECT_NE(mainCopy, original);
+    EXPECT_NE(project.GuidOf("Styles 1/Nested"), project.GuidOf("Styles/Nested"));
+
+    database.Close();
+    ASSERT_TRUE(project.Open());
+    EXPECT_EQ(project.GuidOf("Styles 1/Main.css"), mainCopy);
+    EXPECT_EQ(project.GuidOf("Styles/Main.css"), original);
+    EXPECT_FALSE(database.DuplicateAsset(Core::Guid::Generate()).IsValid());
+}
+
 TEST(AssetDatabaseTests, RefreshBroadcastsExternalEditsAndDeletions)
 {
     AssetProject project;

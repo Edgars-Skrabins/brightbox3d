@@ -1,11 +1,49 @@
 #include "Assets/AssetDatabase.h"
 
+#include "Assets/AssetFileSchema.h"
 #include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
+#include "Core/StringUtils.h"
+#include "Serialization/Json.h"
+
+#include <vector>
 
 namespace BrightBox3D::Assets
 {
+    namespace
+    {
+        void AssignNewGuid(const std::filesystem::path& metaPath)
+        {
+            Serialization::JsonDocument meta;
+            if (!Serialization::LoadJsonFile(metaPath, meta) || !meta.IsObject())
+            {
+                std::error_code error;
+                std::filesystem::remove(metaPath, error);
+                return;
+            }
+            Serialization::SetMember(meta, AssetFileSchema::Guid, Serialization::MakeString(Core::Guid::Generate().ToString(), meta.GetAllocator()), meta.GetAllocator());
+            Serialization::SaveJsonFile(metaPath, meta);
+        }
+
+        void AssignNewGuidsInside(const std::filesystem::path& folder)
+        {
+            std::vector<std::filesystem::path> metas;
+            std::error_code error;
+            for (std::filesystem::recursive_directory_iterator it(folder, error), end; !error && it != end; it.increment(error))
+            {
+                if (Core::EndsWith(it->path().filename().string(), AssetDatabase::MetaExtension))
+                {
+                    metas.push_back(it->path());
+                }
+            }
+            for (const std::filesystem::path& meta : metas)
+            {
+                AssignNewGuid(meta);
+            }
+        }
+    }
+
     Core::Guid AssetDatabase::ImportOrRegister(const std::filesystem::path& absolutePath)
     {
         Refresh();
@@ -96,6 +134,37 @@ namespace BrightBox3D::Assets
         std::filesystem::rename(MetaPathFor(from), MetaPathFor(to), error);
         Refresh();
         return true;
+    }
+
+    Core::Guid AssetDatabase::DuplicateAsset(const Core::Guid& guid)
+    {
+        const AssetRecord* record = FindRecord(guid);
+        if (!record || IsBuiltin(guid))
+        {
+            return {};
+        }
+        std::filesystem::path from = GetAbsolutePath(*record);
+        std::string targetPath = MakeUniquePath(record->path);
+        std::filesystem::path to = GetAssetsDirectory() / targetPath;
+        std::error_code error;
+        std::filesystem::copy(from, to, std::filesystem::copy_options::recursive, error);
+        if (error)
+        {
+            Core::Log::Error(Core::Text(Core::EngineText::AssetWriteFailed, targetPath));
+            return {};
+        }
+        std::filesystem::copy_file(MetaPathFor(from), MetaPathFor(to), error);
+        if (!error)
+        {
+            AssignNewGuid(MetaPathFor(to));
+        }
+        if (record->type == AssetType::Folder)
+        {
+            AssignNewGuidsInside(to);
+        }
+        Refresh();
+        const AssetRecord* duplicate = FindRecordByPath(targetPath);
+        return duplicate ? duplicate->guid : Core::Guid{};
     }
 
     bool AssetDatabase::DeleteAsset(const Core::Guid& guid)
