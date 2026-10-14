@@ -374,6 +374,11 @@ namespace BrightBox3D::Editor
             { "SearchComponentsHint", "Search components", 0 },
             { "FilterHint", "Filter", 0 },
             { "ClearFieldButton", "x", 0 },
+            { "MultipleObjectsSelected", "{} objects selected (editing the last selected)", 1 },
+            { "CollectionRootCount", "{} root objects", 1 },
+            { "TextureSummary", "{} x {}, {} mips", 3 },
+            { "ModelSummary", "{} meshes, {} nodes, {} triangles", 3 },
+            { "AddExistingCollection", "Add Existing...", 0 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EditorText::Count));

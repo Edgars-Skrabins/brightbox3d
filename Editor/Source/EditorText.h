@@ -376,6 +376,11 @@ namespace BrightBox3D::Editor
         SearchComponentsHint,
         FilterHint,
         ClearFieldButton,
+        MultipleObjectsSelected,
+        CollectionRootCount,
+        TextureSummary,
+        ModelSummary,
+        AddExistingCollection,
         Count
     };
 
