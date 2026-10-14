@@ -28,12 +28,12 @@ namespace BrightBox3D::Assets
             uint32_t assetType = 0;
             uint64_t sourceHash = 0;
         };
+    }
 
-        bool IsIgnored(const std::filesystem::path& path)
-        {
-            std::string name = path.filename().string();
-            return name.empty() || name[0] == '.' || Core::EndsWith(name, MetaExtension) || Core::EndsWith(name, ".tmp");
-        }
+    bool AssetDatabase::IsIgnoredPath(const std::filesystem::path& path)
+    {
+        std::string name = path.filename().string();
+        return name.empty() || name[0] == '.' || Core::EndsWith(name, MetaExtension) || Core::EndsWith(name, ".tmp");
     }
 
     AssetDatabase& AssetDatabase::Get()
@@ -243,7 +243,7 @@ namespace BrightBox3D::Assets
             for (; !error && iterator != std::filesystem::recursive_directory_iterator(); iterator.increment(error))
             {
                 const std::filesystem::path& path = iterator->path();
-                if (IsIgnored(path))
+                if (IsIgnoredPath(path))
                 {
                     if (iterator->is_directory() && path.filename().string().starts_with("."))
                     {

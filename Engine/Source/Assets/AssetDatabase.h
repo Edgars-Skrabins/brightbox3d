@@ -44,6 +44,7 @@ namespace BrightBox3D::Assets
         static constexpr const char* CookedManifestFileName = "Manifest.json";
 
         static AssetDatabase& Get();
+        static bool IsIgnoredPath(const std::filesystem::path& path);
 
         bool Open(const std::filesystem::path& projectRoot, AssetDatabaseMode mode = AssetDatabaseMode::Editor);
         void Close();
