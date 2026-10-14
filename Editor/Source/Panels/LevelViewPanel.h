@@ -44,13 +44,14 @@ namespace BrightBox3D::Editor
 
     private:
         void DrawToolbar();
+        void DrawLevelObjectEditorBar();
+        void EnsureTarget(uint32_t width, uint32_t height);
+        void UpdateCamera(float deltaTime, bool hovered);
+        void SubmitRender(const Math::Matrix4& view, const Math::Matrix4& projection, uint32_t width, uint32_t height);
         void DrawGizmo(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size);
         void DrawIcons(const Math::Matrix4& viewProjection, const ImVec2& origin, const ImVec2& size);
-        void DrawSelectionOverlay();
         void HandlePicking(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size);
-        void HandleDrop(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size);
         Math::Ray ScreenRay(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size, const ImVec2& mouse) const;
-        Math::Vector3 PlacementPoint(const Math::Ray& ray) const;
 
         EditorApplication& m_application;
         EditorCamera m_camera;

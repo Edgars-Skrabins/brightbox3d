@@ -1,10 +1,7 @@
 #include "Panels/LevelViewPanel.h"
 
-#include "Assets/AssetDatabase.h"
 #include "Commands/CommandRegistry.h"
 #include "Commands/CommandWidgets.h"
-#include "Core/Log.h"
-#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -16,11 +13,11 @@
 #include "IconGlyphs.h"
 #include "ImGui/ImGuiRenderer.h"
 #include "Level/LevelSerializer.h"
-#include "Physics/Colliders.h"
+#include "Panels/LevelView/LevelViewDropTarget.h"
+#include "Panels/LevelView/PlayModeOverlay.h"
+#include "Panels/LevelView/SelectionOverlay.h"
 #include "Picking.h"
-#include "Rendering/DebugDraw.h"
 #include "Rendering/Light.h"
-#include "Rendering/MaterialAsset.h"
 #include "Rendering/MeshRenderer.h"
 
 #include <ImGuizmo.h>
@@ -30,11 +27,78 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr uint64_t LevelViewId = 0x4C455645;
+        constexpr float SpawnDistance = 6.0f;
+        constexpr float DefaultFocusRadius = 1.0f;
+        constexpr float DebugModeComboWidth = 110.0f;
+        constexpr float SpeedFieldWidth = 90.0f;
+        constexpr float SpeedDragStep = 0.1f;
+        constexpr float MinCameraSpeed = 0.5f;
+        constexpr float MaxCameraSpeed = 500.0f;
+        constexpr const char* SpeedValueFormat = " %.1f";
+        constexpr float IconRadius = 12.0f;
+        constexpr float IconMinClipW = 0.1f;
+        constexpr float IconOutline = 1.5f;
+        constexpr float IconSelectedOutline = 2.5f;
+        constexpr float IconGlyphOffsetY = 1.0f;
+        constexpr float ToolbarOffsetX = 6.0f;
+        constexpr float ToolbarOffsetY = 4.0f;
+        constexpr float MinViewportSize = 8.0f;
+
+        struct GizmoMode
+        {
+            ImGuizmo::OPERATION operation;
+            float snap;
+        };
+
+        constexpr GizmoMode GizmoModes[] = {
+            { ImGuizmo::TRANSLATE, 0.5f },
+            { ImGuizmo::ROTATE, 15.0f },
+            { ImGuizmo::SCALE, 0.1f }
+        };
 
         const ToolbarItem LevelViewToolbar[] = {
             CommandId::GizmoMove, CommandId::GizmoRotate, CommandId::GizmoScale, ToolbarSeparator,
             CommandId::GizmoSpace, CommandId::Snap, CommandId::Grid,
         };
+
+        void GatherMeshBounds(Level::LevelObject& node, Math::Bounds& bounds)
+        {
+            if (auto* renderer = node.GetComponent<Rendering::MeshRenderer>())
+            {
+                auto model = renderer->GetModel().Load();
+                if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
+                {
+                    bounds.Encapsulate(mesh->bounds.Transformed(node.GetTransform().GetWorldMatrix()));
+                }
+            }
+            for (Level::LevelObject* child : node.GetChildren())
+            {
+                GatherMeshBounds(*child, bounds);
+            }
+        }
+
+        struct ObjectIcon
+        {
+            const char* glyph = nullptr;
+            ImU32 color = 0;
+        };
+
+        ObjectIcon IconFor(const Level::LevelObject& object)
+        {
+            if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
+            {
+                return { light->GetLightType() == Rendering::LightType::Directional ? IconGlyph(Icon::Sun) : IconGlyph(Icon::Lightbulb), EditorColorU32(EditorColor::LightGizmo) };
+            }
+            if (object.IsA<Framework::Camera>())
+            {
+                return { IconGlyph(Icon::Video), EditorColorU32(EditorColor::CameraGizmo) };
+            }
+            if (object.IsA<Framework::PlayerStart>())
+            {
+                return { IconGlyph(Icon::Flag), EditorColorU32(EditorColor::PlayerStartGizmo) };
+            }
+            return {};
+        }
     }
 
     LevelViewPanel::LevelViewPanel(EditorApplication& application) : m_application(application)
@@ -49,7 +113,7 @@ namespace BrightBox3D::Editor
 
     Math::Vector3 LevelViewPanel::GetSpawnPoint() const
     {
-        return m_camera.GetPosition() + m_camera.GetForward() * 6.0f;
+        return m_camera.GetPosition() + m_camera.GetForward() * SpawnDistance;
     }
 
     void LevelViewPanel::FocusSelection()
@@ -60,29 +124,14 @@ namespace BrightBox3D::Editor
             return;
         }
         Math::Bounds bounds;
-        std::function<void(Level::LevelObject&)> gather = [&](Level::LevelObject& node)
-        {
-            if (auto* renderer = node.GetComponent<Rendering::MeshRenderer>())
-            {
-                auto model = renderer->GetModel().Load();
-                if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
-                {
-                    bounds.Encapsulate(mesh->bounds.Transformed(node.GetTransform().GetWorldMatrix()));
-                }
-            }
-            for (Level::LevelObject* child : node.GetChildren())
-            {
-                gather(*child);
-            }
-        };
-        gather(*object);
+        GatherMeshBounds(*object, bounds);
         if (bounds.IsValid())
         {
             m_camera.Focus(bounds.Center(), bounds.Extents().Length());
         }
         else
         {
-            m_camera.Focus(object->GetTransform().GetPosition(), 1.0f);
+            m_camera.Focus(object->GetTransform().GetPosition(), DefaultFocusRadius);
         }
     }
 
@@ -96,145 +145,45 @@ namespace BrightBox3D::Editor
         return { nearPoint, (farPoint - nearPoint).Normalized() };
     }
 
-    Math::Vector3 LevelViewPanel::PlacementPoint(const Math::Ray& ray) const
-    {
-        Level::Level* level = m_application.GetContext().GetLevelService().GetActiveLevel();
-        if (level)
-        {
-            PickResult hit = PickObject(*level, ray);
-            if (hit.object)
-            {
-                return hit.point;
-            }
-        }
-        Math::Plane ground{ { 0.0f, 1.0f, 0.0f }, 0.0f };
-        float distance = 0.0f;
-        if (ground.Raycast(ray, distance) && distance < 500.0f)
-        {
-            return ray.GetPoint(distance);
-        }
-        return ray.GetPoint(8.0f);
-    }
-
     void LevelViewPanel::DrawToolbar()
     {
-        EditorContext& context = m_application.GetContext();
         Editor::DrawToolbar(LevelViewToolbar);
         ImGui::SameLine();
         static const char* modes[] = { Text(EditorText::DebugModeLit), Text(EditorText::DebugModeAlbedo), Text(EditorText::DebugModeNormals), Text(EditorText::DebugModeMetallicRoughness), Text(EditorText::DebugModeShadows), Text(EditorText::DebugModeAmbientOcclusion) };
-        ImGui::SetNextItemWidth(110.0f);
+        ImGui::SetNextItemWidth(DebugModeComboWidth);
         int mode = static_cast<int>(m_debugMode);
         if (ImGui::Combo("##debugmode", &mode, modes, IM_ARRAYSIZE(modes)))
         {
             m_debugMode = static_cast<Rendering::RenderDebugMode>(mode);
         }
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(90.0f);
+        ImGui::SetNextItemWidth(SpeedFieldWidth);
         float speed = m_camera.GetSpeed();
-        std::string speedFormat = std::string(Text(EditorText::CameraSpeed)) + " %.1f";
-        if (ImGui::DragFloat("##speed", &speed, 0.1f, 0.5f, 500.0f, speedFormat.c_str()))
+        std::string speedFormat = std::string(Text(EditorText::CameraSpeed)) + SpeedValueFormat;
+        if (ImGui::DragFloat("##speed", &speed, SpeedDragStep, MinCameraSpeed, MaxCameraSpeed, speedFormat.c_str()))
         {
             m_camera.SetSpeed(speed);
         }
-        if (context.GetLevelObjectEditService().IsEditingLevelObject())
+        if (m_application.GetContext().GetLevelObjectEditService().IsEditingLevelObject())
         {
-            ImGui::SameLine();
-            ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(EditorText::EditingLevelObject, context.GetLevelService().GetEditLevel() ? context.GetLevelService().GetEditLevel()->GetName() : std::string()).c_str());
-            ImGui::SameLine();
-            if (ImGui::Button(Text(EditorText::Save)))
-            {
-                context.GetLevelObjectEditService().SaveLevelObjectEditor();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(Text(EditorText::BackToLevel)))
-            {
-                context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
-            }
+            DrawLevelObjectEditorBar();
         }
     }
 
-    void LevelViewPanel::DrawSelectionOverlay()
+    void LevelViewPanel::DrawLevelObjectEditorBar()
     {
         EditorContext& context = m_application.GetContext();
-        for (Level::LevelObject* object : context.GetSelectionService().GetSelectedObjects())
+        ImGui::SameLine();
+        ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(EditorText::EditingLevelObject, context.GetLevelService().GetEditLevel() ? context.GetLevelService().GetEditLevel()->GetName() : std::string()).c_str());
+        ImGui::SameLine();
+        if (ImGui::Button(Text(EditorText::Save)))
         {
-            std::function<void(Level::LevelObject&)> visit = [&](Level::LevelObject& node)
-            {
-                if (auto* renderer = node.GetComponent<Rendering::MeshRenderer>())
-                {
-                    auto model = renderer->GetModel().Load();
-                    if (const Geometry::MeshData* mesh = model ? model->GetMesh(renderer->GetMeshIndex()) : nullptr)
-                    {
-                        Math::Matrix4 box = Math::Matrix4::Translation(mesh->bounds.Center()) * node.GetTransform().GetWorldMatrix();
-                        Rendering::DebugDraw::WireBox(box, mesh->bounds.Extents(), EditorPreferences::Get().GetColor(EditorColor::Accent), 0.0f, false);
-                    }
-                }
-                if (auto* light = node.GetComponent<Rendering::Light>())
-                {
-                    const Level::Transform& transform = node.GetTransform();
-                    Math::Color color = EditorPreferences::Get().GetColor(EditorColor::LightGizmo);
-                    if (light->GetLightType() == Rendering::LightType::Point)
-                    {
-                        Rendering::DebugDraw::Circle(transform.GetPosition(), Math::Vector3::Up(), light->GetRange(), color, 48, false);
-                        Rendering::DebugDraw::Circle(transform.GetPosition(), Math::Vector3::Right(), light->GetRange(), color, 48, false);
-                        Rendering::DebugDraw::Circle(transform.GetPosition(), Math::Vector3::Forward(), light->GetRange(), color, 48, false);
-                    }
-                    else if (light->GetLightType() == Rendering::LightType::Spot)
-                    {
-                        Rendering::DebugDraw::Cone(transform.GetPosition(), transform.GetForward(), light->GetRange(), light->GetOuterAngle(), color, false);
-                    }
-                    else
-                    {
-                        Math::Vector3 start = transform.GetPosition();
-                        Rendering::DebugDraw::Line(start, start + transform.GetForward() * 2.0f, color, 0.0f, false);
-                        Rendering::DebugDraw::Circle(start, transform.GetForward(), 0.4f, color, 24, false);
-                    }
-                }
-                for (Physics::Collider* collider : node.GetComponents<Physics::Collider>())
-                {
-                    Math::Color color = EditorPreferences::Get().GetColor(collider->IsTrigger() ? EditorColor::Trigger : EditorColor::Collider);
-                    const Math::Matrix4& world = node.GetTransform().GetWorldMatrix();
-                    Math::Vector3 center = world.TransformPoint(collider->GetCenter());
-                    Math::Vector3 scale = node.GetTransform().GetLossyScale();
-                    float uniform = std::max(scale.x, std::max(scale.y, scale.z));
-                    if (auto* box = Reflection::Cast<Physics::BoxCollider>(collider))
-                    {
-                        Rendering::DebugDraw::WireBox(Math::Matrix4::Translation(collider->GetCenter()) * world, box->GetSize() * 0.5f, color, 0.0f, false);
-                    }
-                    else if (auto* sphere = Reflection::Cast<Physics::SphereCollider>(collider))
-                    {
-                        float radius = sphere->GetRadius() * uniform;
-                        Rendering::DebugDraw::Circle(center, Math::Vector3::Up(), radius, color, 32, false);
-                        Rendering::DebugDraw::Circle(center, Math::Vector3::Right(), radius, color, 32, false);
-                        Rendering::DebugDraw::Circle(center, Math::Vector3::Forward(), radius, color, 32, false);
-                    }
-                    else if (auto* capsule = Reflection::Cast<Physics::CapsuleCollider>(collider))
-                    {
-                        float radius = capsule->GetRadius() * std::max(scale.x, scale.z);
-                        float half = std::max(capsule->GetHeight() * 0.5f * scale.y - radius, 0.0f);
-                        Math::Vector3 up = node.GetTransform().GetUp();
-                        Rendering::DebugDraw::Circle(center + up * half, up, radius, color, 32, false);
-                        Rendering::DebugDraw::Circle(center - up * half, up, radius, color, 32, false);
-                        Math::Vector3 right = node.GetTransform().GetRight() * radius;
-                        Math::Vector3 forward = node.GetTransform().GetForward() * radius;
-                        for (const Math::Vector3& side : { right, -right, forward, -forward })
-                        {
-                            Rendering::DebugDraw::Line(center + up * half + side, center - up * half + side, color, 0.0f, false);
-                        }
-                    }
-                }
-                if (auto* camera = Reflection::Cast<Framework::Camera>(&node))
-                {
-                    Rendering::RenderView view = camera->BuildRenderView(16, 9, 0);
-                    Math::Matrix4 limited = Math::Matrix4::PerspectiveFovLH(view.verticalFov * Math::DegreesToRadians, 16.0f / 9.0f, view.nearPlane, std::min(view.farPlane, 3.0f));
-                    Rendering::DebugDraw::Frustum((view.view * limited).Inverse(), EditorPreferences::Get().GetColor(EditorColor::CameraGizmo), false);
-                }
-                for (Level::LevelObject* child : node.GetChildren())
-                {
-                    visit(*child);
-                }
-            };
-            visit(*object);
+            context.GetLevelObjectEditService().SaveLevelObjectEditor();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Text(EditorText::BackToLevel)))
+        {
+            context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
         }
     }
 
@@ -254,40 +203,26 @@ namespace BrightBox3D::Editor
             {
                 return;
             }
-            const char* glyph = nullptr;
-            ImU32 color = 0;
-            if (const Rendering::Light* light = object.GetComponent<Rendering::Light>())
-            {
-                glyph = light->GetLightType() == Rendering::LightType::Directional ? IconGlyph(Icon::Sun) : IconGlyph(Icon::Lightbulb);
-                color = EditorColorU32(EditorColor::LightGizmo);
-            }
-            else if (object.IsA<Framework::Camera>())
-            {
-                glyph = IconGlyph(Icon::Video);
-                color = EditorColorU32(EditorColor::CameraGizmo);
-            }
-            else if (object.IsA<Framework::PlayerStart>())
-            {
-                glyph = IconGlyph(Icon::Flag);
-                color = EditorColorU32(EditorColor::PlayerStartGizmo);
-            }
-            if (!glyph)
+            ObjectIcon icon = IconFor(object);
+            if (!icon.glyph)
             {
                 return;
             }
+            const char* glyph = icon.glyph;
+            ImU32 color = icon.color;
             Math::Vector4 clip = viewProjection.Transform(Math::Vector4(object.GetTransform().GetPosition(), 1.0f));
-            if (clip.w <= 0.1f)
+            if (clip.w <= IconMinClipW)
             {
                 return;
             }
             ImVec2 screen(origin.x + (clip.x / clip.w * 0.5f + 0.5f) * size.x, origin.y + (0.5f - clip.y / clip.w * 0.5f) * size.y);
-            float radius = 12.0f;
+            float radius = IconRadius;
             bool hovered = ImGui::IsWindowHovered() && std::abs(ImGui::GetIO().MousePos.x - screen.x) < radius && std::abs(ImGui::GetIO().MousePos.y - screen.y) < radius;
             bool selected = context.GetSelectionService().IsSelected(object.GetId());
             drawList->AddCircleFilled(screen, radius, hovered ? EditorColorU32(EditorColor::ControlHovered) : EditorColorU32(EditorColor::GizmoBackground));
-            drawList->AddCircle(screen, radius, selected ? EditorColorU32(EditorColor::Accent) : color, 0, selected ? 2.5f : 1.5f);
+            drawList->AddCircle(screen, radius, selected ? EditorColorU32(EditorColor::Accent) : color, 0, selected ? IconSelectedOutline : IconOutline);
             ImVec2 textSize = ImGui::CalcTextSize(glyph);
-            drawList->AddText(ImVec2(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f - 1.0f), selected ? EditorColorU32(EditorColor::Accent) : color, glyph);
+            drawList->AddText(ImVec2(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f - IconGlyphOffsetY), selected ? EditorColorU32(EditorColor::Accent) : color, glyph);
             if (hovered)
             {
                 m_iconHovered = true;
@@ -316,18 +251,11 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        ImGuizmo::OPERATION operation = m_gizmoOperation == GizmoOperation::Translate ? ImGuizmo::TRANSLATE : (m_gizmoOperation == GizmoOperation::Rotate ? ImGuizmo::ROTATE : ImGuizmo::SCALE);
+        const GizmoMode& gizmo = GizmoModes[static_cast<size_t>(m_gizmoOperation)];
+        ImGuizmo::OPERATION operation = gizmo.operation;
         ImGuizmo::MODE mode = m_gizmoLocal || operation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
         Math::Matrix4 world = object->GetTransform().GetWorldMatrix();
-        float snapValues[3] = { 0.5f, 0.5f, 0.5f };
-        if (operation == ImGuizmo::ROTATE)
-        {
-            snapValues[0] = snapValues[1] = snapValues[2] = 15.0f;
-        }
-        else if (operation == ImGuizmo::SCALE)
-        {
-            snapValues[0] = snapValues[1] = snapValues[2] = 0.1f;
-        }
+        float snapValues[3] = { gizmo.snap, gizmo.snap, gizmo.snap };
         bool snap = m_snapping != ImGui::GetIO().KeyCtrl;
         bool changed = ImGuizmo::Manipulate(view.Data(), projection.Data(), operation, mode, &world.m[0][0], nullptr, snap ? snapValues : nullptr);
         bool using_ = ImGuizmo::IsUsing();
@@ -393,56 +321,56 @@ namespace BrightBox3D::Editor
         context.GetSelectionService().Select(target->GetId(), additive);
     }
 
-    void LevelViewPanel::HandleDrop(const Math::Matrix4& view, const Math::Matrix4& projection, const ImVec2& origin, const ImVec2& size)
+    void LevelViewPanel::EnsureTarget(uint32_t width, uint32_t height)
     {
-        if (!ImGui::BeginDragDropTarget())
+        if (m_target && m_target->GetWidth() == width && m_target->GetHeight() == height)
         {
             return;
         }
-        EditorContext& context = m_application.GetContext();
-        if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Asset))
+        m_application.GetDevice().WaitIdle();
+        RHI::TextureDesc desc;
+        desc.width = width;
+        desc.height = height;
+        desc.format = RHI::Format::RGBA8Unorm;
+        desc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
+        desc.debugName = "LevelView";
+        m_target = m_application.GetDevice().CreateTexture(desc);
+    }
+
+    void LevelViewPanel::UpdateCamera(float deltaTime, bool hovered)
+    {
+        m_camera.Update(deltaTime, hovered && !ImGuizmo::IsUsing(), ImGui::IsWindowFocused());
+        if ((hovered || m_camera.IsFlying()) && (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
         {
-            const Core::Guid& guid = *dropped;
-            const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(guid);
-            Math::Ray ray = ScreenRay(view, projection, origin, size, ImGui::GetIO().MousePos);
-            Math::Vector3 point = PlacementPoint(ray);
-            if (record)
-            {
-                std::string name = record->name.substr(0, record->name.find('.'));
-                if (record->type == Assets::AssetType::Model)
-                {
-                    context.GetObjectEditService().CreateModelObject(guid, name, point);
-                }
-                else if (record->type == Assets::AssetType::LevelObjectVariant)
-                {
-                    context.GetObjectEditService().InstantiateLevelObject(guid, point);
-                }
-                else if (record->type == Assets::AssetType::LevelObjectTemplate)
-                {
-                    Core::Log::Warning(Text(EditorText::CreateVariantFirst));
-                }
-                else if (record->type == Assets::AssetType::Material)
-                {
-                    Level::Level* level = context.GetLevelService().GetActiveLevel();
-                    PickResult hit = level ? PickObject(*level, ray) : PickResult{};
-                    if (hit.object)
-                    {
-                        if (auto* renderer = hit.object->GetComponent<Rendering::MeshRenderer>())
-                        {
-                            Serialization::JsonDocument before;
-                            ObjectEditService::Snapshot(*hit.object, before);
-                            renderer->SetMaterial(0, Assets::AssetReference<Rendering::MaterialAsset>(guid));
-                            context.GetUndoService().RecordObjectChange(hit.object->GetId(), before, Text(EditorText::UndoAssignMaterial));
-                        }
-                    }
-                }
-                else if (record->type == Assets::AssetType::Level)
-                {
-                    context.GetLevelService().OpenLevel(guid);
-                }
-            }
+            ImGui::SetWindowFocus();
         }
-        ImGui::EndDragDropTarget();
+    }
+
+    void LevelViewPanel::SubmitRender(const Math::Matrix4& view, const Math::Matrix4& projection, uint32_t width, uint32_t height)
+    {
+        EditorPreferences& preferences = EditorPreferences::Get();
+        ViewRenderRequest request;
+        request.level = m_application.GetContext().GetLevelService().GetActiveLevel();
+        request.target = m_target.get();
+        request.view.id = LevelViewId;
+        request.view.width = width;
+        request.view.height = height;
+        request.view.view = view;
+        request.view.projection = projection;
+        request.view.position = m_camera.GetPosition();
+        request.view.verticalFov = m_camera.GetVerticalFov();
+        request.view.nearPlane = m_camera.GetNearPlane();
+        request.view.farPlane = m_camera.GetFarPlane();
+        request.view.showGrid = m_showGrid;
+        request.view.gridColor = preferences.GetColor(EditorColor::GridMinor);
+        request.view.gridMajorColor = preferences.GetColor(EditorColor::GridMajor);
+        request.view.gridAxisXColor = preferences.GetColor(EditorColor::AxisX);
+        request.view.gridAxisZColor = preferences.GetColor(EditorColor::AxisZ);
+        request.view.isEditorView = true;
+        request.view.debugMode = m_debugMode;
+        request.view.post.antiAliasing = Rendering::AntiAliasing::FXAA;
+        request.view.post.autoExposure = false;
+        m_application.RequestRender(request);
     }
 
     void LevelViewPanel::Draw(float deltaTime)
@@ -455,13 +383,13 @@ namespace BrightBox3D::Editor
             ImGui::End();
             return;
         }
-        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 6.0f, ImGui::GetCursorPosY() + 4.0f));
+        ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + ToolbarOffsetX, ImGui::GetCursorPosY() + ToolbarOffsetY));
         DrawToolbar();
 
         EditorContext& context = m_application.GetContext();
         ImVec2 origin = ImGui::GetCursorScreenPos();
         ImVec2 size = ImGui::GetContentRegionAvail();
-        if (size.x < 8.0f || size.y < 8.0f || !context.GetLevelService().GetActiveLevel())
+        if (size.x < MinViewportSize || size.y < MinViewportSize || !context.GetLevelService().GetActiveLevel())
         {
             ImGui::End();
             return;
@@ -469,72 +397,27 @@ namespace BrightBox3D::Editor
         ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
         uint32_t width = static_cast<uint32_t>(size.x * scale.x);
         uint32_t height = static_cast<uint32_t>(size.y * scale.y);
-        if (!m_target || m_target->GetWidth() != width || m_target->GetHeight() != height)
-        {
-            m_application.GetDevice().WaitIdle();
-            RHI::TextureDesc desc;
-            desc.width = width;
-            desc.height = height;
-            desc.format = RHI::Format::RGBA8Unorm;
-            desc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-            desc.debugName = "LevelView";
-            m_target = m_application.GetDevice().CreateTexture(desc);
-        }
+        EnsureTarget(width, height);
 
         bool hovered = ImGui::IsWindowHovered();
-        m_camera.Update(deltaTime, hovered && !ImGuizmo::IsUsing(), ImGui::IsWindowFocused());
-        if ((hovered || m_camera.IsFlying()) && (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle)))
-        {
-            ImGui::SetWindowFocus();
-        }
-
-        float aspect = size.x / size.y;
+        UpdateCamera(deltaTime, hovered);
         Math::Matrix4 view = m_camera.GetViewMatrix();
-        Math::Matrix4 projection = m_camera.GetProjectionMatrix(aspect);
+        Math::Matrix4 projection = m_camera.GetProjectionMatrix(size.x / size.y);
 
-        DrawSelectionOverlay();
-
-        ViewRenderRequest request;
-        request.level = context.GetLevelService().GetActiveLevel();
-        request.target = m_target.get();
-        request.view.id = LevelViewId;
-        request.view.width = width;
-        request.view.height = height;
-        request.view.view = view;
-        request.view.projection = projection;
-        request.view.position = m_camera.GetPosition();
-        request.view.verticalFov = m_camera.GetVerticalFov();
-        request.view.nearPlane = m_camera.GetNearPlane();
-        request.view.farPlane = m_camera.GetFarPlane();
-        request.view.showGrid = m_showGrid;
-        request.view.gridColor = EditorPreferences::Get().GetColor(EditorColor::GridMinor);
-        request.view.gridMajorColor = EditorPreferences::Get().GetColor(EditorColor::GridMajor);
-        request.view.gridAxisXColor = EditorPreferences::Get().GetColor(EditorColor::AxisX);
-        request.view.gridAxisZColor = EditorPreferences::Get().GetColor(EditorColor::AxisZ);
-        request.view.isEditorView = true;
-        request.view.debugMode = m_debugMode;
-        request.view.post.antiAliasing = Rendering::AntiAliasing::FXAA;
-        request.view.post.autoExposure = false;
-        m_application.RequestRender(request);
+        SelectionOverlay::Draw(context.GetSelectionService());
+        SubmitRender(view, projection, width, height);
 
         ImGui::Image(ImGuiRenderer::ToTextureId(m_target.get()), size);
-        HandleDrop(view, projection, origin, size);
+        LevelViewDropTarget::Handle(context, ScreenRay(view, projection, origin, size, ImGui::GetIO().MousePos));
 
         ImGui::SetCursorScreenPos(origin);
         DrawIcons(view * projection, origin, size);
         DrawGizmo(view, projection, origin, size);
         HandlePicking(view, projection, origin, size);
-
         if (context.GetLevelService().IsPlaying())
         {
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), EditorColorU32(EditorColor::PlayMode, 0.8f), 0.0f, 0, 2.0f);
-            const char* banner = Text(EditorText::PlayModeBanner);
-            ImVec2 textSize = ImGui::CalcTextSize(banner);
-            drawList->AddRectFilled(ImVec2(origin.x + 6.0f, origin.y + 6.0f), ImVec2(origin.x + 18.0f + textSize.x, origin.y + 12.0f + textSize.y), EditorColorU32(EditorColor::PlayMode, 0.85f), 4.0f);
-            drawList->AddText(ImVec2(origin.x + 12.0f, origin.y + 9.0f), EditorColorU32(EditorColor::Text), banner);
+            PlayModeOverlay::Draw(origin, size);
         }
-
         if ((hovered || ImGui::IsWindowFocused()) && !m_camera.IsFlying())
         {
             CommandRegistry::Get().DispatchShortcuts(CommandScope::LevelView);
