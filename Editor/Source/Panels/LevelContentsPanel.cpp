@@ -3,26 +3,20 @@
 #include "Assets/AssetDatabase.h"
 #include "Commands/CommandRegistry.h"
 #include "Commands/CommandWidgets.h"
-#include "Core/EngineInfo.h"
 #include "Core/Log.h"
+#include "CreateMenuRegistry.h"
 #include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
 #include "EditorWindows.h"
-#include "Framework/Camera.h"
-#include "Framework/PlayerStart.h"
 #include "IconGlyphs.h"
 #include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "ObjectIcons.h"
 #include "Panels/LevelViewPanel.h"
 #include "Physics/Colliders.h"
-#include "Reflection/TypeRegistry.h"
-#include "Rendering/BuiltinAssets.h"
-#include "Rendering/Light.h"
-#include "Rendering/MeshRenderer.h"
 #include "Theme.h"
 
 #include <imgui.h>
@@ -107,89 +101,8 @@ namespace BrightBox3D::Editor
 
     void LevelContentsPanel::DrawCreateMenu(Level::LevelObject* parent)
     {
-        EditorContext& context = m_application.GetContext();
         Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : m_application.GetActiveLevelView().GetSpawnPoint();
-        if (ImGui::MenuItem(Text(EditorText::EmptyLevelObject)))
-        {
-            context.GetObjectEditService().CreateObject(Level::LevelObject::StaticType(), Level::LevelObject::StaticType().GetName(), parent);
-        }
-        if (ImGui::BeginMenu(Text(EditorText::CreateMenu3DObject)))
-        {
-            struct Primitive
-            {
-                EditorText name;
-                Core::Guid guid;
-            };
-            Primitive primitives[] = {
-                { EditorText::PrimitiveCube, Rendering::BuiltinAssets::Cube() },
-                { EditorText::PrimitiveSphere, Rendering::BuiltinAssets::Sphere() },
-                { EditorText::PrimitiveCapsule, Rendering::BuiltinAssets::Capsule() },
-                { EditorText::PrimitiveCylinder, Rendering::BuiltinAssets::Cylinder() },
-                { EditorText::PrimitivePlane, Rendering::BuiltinAssets::Plane() },
-                { EditorText::PrimitiveQuad, Rendering::BuiltinAssets::Quad() }
-            };
-            for (const Primitive& primitive : primitives)
-            {
-                if (ImGui::MenuItem(Text(primitive.name)))
-                {
-                    context.GetObjectEditService().CreateModelObject(primitive.guid, Text(primitive.name), spawn, parent);
-                }
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu(Text(EditorText::CreateMenuLight)))
-        {
-            if (ImGui::MenuItem(Text(EditorText::DirectionalLight)))
-            {
-                context.GetObjectEditService().CreateLight(0);
-            }
-            if (ImGui::MenuItem(Text(EditorText::PointLight)))
-            {
-                context.GetObjectEditService().CreateLight(1);
-            }
-            if (ImGui::MenuItem(Text(EditorText::SpotLight)))
-            {
-                context.GetObjectEditService().CreateLight(2);
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu(Text(EditorText::CreateMenuGameplay)))
-        {
-            if (ImGui::MenuItem(Text(EditorText::PlayerStart)))
-            {
-                if (auto* object = context.GetObjectEditService().CreateObject(Framework::PlayerStart::StaticType(), Framework::PlayerStart::StaticType().GetName(), parent))
-                {
-                    object->GetTransform().SetPosition({ spawn.x, 0.0f, spawn.z });
-                }
-            }
-            if (ImGui::MenuItem(Text(EditorText::Camera)))
-            {
-                if (auto* object = context.GetObjectEditService().CreateObject(Framework::Camera::StaticType(), Framework::Camera::StaticType().GetName(), parent))
-                {
-                    object->GetTransform().SetPosition(spawn + Math::Vector3(0.0f, 1.5f, 0.0f));
-                }
-            }
-            ImGui::EndMenu();
-        }
-        std::vector<const Reflection::TypeInfo*> custom;
-        for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObject::StaticType()))
-        {
-            if (type != &Level::LevelObject::StaticType() && type->GetModuleName() != Core::EngineModuleName)
-            {
-                custom.push_back(type);
-            }
-        }
-        if (!custom.empty() && ImGui::BeginMenu(Text(EditorText::CreateMenuGameClasses)))
-        {
-            for (const Reflection::TypeInfo* type : custom)
-            {
-                if (ImGui::MenuItem(type->GetName().c_str()))
-                {
-                    context.GetObjectEditService().CreateObject(*type, type->GetName(), parent);
-                }
-            }
-            ImGui::EndMenu();
-        }
+        CreateMenuRegistry::Get().Draw({ m_application.GetContext(), parent, spawn });
     }
 
     void LevelContentsPanel::BeginRenameSelection()

@@ -101,7 +101,7 @@ namespace BrightBox3D::Editor
             return false;
         }
         ObjectEditService& objects = m_context.GetObjectEditService();
-        if (Level::LevelObject* sun = objects.CreateLight(0))
+        if (Level::LevelObject* sun = objects.CreateLight(Rendering::LightType::Directional))
         {
             sun->SetName(Text(EditorText::DirectionalLight));
             sun->GetTransform().SetLocalEulerAngles({ 50.0f, -30.0f, 0.0f });

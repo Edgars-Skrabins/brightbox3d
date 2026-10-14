@@ -20,6 +20,29 @@ namespace BrightBox3D::Editor
     using Serialization::JsonDocument;
     using Serialization::JsonValue;
 
+    namespace
+    {
+        constexpr float DirectionalLightIntensity = 2.5f;
+        constexpr float LocalLightIntensity = 10.0f;
+        constexpr Math::Vector3 DirectionalLightAngles{ 50.0f, -30.0f, 0.0f };
+        constexpr Math::Vector3 LocalLightPosition{ 0.0f, 2.0f, 0.0f };
+        constexpr Math::Vector3 SpotLightAngles{ 90.0f, 0.0f, 0.0f };
+
+        EditorText LightName(Rendering::LightType type)
+        {
+            switch (type)
+            {
+            case Rendering::LightType::Directional:
+                return EditorText::DirectionalLight;
+            case Rendering::LightType::Point:
+                return EditorText::PointLight;
+            case Rendering::LightType::Spot:
+                return EditorText::SpotLight;
+            }
+            return EditorText::PointLight;
+        }
+    }
+
     void ObjectEditService::Snapshot(const LevelObject& object, JsonDocument& document)
     {
         LevelSerializer::WriteObject(object, document, document.GetAllocator(), true);
@@ -134,30 +157,29 @@ namespace BrightBox3D::Editor
         return object;
     }
 
-    LevelObject* ObjectEditService::CreateLight(int lightType)
+    LevelObject* ObjectEditService::CreateLight(Rendering::LightType type)
     {
-        static const EditorText names[] = { EditorText::DirectionalLight, EditorText::PointLight, EditorText::SpotLight };
         Level::Level* level = m_context.GetLevelService().GetActiveLevel();
         if (!level)
         {
             return nullptr;
         }
         LevelObject* object = level->CreateObject(LevelObject::StaticType(), m_context.GetLevelService().GetActiveCollection());
-        object->SetName(Text(names[std::clamp(lightType, 0, 2)]));
+        object->SetName(Text(LightName(type)));
         auto* light = object->AddComponent<Rendering::Light>();
-        light->SetLightType(static_cast<Rendering::LightType>(std::clamp(lightType, 0, 2)));
-        if (lightType == 0)
+        light->SetLightType(type);
+        if (type == Rendering::LightType::Directional)
         {
-            light->SetIntensity(2.5f);
-            object->GetTransform().SetLocalEulerAngles({ 50.0f, -30.0f, 0.0f });
+            light->SetIntensity(DirectionalLightIntensity);
+            object->GetTransform().SetLocalEulerAngles(DirectionalLightAngles);
         }
         else
         {
-            light->SetIntensity(10.0f);
-            object->GetTransform().SetLocalPosition({ 0.0f, 2.0f, 0.0f });
-            if (lightType == 2)
+            light->SetIntensity(LocalLightIntensity);
+            object->GetTransform().SetLocalPosition(LocalLightPosition);
+            if (type == Rendering::LightType::Spot)
             {
-                object->GetTransform().SetLocalEulerAngles({ 90.0f, 0.0f, 0.0f });
+                object->GetTransform().SetLocalEulerAngles(SpotLightAngles);
             }
         }
         m_context.GetUndoService().RecordCreation({ object }, Text(EditorText::UndoCreate, object->GetName()));

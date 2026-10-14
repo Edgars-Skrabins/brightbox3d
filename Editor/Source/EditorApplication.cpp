@@ -7,8 +7,10 @@
 #include "Core/FileSystem.h"
 #include "Core/Log.h"
 #include "Core/Process.h"
+#include "CreateMenuRegistry.h"
 #include "EditorCommandLine.h"
 #include "EditorCommands.h"
+#include "EditorCreateMenu.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
@@ -129,6 +131,7 @@ namespace BrightBox3D::Editor
         m_resetLayout = !std::filesystem::exists(m_iniPath);
         float contentScale = m_window->GetContentScale().x;
         RegisterEditorCommands(*this);
+        RegisterEditorCreateMenu();
         EditorPreferences::Get().Load(GetUserDirectory() / "Preferences.json");
         ApplyEditorTheme(1.0f);
         m_themeRevision = EditorPreferences::Get().GetRevision();
@@ -221,6 +224,7 @@ namespace BrightBox3D::Editor
         }
         GetDevice().WaitIdle();
         CommandRegistry::Get().Clear();
+        CreateMenuRegistry::Get().Clear();
         if (m_playSession && m_playSession->IsActive())
         {
             m_playSession->Stop();
