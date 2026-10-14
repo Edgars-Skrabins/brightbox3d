@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <thread>
 
 using namespace BrightBox3D;
@@ -145,6 +146,11 @@ namespace
         return reload.GetState() == Editor::CompileState::Succeeded;
     }
 
+    constexpr const char* PackagedFrames = "150";
+    constexpr const char* ScreenshotName = "BrightBox3D_ArenaDemo.png";
+    constexpr const char* const GameplayTypes[] = { "ArenaGameMode", "ArenaGameState", "ArenaLevelBehavior" };
+    constexpr const char* const ExpectedLogLines[] = { "Game started with GameMode 'ArenaGameMode'", "Arena ready" };
+
     void ExportAuthoredAssets(const std::filesystem::path& root, const std::filesystem::path& sample)
     {
         for (const char* folder : AuthoredFolders)
@@ -156,58 +162,101 @@ namespace
     }
 }
 
-TEST(SystemTests, ArenaDemoAuthorsBuildsAndRunsPackagedGame)
+class SystemTests : public ::testing::Test
+{
+protected:
+    void TearDown() override
+    {
+        m_reload.reset();
+        m_context.reset();
+        std::error_code ignored;
+        std::filesystem::remove_all(m_root, ignored);
+    }
+
+    void CreateProject()
+    {
+        m_root = Tests::MakeTempDirectory("ArenaDemo");
+        std::string error;
+        ASSERT_TRUE(Runtime::Project::Create(m_root, "ArenaDemo", error)) << error;
+        for (const char* folder : CopiedFolders)
+        {
+            CopyFolder(SampleRoot / folder, m_root / folder);
+        }
+        m_context = std::make_unique<Editor::EditorContext>();
+        ASSERT_TRUE(m_context->GetProjectService().OpenProject(m_root, error)) << error;
+    }
+
+    void CompileGameCode()
+    {
+        m_reload = std::make_unique<Editor::HotReload>(*m_context);
+        ASSERT_TRUE(Compile(*m_reload)) << m_reload->GetStatusText();
+        ASSERT_NE(Reflection::TypeRegistry::Find("ArenaPlayer"), nullptr);
+        for (const char* type : GameplayTypes)
+        {
+            ASSERT_NE(Reflection::TypeRegistry::Find(type), nullptr) << type;
+        }
+    }
+
+    void AuthorLevel()
+    {
+        Level::Level* level = m_context->GetLevelService().GetEditLevel();
+        AuthorGameplaySettings(*level, AuthorPlayer(*Reflection::TypeRegistry::Find("ArenaPlayer")));
+        AuthorArena(*level);
+        level->GetDefaultCollection()->SetDirty(true);
+        ASSERT_TRUE(m_context->GetLevelService().SaveLevel());
+    }
+
+    void BuildGame()
+    {
+        std::string error;
+        m_output = Editor::GameBuilder::DefaultOutput(*m_context);
+        ASSERT_TRUE(Editor::GameBuilder::Build(*m_context, m_output, error)) << error;
+        EXPECT_TRUE(std::filesystem::exists(m_output / "Game.json"));
+        EXPECT_TRUE(std::filesystem::exists(m_output / "Cooked" / "Manifest.json"));
+        EXPECT_TRUE(std::filesystem::exists(m_output / "EngineContent" / "Shaders" / "GBuffer.hlsl"));
+        EXPECT_TRUE(std::filesystem::exists(m_output / Core::SharedLibrary::PlatformFileName("ArenaDemo")));
+        m_reload->OnProjectClosed();
+        m_context->GetProjectService().CloseProject();
+        if (std::getenv("BRIGHT_EXPORT_SAMPLE"))
+        {
+            ExportAuthoredAssets(m_root, SampleRoot);
+        }
+    }
+
+    Core::ProcessResult RunPackagedGame(const std::filesystem::path& screenshot)
+    {
+        std::error_code ignored;
+        std::filesystem::remove(screenshot, ignored);
+        return Core::Process::Run({ (m_output / "ArenaDemo").string(), "--frames", PackagedFrames, "--screenshot", screenshot.string() }, m_output);
+    }
+
+    void VerifyRun(const Core::ProcessResult& run, const std::filesystem::path& screenshot)
+    {
+        EXPECT_EQ(run.exitCode, 0) << run.output;
+        EXPECT_TRUE(std::filesystem::exists(screenshot)) << run.output;
+        EXPECT_EQ(run.output.find("[Error]"), std::string::npos) << run.output;
+        for (const char* line : ExpectedLogLines)
+        {
+            EXPECT_NE(run.output.find(line), std::string::npos) << run.output;
+        }
+    }
+
+    std::filesystem::path m_root;
+    std::filesystem::path m_output;
+    std::unique_ptr<Editor::EditorContext> m_context;
+    std::unique_ptr<Editor::HotReload> m_reload;
+};
+
+TEST_F(SystemTests, ArenaDemoAuthorsBuildsAndRunsPackagedGame)
 {
     if (Editor::HotReload::FindCMake().empty())
     {
         GTEST_SKIP() << "CMake is not available";
     }
-    std::filesystem::path root = Tests::MakeTempDirectory("ArenaDemo");
-    std::error_code ignored;
-    std::string error;
-    ASSERT_TRUE(Runtime::Project::Create(root, "ArenaDemo", error)) << error;
-    for (const char* folder : CopiedFolders)
-    {
-        CopyFolder(SampleRoot / folder, root / folder);
-    }
-
-    Editor::EditorContext context;
-    ASSERT_TRUE(context.GetProjectService().OpenProject(root, error)) << error;
-    Editor::HotReload reload(context);
-    ASSERT_TRUE(Compile(reload)) << reload.GetStatusText();
-    const Reflection::TypeInfo* playerType = Reflection::TypeRegistry::Find("ArenaPlayer");
-    ASSERT_NE(playerType, nullptr);
-    ASSERT_NE(Reflection::TypeRegistry::Find("ArenaGameMode"), nullptr);
-    ASSERT_NE(Reflection::TypeRegistry::Find("ArenaGameState"), nullptr);
-    ASSERT_NE(Reflection::TypeRegistry::Find("ArenaLevelBehavior"), nullptr);
-
-    Level::Level* level = context.GetLevelService().GetEditLevel();
-    AuthorGameplaySettings(*level, AuthorPlayer(*playerType));
-    AuthorArena(*level);
-    level->GetDefaultCollection()->SetDirty(true);
-    ASSERT_TRUE(context.GetLevelService().SaveLevel());
-
-    std::filesystem::path output = Editor::GameBuilder::DefaultOutput(context);
-    ASSERT_TRUE(Editor::GameBuilder::Build(context, output, error)) << error;
-    EXPECT_TRUE(std::filesystem::exists(output / "Game.json"));
-    EXPECT_TRUE(std::filesystem::exists(output / "Cooked" / "Manifest.json"));
-    EXPECT_TRUE(std::filesystem::exists(output / "EngineContent" / "Shaders" / "GBuffer.hlsl"));
-    EXPECT_TRUE(std::filesystem::exists(output / Core::SharedLibrary::PlatformFileName("ArenaDemo")));
-
-    reload.OnProjectClosed();
-    context.GetProjectService().CloseProject();
-    if (std::getenv("BRIGHT_EXPORT_SAMPLE"))
-    {
-        ExportAuthoredAssets(root, SampleRoot);
-    }
-
-    std::filesystem::path screenshot = Tests::TestOutputPath("BrightBox3D_ArenaDemo.png");
-    std::filesystem::remove(screenshot, ignored);
-    Core::ProcessResult run = Core::Process::Run({ (output / "ArenaDemo").string(), "--frames", "150", "--screenshot", screenshot.string() }, output);
-    EXPECT_EQ(run.exitCode, 0) << run.output;
-    EXPECT_TRUE(std::filesystem::exists(screenshot)) << run.output;
-    EXPECT_EQ(run.output.find("[Error]"), std::string::npos) << run.output;
-    EXPECT_NE(run.output.find("Game started with GameMode 'ArenaGameMode'"), std::string::npos) << run.output;
-    EXPECT_NE(run.output.find("Arena ready"), std::string::npos) << run.output;
-    std::filesystem::remove_all(root, ignored);
+    ASSERT_NO_FATAL_FAILURE(CreateProject());
+    ASSERT_NO_FATAL_FAILURE(CompileGameCode());
+    ASSERT_NO_FATAL_FAILURE(AuthorLevel());
+    ASSERT_NO_FATAL_FAILURE(BuildGame());
+    std::filesystem::path screenshot = Tests::TestOutputPath(ScreenshotName);
+    VerifyRun(RunPackagedGame(screenshot), screenshot);
 }
