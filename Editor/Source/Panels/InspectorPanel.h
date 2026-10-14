@@ -2,6 +2,7 @@
 
 #include "Core/Guid.h"
 #include "Framework/LevelGameplaySettings.h"
+#include "Reflection/EngineObject.h"
 #include "Serialization/Json.h"
 
 #include <memory>
@@ -48,7 +49,7 @@ namespace BrightBox3D::Editor
         bool m_editInProgress = false;
         std::string m_componentFilter;
         Core::Guid m_importSettingsAsset;
-        Serialization::JsonDocument m_importSettings;
+        std::unique_ptr<Reflection::EngineObject> m_importSettings;
         bool m_importSettingsDirty = false;
         bool m_materialEditing = false;
     };

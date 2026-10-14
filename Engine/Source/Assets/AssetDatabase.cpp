@@ -6,7 +6,9 @@
 #include "Core/Hash.h"
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
+#include "Reflection/TypeInfo.h"
 #include "Serialization/BinaryStream.h"
+#include "Serialization/ObjectSerializer.h"
 
 #include <algorithm>
 
@@ -190,9 +192,9 @@ namespace BrightBox3D::Assets
         if (!Serialization::FindMember(meta, AssetFileSchema::Importer))
         {
             Serialization::JsonValue settings(rapidjson::kObjectType);
-            if (AssetImporter* importer = GetImporter(type))
+            if (std::unique_ptr<Reflection::EngineObject> defaults = CreateImportSettings(type))
             {
-                importer->WriteDefaultSettings(settings, allocator);
+                Serialization::SerializeProperties(*defaults, settings, allocator);
             }
             Serialization::SetMember(meta, AssetFileSchema::Importer, std::move(settings), allocator);
         }
@@ -389,26 +391,33 @@ namespace BrightBox3D::Assets
         return result;
     }
 
-    bool AssetDatabase::LoadImportSettings(const AssetRecord& record, Serialization::JsonDocument& settings) const
+    std::unique_ptr<Reflection::EngineObject> AssetDatabase::CreateImportSettings(AssetType type) const
     {
-        settings.SetObject();
-        if (m_mode == AssetDatabaseMode::Cooked)
+        AssetImporter* importer = GetImporter(type);
+        const Reflection::TypeInfo* settingsType = importer ? importer->GetSettingsType() : nullptr;
+        return settingsType ? std::unique_ptr<Reflection::EngineObject>(settingsType->CreateInstance()) : nullptr;
+    }
+
+    std::unique_ptr<Reflection::EngineObject> AssetDatabase::LoadImportSettings(const AssetRecord& record) const
+    {
+        std::unique_ptr<Reflection::EngineObject> settings = CreateImportSettings(record.type);
+        if (!settings || m_mode == AssetDatabaseMode::Cooked)
         {
-            return true;
+            return settings;
         }
         Serialization::JsonDocument meta;
         if (!Serialization::LoadJsonFile(MetaPathFor(GetAbsolutePath(record)), meta))
         {
-            return false;
+            return settings;
         }
         if (const Serialization::JsonValue* importer = Serialization::FindMember(meta, AssetFileSchema::Importer))
         {
-            settings.CopyFrom(*importer, settings.GetAllocator());
+            Serialization::DeserializeProperties(*settings, *importer);
         }
-        return true;
+        return settings;
     }
 
-    bool AssetDatabase::SaveImportSettings(const Core::Guid& guid, const Serialization::JsonValue& settings)
+    bool AssetDatabase::SaveImportSettings(const Core::Guid& guid, const Reflection::EngineObject& settings)
     {
         const AssetRecord* record = FindRecord(guid);
         if (!record)
@@ -421,9 +430,13 @@ namespace BrightBox3D::Assets
         {
             return false;
         }
-        Serialization::JsonValue copy;
-        copy.CopyFrom(settings, meta.GetAllocator());
-        Serialization::SetMember(meta, AssetFileSchema::Importer, std::move(copy), meta.GetAllocator());
+        Serialization::JsonValue importer;
+        if (const Serialization::JsonValue* existing = Serialization::FindMember(meta, AssetFileSchema::Importer))
+        {
+            importer.CopyFrom(*existing, meta.GetAllocator());
+        }
+        Serialization::SerializeProperties(settings, importer, meta.GetAllocator());
+        Serialization::SetMember(meta, AssetFileSchema::Importer, std::move(importer), meta.GetAllocator());
         if (!Serialization::SaveJsonFile(metaPath, meta))
         {
             return false;
@@ -464,10 +477,9 @@ namespace BrightBox3D::Assets
             error = Core::Text(Core::EngineText::NoImporter, AssetTypeName(record.type));
             return false;
         }
-        Serialization::JsonDocument settings;
-        LoadImportSettings(record, settings);
+        std::unique_ptr<Reflection::EngineObject> settings = LoadImportSettings(record);
         std::vector<uint8_t> payload;
-        if (!importer->Cook(record, GetAbsolutePath(record), settings, payload, error))
+        if (!importer->Cook(record, GetAbsolutePath(record), settings.get(), payload, error))
         {
             return false;
         }

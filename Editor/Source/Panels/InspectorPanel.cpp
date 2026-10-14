@@ -4,7 +4,6 @@
 #include "Assets/TextAsset.h"
 #include "Core/EngineInfo.h"
 #include "Core/Log.h"
-#include "Core/StringUtils.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -494,75 +493,30 @@ namespace BrightBox3D::Editor
         if (m_importSettingsAsset != guid)
         {
             m_importSettingsAsset = guid;
-            database.LoadImportSettings(*record, m_importSettings);
+            m_importSettings = database.LoadImportSettings(*record);
             m_importSettingsDirty = false;
         }
-        if (!m_importSettings.IsObject() || m_importSettings.MemberCount() == 0)
+        if (!m_importSettings)
         {
             return;
         }
         ImGui::SeparatorText(Text(EditorText::ImportSettings));
-        for (auto it = m_importSettings.MemberBegin(); it != m_importSettings.MemberEnd(); ++it)
+        PropertyDrawOptions options;
+        options.instanceContext = false;
+        if (PropertyDrawer::DrawObject(*m_importSettings, options))
         {
-            std::string name = it->name.GetString();
-            std::string label = Core::PrettifyName(name);
-            PropertyDrawer::BeginRow(label.c_str(), false);
-            Serialization::JsonValue& value = it->value;
-            if (value.IsBool())
-            {
-                bool flag = value.GetBool();
-                if (ImGui::Checkbox("##value", &flag))
-                {
-                    value.SetBool(flag);
-                    m_importSettingsDirty = true;
-                }
-            }
-            else if (value.IsNumber())
-            {
-                float number = static_cast<float>(value.GetDouble());
-                if (ImGui::DragFloat("##value", &number, 0.01f))
-                {
-                    value.SetDouble(number);
-                    m_importSettingsDirty = true;
-                }
-            }
-            else if (value.IsString())
-            {
-                std::string text = value.GetString();
-                const Reflection::EnumInfo* enumInfo = name == "filter" ? &Reflection::StaticEnum<Rendering::TextureFilterMode>() : (name == "wrap" ? &Reflection::StaticEnum<Rendering::TextureWrapMode>() : nullptr);
-                if (enumInfo)
-                {
-                    if (ImGui::BeginCombo("##value", text.c_str()))
-                    {
-                        for (const Reflection::EnumEntry& entry : enumInfo->entries)
-                        {
-                            if (ImGui::Selectable(entry.name.c_str(), entry.name == text))
-                            {
-                                value.SetString(entry.name.c_str(), m_importSettings.GetAllocator());
-                                m_importSettingsDirty = true;
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-                }
-                else if (ImGui::InputText("##value", &text))
-                {
-                    value.SetString(text.c_str(), static_cast<rapidjson::SizeType>(text.size()), m_importSettings.GetAllocator());
-                    m_importSettingsDirty = true;
-                }
-            }
-            PropertyDrawer::EndRow();
+            m_importSettingsDirty = true;
         }
         ImGui::BeginDisabled(!m_importSettingsDirty);
         if (ImGui::Button(Text(EditorText::Apply)))
         {
-            database.SaveImportSettings(guid, m_importSettings);
+            database.SaveImportSettings(guid, *m_importSettings);
             m_importSettingsDirty = false;
         }
         ImGui::SameLine();
         if (ImGui::Button(Text(EditorText::Revert)))
         {
-            database.LoadImportSettings(*record, m_importSettings);
+            m_importSettings = database.LoadImportSettings(*record);
             m_importSettingsDirty = false;
         }
         ImGui::EndDisabled();

@@ -25,7 +25,7 @@ namespace BrightBox3D::UI
         public:
             uint32_t GetVersion() const override { return 1; }
 
-            bool Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Serialization::JsonValue& settings, std::vector<uint8_t>& output, std::string& error) override
+            bool Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) override
             {
                 FontData data;
                 if (!GenerateFontData(source, data, error))

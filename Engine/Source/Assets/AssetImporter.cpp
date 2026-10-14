@@ -8,7 +8,7 @@
 
 namespace BrightBox3D::Assets
 {
-    bool JsonAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Serialization::JsonValue& settings, std::vector<uint8_t>& output, std::string& error)
+    bool JsonAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
     {
         Serialization::JsonDocument document;
         if (!Serialization::LoadJsonFile(source, document, &error))
@@ -37,7 +37,7 @@ namespace BrightBox3D::Assets
         return asset;
     }
 
-    bool TextAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Serialization::JsonValue& settings, std::vector<uint8_t>& output, std::string& error)
+    bool TextAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
     {
         auto text = Core::FileSystem::ReadText(source);
         if (!text)

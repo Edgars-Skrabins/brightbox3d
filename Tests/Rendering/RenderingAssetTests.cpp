@@ -3,6 +3,7 @@
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/MaterialAsset.h"
 #include "Rendering/TextureAsset.h"
+#include "Rendering/TextureImportSettings.h"
 #include "Serialization/ObjectSerializer.h"
 
 #include <gtest/gtest.h>
@@ -129,6 +130,35 @@ TEST(RenderingAssetTests, ImportsPngWithMipChain)
     EXPECT_EQ(last.width, 1u);
     EXPECT_GT(last.pixels[0], 160);
     EXPECT_LT(last.pixels[0], 200);
+}
+
+TEST(RenderingAssetTests, ChangingTextureFilterSettingReimports)
+{
+    RenderingProject project;
+    std::vector<uint8_t> pixels(4 * 4 * 4, 255);
+    std::string path = (project.Assets() / "White.png").string();
+    ASSERT_NE(stbi_write_png(path.c_str(), 4, 4, 4, pixels.data(), 4 * 4), 0);
+    project.Open();
+    Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
+    const Assets::AssetRecord* record = database.FindRecordByPath("White.png");
+    ASSERT_NE(record, nullptr);
+    Core::Guid guid = record->guid;
+    auto texture = database.Load<TextureAsset>(guid);
+    ASSERT_NE(texture, nullptr);
+    EXPECT_EQ(texture->GetFilter(), TextureFilterMode::Trilinear);
+
+    std::unique_ptr<Reflection::EngineObject> settings = database.LoadImportSettings(*record);
+    auto* textureSettings = Reflection::Cast<TextureImportSettings>(settings.get());
+    ASSERT_NE(textureSettings, nullptr);
+    EXPECT_EQ(textureSettings->filter, TextureFilterMode::Trilinear);
+    textureSettings->filter = TextureFilterMode::Point;
+    ASSERT_TRUE(database.SaveImportSettings(guid, *settings));
+
+    auto reimported = database.Load<TextureAsset>(guid);
+    ASSERT_NE(reimported, nullptr);
+    EXPECT_EQ(reimported->GetFilter(), TextureFilterMode::Point);
+    auto reloaded = database.LoadImportSettings(*database.FindRecord(guid));
+    EXPECT_EQ(Reflection::Cast<TextureImportSettings>(reloaded.get())->filter, TextureFilterMode::Point);
 }
 
 TEST(RenderingAssetTests, MaterialsRoundTripThroughJson)

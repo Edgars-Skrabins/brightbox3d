@@ -3,7 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Core/EngineText.h"
 #include "Geometry/ModelAsset.h"
-#include "Serialization/Json.h"
+#include "Geometry/ModelImportSettings.h"
 
 #include <ufbx.h>
 
@@ -19,16 +19,16 @@ namespace BrightBox3D::Geometry
         }
     }
 
-    void ModelImporter::WriteDefaultSettings(Serialization::JsonValue& settings, Serialization::JsonAllocator& allocator) const
+    const Reflection::TypeInfo* ModelImporter::GetSettingsType() const
     {
-        settings.AddMember("scale", 1.0, allocator);
-        settings.AddMember("generateNormals", false, allocator);
+        return &ModelImportSettings::StaticType();
     }
 
-    bool ModelImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Serialization::JsonValue& settings, std::vector<uint8_t>& output, std::string& error)
+    bool ModelImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
     {
-        float scale = static_cast<float>(Serialization::GetNumber(settings, "scale", 1.0));
-        bool generateNormals = Serialization::GetBool(settings, "generateNormals", false);
+        const auto& importSettings = static_cast<const ModelImportSettings&>(*settings);
+        float scale = importSettings.scale;
+        bool generateNormals = importSettings.generateNormals;
 
         ufbx_load_opts options{};
         options.target_axes = ufbx_axes_left_handed_y_up;

@@ -92,8 +92,8 @@ namespace BrightBox3D::Assets
         bool DeleteAsset(const Core::Guid& guid);
         std::string MakeUniquePath(const std::string& relativePath) const;
 
-        bool LoadImportSettings(const AssetRecord& record, Serialization::JsonDocument& settings) const;
-        bool SaveImportSettings(const Core::Guid& guid, const Serialization::JsonValue& settings);
+        std::unique_ptr<Reflection::EngineObject> LoadImportSettings(const AssetRecord& record) const;
+        bool SaveImportSettings(const Core::Guid& guid, const Reflection::EngineObject& settings);
 
         using BuiltinFactory = std::function<std::shared_ptr<Asset>()>;
         void RegisterBuiltin(const Core::Guid& guid, const std::string& path, AssetType type, BuiltinFactory factory);
@@ -114,6 +114,7 @@ namespace BrightBox3D::Assets
         bool ReadOrCreateMeta(const std::filesystem::path& absolutePath, AssetType type, Core::Guid& guid);
         std::filesystem::path CookedPathFor(const Core::Guid& guid) const;
         uint64_t ComputeSourceHash(const AssetRecord& record) const;
+        std::unique_ptr<Reflection::EngineObject> CreateImportSettings(AssetType type) const;
         void RegisterRecord(AssetRecord record);
         void RemoveRecord(const Core::Guid& guid);
         void LoadCookedManifest();

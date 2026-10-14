@@ -4,10 +4,10 @@
 #include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Math/Color.h"
-#include "Reflection/PropertyTraits.h"
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/MaterialAsset.h"
 #include "Rendering/TextureAsset.h"
+#include "Rendering/TextureImportSettings.h"
 #include "Serialization/ObjectSerializer.h"
 
 #include <stb_image.h>
@@ -141,35 +141,21 @@ namespace BrightBox3D::Rendering
             }
             return mips;
         }
-
-        template <typename E>
-        E ReadEnumSetting(const Serialization::JsonValue& settings, const char* name, E fallback)
-        {
-            std::string text = Serialization::GetString(settings, name);
-            if (const Reflection::EnumEntry* entry = Reflection::StaticEnum<E>().FindByName(text))
-            {
-                return static_cast<E>(entry->value);
-            }
-            return fallback;
-        }
     }
 
-    void TextureImporter::WriteDefaultSettings(Serialization::JsonValue& settings, Serialization::JsonAllocator& allocator) const
+    const Reflection::TypeInfo* TextureImporter::GetSettingsType() const
     {
-        settings.AddMember("srgb", true, allocator);
-        settings.AddMember("normalMap", false, allocator);
-        settings.AddMember("generateMips", true, allocator);
-        settings.AddMember("filter", "Trilinear", allocator);
-        settings.AddMember("wrap", "Repeat", allocator);
+        return &TextureImportSettings::StaticType();
     }
 
-    bool TextureImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Serialization::JsonValue& settings, std::vector<uint8_t>& output, std::string& error)
+    bool TextureImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
     {
-        bool normalMap = Serialization::GetBool(settings, "normalMap", false);
-        bool srgb = Serialization::GetBool(settings, "srgb", true) && !normalMap;
-        bool generateMips = Serialization::GetBool(settings, "generateMips", true);
-        TextureFilterMode filter = ReadEnumSetting(settings, "filter", TextureFilterMode::Trilinear);
-        TextureWrapMode wrap = ReadEnumSetting(settings, "wrap", TextureWrapMode::Repeat);
+        const auto& importSettings = static_cast<const TextureImportSettings&>(*settings);
+        bool normalMap = importSettings.normalMap;
+        bool srgb = importSettings.srgb && !normalMap;
+        bool generateMips = importSettings.generateMips;
+        TextureFilterMode filter = importSettings.filter;
+        TextureWrapMode wrap = importSettings.wrap;
 
         std::string path = source.string();
         int width = 0;
