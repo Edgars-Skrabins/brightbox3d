@@ -31,4 +31,6 @@ namespace BrightBox3D::Level::LevelFileSchema
     inline constexpr char PseudoName[] = "$name";
     inline constexpr char PseudoActive[] = "$active";
     inline constexpr char PseudoEnabled[] = "$enabled";
+    inline constexpr char PseudoPrefix = '$';
+    inline constexpr char MissingLevelObjectType[] = "$MissingLevelObject";
 }
