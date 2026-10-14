@@ -1,6 +1,7 @@
 #include "Core/Process.h"
 
 #include "Core/EngineText.h"
+#include "Core/StringUtils.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -57,18 +58,6 @@ namespace BrightBox3D::Core
             limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
             SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits));
             return job;
-        }
-
-        std::wstring Widen(const std::string& text)
-        {
-            if (text.empty())
-            {
-                return {};
-            }
-            int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-            std::wstring result(static_cast<size_t>(length), L'\0');
-            MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(), length);
-            return result;
         }
 
         std::wstring QuoteArgument(const std::string& argument)

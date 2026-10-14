@@ -14,4 +14,7 @@ namespace BrightBox3D::Core
     std::string ReplaceAll(std::string text, std::string_view from, std::string_view to);
     std::string PrettifyName(std::string_view name);
     int CountFormatPlaceholders(std::string_view text);
+#if defined(_WIN32)
+    std::wstring Widen(const std::string& text);
+#endif
 }

@@ -2,6 +2,10 @@
 
 #include <cctype>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace BrightBox3D::Core
 {
     std::vector<std::string> Split(std::string_view text, char separator)
@@ -127,4 +131,18 @@ namespace BrightBox3D::Core
         }
         return count;
     }
+
+#if defined(_WIN32)
+    std::wstring Widen(const std::string& text)
+    {
+        if (text.empty())
+        {
+            return {};
+        }
+        int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+        std::wstring result(static_cast<size_t>(length), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(), length);
+        return result;
+    }
+#endif
 }
