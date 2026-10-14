@@ -36,5 +36,6 @@ namespace BrightBox3D::Editor
     void PopSelectionColors();
     float ScaledMetric(EditorMetric metric);
     void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max);
+    void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max, float size, unsigned int color);
     bool IconButton(Icon icon, EditorText tooltip);
 }

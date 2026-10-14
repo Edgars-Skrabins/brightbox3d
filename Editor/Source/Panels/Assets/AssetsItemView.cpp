@@ -9,7 +9,9 @@
 #include "ImGui/ImGuiRenderer.h"
 #include "Panels/Assets/AssetActions.h"
 #include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsFolderTree.h"
+#include "Theme.h"
 #include "Thumbnails.h"
 
 #include <misc/cpp/imgui_stdlib.h>
@@ -30,70 +32,8 @@ namespace BrightBox3D::Editor
         constexpr float MinTileSize = 56.0f;
         constexpr float MaxTileSize = 160.0f;
         constexpr float MinDropZoneHeight = 40.0f;
+        constexpr float TileIconScale = 0.55f;
         constexpr Assets::AssetType BuiltinTypes[] = { Assets::AssetType::Model, Assets::AssetType::Material };
-
-        ImU32 TypeColor(Assets::AssetType type)
-        {
-            switch (type)
-            {
-            case Assets::AssetType::Folder:
-                return EditorColorU32(EditorColor::AssetFolder);
-            case Assets::AssetType::Level:
-                return EditorColorU32(EditorColor::AssetLevel);
-            case Assets::AssetType::LevelCollection:
-                return EditorColorU32(EditorColor::AssetCollection);
-            case Assets::AssetType::LevelObjectVariant:
-                return EditorColorU32(EditorColor::AssetLevelObject);
-            case Assets::AssetType::LevelObjectTemplate:
-                return EditorColorU32(EditorColor::AssetTemplate);
-            case Assets::AssetType::Material:
-                return EditorColorU32(EditorColor::AssetMaterial);
-            case Assets::AssetType::Model:
-                return EditorColorU32(EditorColor::AssetModel);
-            case Assets::AssetType::Texture:
-                return EditorColorU32(EditorColor::AssetTexture);
-            case Assets::AssetType::Screen:
-            case Assets::AssetType::Widget:
-                return EditorColorU32(EditorColor::AssetUI);
-            case Assets::AssetType::StyleSheet:
-                return EditorColorU32(EditorColor::AssetStyleSheet);
-            default:
-                return EditorColorU32(EditorColor::AssetOther);
-            }
-        }
-
-        const char* TypeGlyph(Assets::AssetType type)
-        {
-            switch (type)
-            {
-            case Assets::AssetType::Folder:
-                return Text(EditorText::AssetBadgeFolder);
-            case Assets::AssetType::Level:
-                return Text(EditorText::AssetBadgeLevel);
-            case Assets::AssetType::LevelCollection:
-                return Text(EditorText::AssetBadgeLevelCollection);
-            case Assets::AssetType::LevelObjectVariant:
-                return Text(EditorText::AssetBadgeLevelObjectVariant);
-            case Assets::AssetType::LevelObjectTemplate:
-                return Text(EditorText::AssetBadgeLevelObjectTemplate);
-            case Assets::AssetType::Material:
-                return Text(EditorText::AssetBadgeMaterial);
-            case Assets::AssetType::Model:
-                return Text(EditorText::AssetBadgeModel);
-            case Assets::AssetType::Texture:
-                return Text(EditorText::AssetBadgeTexture);
-            case Assets::AssetType::Screen:
-                return Text(EditorText::AssetBadgeScreen);
-            case Assets::AssetType::Widget:
-                return Text(EditorText::AssetBadgeWidget);
-            case Assets::AssetType::StyleSheet:
-                return Text(EditorText::AssetBadgeStyleSheet);
-            case Assets::AssetType::Font:
-                return Text(EditorText::AssetBadgeFont);
-            default:
-                return Text(EditorText::AssetBadgeUnknown);
-            }
-        }
 
         bool SortFoldersFirst(const Assets::AssetRecord& a, const Assets::AssetRecord& b)
         {
@@ -199,19 +139,24 @@ namespace BrightBox3D::Editor
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 imageMin(cursor.x + ThumbnailInset, cursor.y + ThumbnailInset);
         ImVec2 imageMax(cursor.x + m_tileSize - ThumbnailInset, cursor.y + m_tileSize - ThumbnailInset);
-        RHI::Texture* thumbnail = record.type == Assets::AssetType::Folder ? nullptr : m_application.GetThumbnails().Get(record.guid);
-        if (thumbnail)
+        const AssetTypeStyle& style = GetAssetTypeStyle(record.type);
+        ImU32 color = EditorColorU32(style.color);
+        float iconSize = m_tileSize * TileIconScale;
+        if (record.type == Assets::AssetType::Folder)
+        {
+            DrawCenteredIcon(style.icon, imageMin, imageMax, iconSize, color);
+            return;
+        }
+        if (RHI::Texture* thumbnail = m_application.GetThumbnails().Get(record.guid))
         {
             drawList->AddImage(ImGuiRenderer::ToTextureId(thumbnail), imageMin, imageMax);
         }
         else
         {
             drawList->AddRectFilled(imageMin, imageMax, EditorColorU32(EditorColor::Control), ThumbnailRounding);
-            const char* glyph = TypeGlyph(record.type);
-            ImVec2 size = ImGui::CalcTextSize(glyph);
-            drawList->AddText(ImVec2((imageMin.x + imageMax.x - size.x) * 0.5f, (imageMin.y + imageMax.y - size.y) * 0.5f), TypeColor(record.type), glyph);
+            DrawCenteredIcon(style.icon, imageMin, imageMax, iconSize, color);
         }
-        drawList->AddRectFilled(ImVec2(imageMin.x, imageMax.y - TypeStripeHeight), ImVec2(imageMax.x, imageMax.y), TypeColor(record.type));
+        drawList->AddRectFilled(ImVec2(imageMin.x, imageMax.y - TypeStripeHeight), ImVec2(imageMax.x, imageMax.y), color);
     }
 
     void AssetsItemView::DrawLabel(const Assets::AssetRecord& record, const ImVec2& cursor)

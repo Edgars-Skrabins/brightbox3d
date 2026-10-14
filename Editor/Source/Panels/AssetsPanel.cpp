@@ -60,7 +60,7 @@ namespace BrightBox3D::Editor
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         SelectionService& selection = m_application.GetContext().GetSelectionService();
         const Assets::AssetRecord* record = database.FindRecord(m_state.pendingDelete);
-        ImGui::TextUnformatted(Text(EditorText::DeleteAssetConfirm, record ? record->path : std::string(Text(EditorText::AssetBadgeUnknown))).c_str());
+        ImGui::TextUnformatted(Text(EditorText::DeleteAssetConfirm, record ? record->path : std::string()).c_str());
         if (ImGui::Button(Text(EditorText::Delete), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
             database.DeleteAsset(m_state.pendingDelete);

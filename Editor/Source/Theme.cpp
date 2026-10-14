@@ -206,15 +206,20 @@ namespace BrightBox3D::Editor
 
     void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max)
     {
+        DrawCenteredIcon(icon, min, max, ImGui::GetFontSize(), ImGui::GetColorU32(ImGuiCol_Text));
+    }
+
+    void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max, float size, unsigned int color)
+    {
         const char* glyphText = IconGlyph(icon);
         std::vector<uint32_t> codepoints = Core::Utf8::Decode(glyphText);
         if (codepoints.empty())
         {
             return;
         }
-        const ImFontGlyph* glyph = ImGui::GetFontBaked()->FindGlyph(static_cast<ImWchar>(codepoints[0]));
+        const ImFontGlyph* glyph = ImGui::GetFont()->GetFontBaked(size)->FindGlyph(static_cast<ImWchar>(codepoints[0]));
         ImVec2 position(min.x + (max.x - min.x - (glyph->X1 - glyph->X0)) * 0.5f - glyph->X0, min.y + (max.y - min.y - (glyph->Y1 - glyph->Y0)) * 0.5f - glyph->Y0);
-        ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(std::floor(position.x), std::floor(position.y)), ImGui::GetColorU32(ImGuiCol_Text), glyphText);
+        ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), size, ImVec2(std::floor(position.x), std::floor(position.y)), color, glyphText);
     }
 
     bool IconButton(Icon icon, EditorText tooltip)

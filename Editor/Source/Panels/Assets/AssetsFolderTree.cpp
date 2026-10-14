@@ -5,6 +5,7 @@
 #include "EditorApplication.h"
 #include "EditorText.h"
 #include "Panels/Assets/AssetActions.h"
+#include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsContextMenu.h"
 
 #include <imgui.h>
@@ -65,12 +66,16 @@ namespace BrightBox3D::Editor::AssetsFolderTree
 
         bool DrawNode(AssetsPanelState& state, const Assets::AssetRecord* record, const std::string& folder, const std::string& label, ImGuiTreeNodeFlags flags)
         {
+            ImVec2 rowPosition = ImGui::GetCursorScreenPos();
+            ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
+            bool open = ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", "");
             if (!record || !state.rename.IsRenaming(record->guid))
             {
-                return ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", label.c_str());
+                DrawAssetLabel(labelPosition, Assets::AssetType::Folder, label, open && !(flags & ImGuiTreeNodeFlags_Leaf));
+                return open;
             }
-            bool open = ImGui::TreeNodeEx(folder.c_str(), flags, "%s", "");
             ImGui::SameLine();
+            ImGui::SetCursorScreenPos(ImVec2(labelPosition.x, rowPosition.y));
             if (std::optional<std::string> renamed = state.rename.Draw(-FLT_MIN))
             {
                 AssetActions::CommitRename(*record, *renamed);
@@ -123,10 +128,12 @@ namespace BrightBox3D::Editor::AssetsFolderTree
         EditorContext& context = application.GetContext();
         DrawFolder(application, state, "", Text(EditorText::AssetsTitle));
         bool showBuiltin = context.GetAssetCreationService().GetAssetsFolder() == BuiltinFolder;
-        if (ImGui::Selectable(Text(EditorText::BuiltinAssets), showBuiltin))
+        ImVec2 builtinPosition = ImGui::GetCursorScreenPos();
+        if (ImGui::Selectable("##builtin", showBuiltin))
         {
             context.GetAssetCreationService().SetAssetsFolder(BuiltinFolder);
         }
+        DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), false);
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
         {
             AssetsContextMenu::Draw(application, state, { {}, BuiltinFolder });
