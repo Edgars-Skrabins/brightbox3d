@@ -374,6 +374,10 @@ namespace BrightBox3D::Editor
             { "ResetAllShortcuts", "Reset All Shortcuts", 0 },
             { "ListSeparator", ", ", 0 },
             { "CancelCompile", "Cancel Compile", 0 },
+            { "SearchHint", "Search", 0 },
+            { "SearchComponentsHint", "Search components", 0 },
+            { "FilterHint", "Filter", 0 },
+            { "ClearFieldButton", "x", 0 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EditorText::Count));

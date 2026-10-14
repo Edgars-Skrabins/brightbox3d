@@ -48,7 +48,7 @@ namespace BrightBox3D::Editor
         toggle(EditorText::LogErrorCount, m_showErrors, Core::Log::Count(Core::LogLevel::Error), EditorColorVec4(EditorColor::Error));
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputTextWithHint("##filter", "Filter", &m_filter);
+        ImGui::InputTextWithHint("##filter", Text(EditorText::FilterHint), &m_filter);
         ImGui::Separator();
 
         ImGui::BeginChild("Entries", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);

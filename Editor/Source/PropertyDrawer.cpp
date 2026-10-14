@@ -140,7 +140,7 @@ namespace BrightBox3D::Editor
                 filter.clear();
                 ImGui::SetKeyboardFocusHere();
             }
-            ImGui::InputTextWithHint("##filter", "Search", &filter);
+            ImGui::InputTextWithHint("##filter", Text(EditorText::SearchHint), &filter);
             if (ImGui::Selectable(Text(EditorText::None), !guid.IsValid()))
             {
                 guid = Core::Guid{};
@@ -189,7 +189,7 @@ namespace BrightBox3D::Editor
         }
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
         ImGui::PushID("clear");
-        if (ImGui::Button("x", ImVec2(clearWidth, 0.0f)) && guid.IsValid())
+        if (ImGui::Button(Text(EditorText::ClearFieldButton), ImVec2(clearWidth, 0.0f)) && guid.IsValid())
         {
             guid = Core::Guid{};
             changed = true;

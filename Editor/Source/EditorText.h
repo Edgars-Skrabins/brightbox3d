@@ -376,6 +376,10 @@ namespace BrightBox3D::Editor
         ResetAllShortcuts,
         ListSeparator,
         CancelCompile,
+        SearchHint,
+        SearchComponentsHint,
+        FilterHint,
+        ClearFieldButton,
         Count
     };
 

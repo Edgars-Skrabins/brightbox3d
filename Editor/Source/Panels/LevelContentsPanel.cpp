@@ -13,6 +13,7 @@
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
 #include "IconGlyphs.h"
+#include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "ObjectIcons.h"
 #include "Panels/LevelViewPanel.h"
@@ -548,7 +549,7 @@ namespace BrightBox3D::Editor
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-FLT_MIN);
-        ImGui::InputTextWithHint("##filter", (std::string(IconGlyph(Icon::Search)) + "  Search").c_str(), &m_filter);
+        ImGui::InputTextWithHint("##filter", IconLabel(Icon::Search, EditorText::SearchHint).c_str(), &m_filter);
 
         std::string levelLabel = level->GetName() + (context.GetLevelService().IsDirty() ? " *" : "");
         std::string levelSuffix = context.GetLevelService().IsPlaying() ? Text(EditorText::PlayModeSuffix) : "";
