@@ -1,19 +1,11 @@
 #include "Math/Color.h"
 
+#include "Math/ColorSpace.h"
+
 namespace BrightBox3D::Math
 {
     namespace
     {
-        float SrgbToLinear(float value)
-        {
-            return value <= 0.04045f ? value / 12.92f : std::pow((value + 0.055f) / 1.055f, 2.4f);
-        }
-
-        float LinearToSrgb(float value)
-        {
-            return value <= 0.0031308f ? value * 12.92f : 1.055f * std::pow(value, 1.0f / 2.4f) - 0.055f;
-        }
-
         unsigned int ToByte(float value)
         {
             return static_cast<unsigned int>(Clamp01(value) * 255.0f + 0.5f);

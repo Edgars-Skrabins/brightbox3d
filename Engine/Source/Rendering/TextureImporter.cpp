@@ -1,0 +1,80 @@
+#include "Rendering/TextureImporter.h"
+
+#include "Core/EngineText.h"
+#include "Rendering/MipGenerator.h"
+#include "Rendering/TextureAsset.h"
+#include "Rendering/TextureImportSettings.h"
+
+#include <stb_image.h>
+
+namespace BrightBox3D::Rendering
+{
+    namespace
+    {
+        constexpr int RequestedChannels = 4;
+
+        bool LoadHdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture, std::string& error)
+        {
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+            float* pixels = stbi_loadf(path.c_str(), &width, &height, &channels, RequestedChannels);
+            if (!pixels)
+            {
+                error = stbi_failure_reason();
+                return false;
+            }
+            texture.SetData(TexturePixelFormat::RGBA32Float, MipGenerator::BuildMipsFloat(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), settings.generateMips), settings.filter, settings.wrap, false);
+            stbi_image_free(pixels);
+            return true;
+        }
+
+        bool LoadLdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture, std::string& error)
+        {
+            int width = 0;
+            int height = 0;
+            int channels = 0;
+            stbi_uc* pixels = stbi_load(path.c_str(), &width, &height, &channels, RequestedChannels);
+            if (!pixels)
+            {
+                error = stbi_failure_reason();
+                return false;
+            }
+            bool normalMap = settings.normalMap;
+            bool srgb = settings.srgb && !normalMap;
+            texture.SetData(srgb ? TexturePixelFormat::RGBA8Srgb : TexturePixelFormat::RGBA8, MipGenerator::BuildMips8(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), srgb, normalMap, settings.generateMips), settings.filter, settings.wrap, normalMap);
+            stbi_image_free(pixels);
+            return true;
+        }
+    }
+
+    const Reflection::TypeInfo* TextureImporter::GetSettingsType() const
+    {
+        return &TextureImportSettings::StaticType();
+    }
+
+    bool TextureImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
+    {
+        const auto& importSettings = static_cast<const TextureImportSettings&>(*settings);
+        std::string path = source.string();
+        TextureAsset texture;
+        bool loaded = stbi_is_hdr(path.c_str()) ? LoadHdr(path, importSettings, texture, error) : LoadLdr(path, importSettings, texture, error);
+        if (!loaded)
+        {
+            return false;
+        }
+        output = texture.Serialize();
+        return true;
+    }
+
+    std::shared_ptr<Assets::Asset> TextureImporter::Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error)
+    {
+        auto texture = std::make_shared<TextureAsset>();
+        if (!texture->Deserialize(data, size))
+        {
+            error = Core::Text(Core::EngineText::CorruptCookedTexture);
+            return nullptr;
+        }
+        return texture;
+    }
+}
