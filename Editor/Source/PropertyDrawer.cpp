@@ -1,24 +1,20 @@
 #include "PropertyDrawer.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/StringUtils.h"
 #include "DragDrop.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
-#include "Level/Level.h"
-#include "Math/Color.h"
-#include "Math/Quaternion.h"
-#include "Math/Vector2.h"
-#include "Math/Vector4.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
+#include "Theme.h"
+#include "ValueDrawers.h"
 
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <algorithm>
 #include <map>
-#include <unordered_map>
 
 namespace BrightBox3D::Editor
 {
@@ -26,49 +22,12 @@ namespace BrightBox3D::Editor
 
     namespace
     {
-        std::unordered_map<const void*, Math::Vector3>& EulerCache()
-        {
-            static std::unordered_map<const void*, Math::Vector3> cache;
-            return cache;
-        }
-
-        int64_t ReadEnum(const void* value, size_t size)
-        {
-            switch (size)
-            {
-            case 1:
-                return *static_cast<const int8_t*>(value);
-            case 2:
-                return *static_cast<const int16_t*>(value);
-            case 8:
-                return *static_cast<const int64_t*>(value);
-            default:
-                return *static_cast<const int32_t*>(value);
-            }
-        }
-
-        void WriteEnum(void* value, size_t size, int64_t number)
-        {
-            switch (size)
-            {
-            case 1:
-                *static_cast<int8_t*>(value) = static_cast<int8_t>(number);
-                break;
-            case 2:
-                *static_cast<int16_t*>(value) = static_cast<int16_t>(number);
-                break;
-            case 8:
-                *static_cast<int64_t*>(value) = number;
-                break;
-            default:
-                *static_cast<int32_t*>(value) = static_cast<int32_t>(number);
-                break;
-            }
-        }
+        constexpr float LabelWidthRatio = 0.38f;
+        constexpr int MaxArraySize = 4096;
 
         float LabelWidth()
         {
-            return std::max(110.0f, ImGui::GetContentRegionAvail().x * 0.38f);
+            return std::max(ScaledMetric(EditorMetric::PropertyLabelMinWidth), ImGui::GetContentRegionAvail().x * LabelWidthRatio);
         }
     }
 
@@ -132,7 +91,7 @@ namespace BrightBox3D::Editor
         bool changed = false;
         ImGui::BeginDisabled(readOnly);
         float clearWidth = ImGui::GetFrameHeight();
-        ImGui::SetNextItemWidth(std::max(40.0f, ImGui::CalcItemWidth() - clearWidth - ImGui::GetStyle().ItemInnerSpacing.x));
+        ImGui::SetNextItemWidth(std::max(ScaledMetric(EditorMetric::AssetFieldMinWidth), ImGui::CalcItemWidth() - clearWidth - ImGui::GetStyle().ItemInnerSpacing.x));
         if (ImGui::BeginCombo(label, preview.c_str(), ImGuiComboFlags_HeightLarge))
         {
             static std::string filter;
@@ -147,18 +106,12 @@ namespace BrightBox3D::Editor
                 guid = Core::Guid{};
                 changed = true;
             }
+            std::string lowerFilter = Core::ToLower(filter);
             for (const Assets::AssetRecord& candidate : database.GetRecords(type))
             {
-                if (!filter.empty())
+                if (!lowerFilter.empty() && Core::ToLower(candidate.path).find(lowerFilter) == std::string::npos)
                 {
-                    std::string lowerName = candidate.path;
-                    std::string lowerFilter = filter;
-                    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-                    std::transform(lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(), ::tolower);
-                    if (lowerName.find(lowerFilter) == std::string::npos)
-                    {
-                        continue;
-                    }
+                    continue;
                 }
                 ImGui::PushID(candidate.guid.ToString().c_str());
                 if (ImGui::Selectable(candidate.name.c_str(), candidate.guid == guid))
@@ -222,126 +175,102 @@ namespace BrightBox3D::Editor
 
     bool PropertyDrawer::DrawValue(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level)
     {
+        return ValueDrawers::Draw(label, descriptor, value, readOnly, level);
+    }
+
+    void PropertyDrawer::DrawOverrideMenu(const PropertyInfo& property, const PropertyDrawOptions& options, bool overridden)
+    {
+        if (!options.onContextAction || !overridden || !ImGui::BeginPopupContextItem("PropertyContext"))
+        {
+            return;
+        }
+        if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
+        {
+            options.onContextAction(property, PropertyContextAction::Revert);
+        }
+        if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
+        {
+            options.onContextAction(property, PropertyContextAction::Apply);
+        }
+        ImGui::EndPopup();
+    }
+
+    bool PropertyDrawer::DrawArrayElements(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, bool editable)
+    {
+        void* value = property.GetValuePointer(&object);
         bool changed = false;
-        ImGui::BeginDisabled(readOnly);
-        switch (descriptor.kind)
+        int size = static_cast<int>(property.array.size(value));
+        BeginRow(Text(EditorText::ArraySize), false);
+        ImGui::BeginDisabled(!editable);
+        if (ImGui::InputInt("##size", &size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue) && size >= 0 && size < MaxArraySize)
         {
-        case PropertyKind::Bool:
-            changed = ImGui::Checkbox(label, static_cast<bool*>(value));
-            break;
-        case PropertyKind::Int32:
-            changed = ImGui::DragInt(label, static_cast<int32_t*>(value), 0.2f);
-            break;
-        case PropertyKind::UInt32:
-            changed = ImGui::DragScalar(label, ImGuiDataType_U32, value, 0.2f);
-            break;
-        case PropertyKind::Int64:
-            changed = ImGui::DragScalar(label, ImGuiDataType_S64, value, 0.2f);
-            break;
-        case PropertyKind::Float:
-            changed = ImGui::DragFloat(label, static_cast<float*>(value), 0.01f, 0.0f, 0.0f, "%.3f");
-            break;
-        case PropertyKind::Double:
-            changed = ImGui::DragScalar(label, ImGuiDataType_Double, value, 0.01f, nullptr, nullptr, "%.4f");
-            break;
-        case PropertyKind::String:
-            changed = ImGui::InputText(label, static_cast<std::string*>(value));
-            break;
-        case PropertyKind::Vector2:
-            changed = ImGui::DragFloat2(label, &static_cast<Math::Vector2*>(value)->x, 0.01f, 0.0f, 0.0f, "%.3f");
-            break;
-        case PropertyKind::Vector3:
-            changed = ImGui::DragFloat3(label, &static_cast<Math::Vector3*>(value)->x, 0.01f, 0.0f, 0.0f, "%.3f");
-            break;
-        case PropertyKind::Vector4:
-            changed = ImGui::DragFloat4(label, &static_cast<Math::Vector4*>(value)->x, 0.01f, 0.0f, 0.0f, "%.3f");
-            break;
-        case PropertyKind::Quaternion:
-        {
-            auto* quaternion = static_cast<Math::Quaternion*>(value);
-            auto& cache = EulerCache();
-            auto it = cache.find(value);
-            Math::Vector3 euler = quaternion->ToEuler();
-            if (it != cache.end() && Math::Quaternion::Angle(Math::Quaternion::Euler(it->second), *quaternion) < 0.01f)
-            {
-                euler = it->second;
-            }
-            if (ImGui::DragFloat3(label, &euler.x, 0.25f, 0.0f, 0.0f, "%.2f"))
-            {
-                *quaternion = Math::Quaternion::Euler(euler);
-                cache[value] = euler;
-                changed = true;
-            }
-            break;
-        }
-        case PropertyKind::Color:
-            changed = ImGui::ColorEdit4(label, &static_cast<Math::Color*>(value)->r, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-            break;
-        case PropertyKind::Guid:
-        {
-            std::string text = static_cast<Core::Guid*>(value)->ToString();
-            ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
-            break;
-        }
-        case PropertyKind::Enum:
-        {
-            int64_t current = ReadEnum(value, descriptor.size);
-            const EnumEntry* entry = descriptor.enumInfo ? descriptor.enumInfo->FindByValue(current) : nullptr;
-            if (ImGui::BeginCombo(label, entry ? entry->name.c_str() : std::to_string(current).c_str()))
-            {
-                if (descriptor.enumInfo)
-                {
-                    for (const EnumEntry& option : descriptor.enumInfo->entries)
-                    {
-                        if (ImGui::Selectable(option.name.c_str(), option.value == current))
-                        {
-                            WriteEnum(value, descriptor.size, option.value);
-                            changed = true;
-                        }
-                    }
-                }
-                ImGui::EndCombo();
-            }
-            break;
-        }
-        case PropertyKind::AssetReference:
-            ImGui::EndDisabled();
-            changed = AssetField(label, descriptor.assetType, *static_cast<Core::Guid*>(value), readOnly);
-            ImGui::BeginDisabled(readOnly);
-            break;
-        case PropertyKind::ObjectReference:
-        {
-            Core::Guid& guid = *static_cast<Core::Guid*>(value);
-            const Level::LevelObject* object = level && guid.IsValid() ? level->FindObject(guid) : nullptr;
-            std::string text = object ? object->GetName() : (guid.IsValid() ? std::string(Text(EditorText::MissingObject)) : Text(EditorText::NoneOfType, descriptor.referenceType));
-            ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
-            if (!readOnly && ImGui::BeginDragDropTarget())
-            {
-                if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Object))
-                {
-                    guid = *dropped;
-                    changed = true;
-                }
-                ImGui::EndDragDropTarget();
-            }
-            if (!readOnly && ImGui::BeginPopupContextItem())
-            {
-                if (ImGui::MenuItem(Text(EditorText::Clear)))
-                {
-                    guid = Core::Guid{};
-                    changed = true;
-                }
-                ImGui::EndPopup();
-            }
-            break;
-        }
-        case PropertyKind::ClassReference:
-            changed = ClassField(label, descriptor.baseType ? &descriptor.baseType() : nullptr, *static_cast<std::string*>(value));
-            break;
-        case PropertyKind::Array:
-            break;
+            property.array.resize(value, static_cast<size_t>(size));
+            changed = true;
         }
         ImGui::EndDisabled();
+        EndRow();
+        size_t count = property.array.size(value);
+        int removeIndex = -1;
+        for (size_t i = 0; i < count; ++i)
+        {
+            std::string label = Text(EditorText::ArrayElement, i);
+            BeginRow(label.c_str(), false);
+            if (editable)
+            {
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemInnerSpacing.x);
+            }
+            changed |= DrawValue("##element", property.element, property.array.element(value, i), !editable, options.level);
+            if (editable)
+            {
+                ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+                if (ImGui::Button(Text(EditorText::RemoveElementButton), ImVec2(ImGui::GetFrameHeight(), 0.0f)))
+                {
+                    removeIndex = static_cast<int>(i);
+                }
+            }
+            EndRow();
+        }
+        if (removeIndex >= 0)
+        {
+            Serialization::JsonDocument document;
+            Serialization::JsonValue array;
+            Serialization::WriteProperty(property, object, array, document.GetAllocator());
+            if (array.IsArray() && removeIndex < static_cast<int>(array.Size()))
+            {
+                array.Erase(array.Begin() + removeIndex);
+                Serialization::ReadProperty(property, object, array);
+            }
+            changed = true;
+        }
+        if (editable && ImGui::Button(Text(EditorText::AddElement)))
+        {
+            property.array.resize(value, count + 1);
+            changed = true;
+        }
+        return changed;
+    }
+
+    bool PropertyDrawer::DrawArrayProperty(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, bool editable, bool overridden)
+    {
+        ImGui::PushID(property.name.c_str());
+        size_t count = property.array.size(property.GetValuePointer(&object));
+        if (overridden)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, EditorColorVec4(EditorColor::Override));
+        }
+        bool open = ImGui::TreeNodeEx("##array", ImGuiTreeNodeFlags_SpanAvailWidth, "%s [%zu]", property.displayName.c_str(), count);
+        if (overridden)
+        {
+            ImGui::PopStyleColor();
+        }
+        DrawOverrideMenu(property, options, overridden);
+        bool changed = false;
+        if (open)
+        {
+            changed = DrawArrayElements(property, object, options, editable);
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
         return changed;
     }
 
@@ -349,114 +278,22 @@ namespace BrightBox3D::Editor
     {
         bool editable = IsEditable(property, options);
         bool overridden = options.isOverridden && options.isOverridden(property);
-        void* value = property.GetValuePointer(&object);
         bool changed = false;
-
         if (property.value.kind == PropertyKind::Array)
         {
-            ImGui::PushID(property.name.c_str());
-            size_t count = property.array.size(value);
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-            if (overridden)
-            {
-                ImGui::PushStyleColor(ImGuiCol_Text, EditorColorVec4(EditorColor::Override));
-            }
-            bool open = ImGui::TreeNodeEx("##array", flags, "%s [%zu]", property.displayName.c_str(), count);
-            if (overridden)
-            {
-                ImGui::PopStyleColor();
-            }
-            if (options.onContextAction && overridden && ImGui::BeginPopupContextItem("PropertyContext"))
-            {
-                if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
-                {
-                    options.onContextAction(property, PropertyContextAction::Revert);
-                }
-                if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
-                {
-                    options.onContextAction(property, PropertyContextAction::Apply);
-                }
-                ImGui::EndPopup();
-            }
-            if (open)
-            {
-                int size = static_cast<int>(count);
-                BeginRow(Text(EditorText::ArraySize), false);
-                ImGui::BeginDisabled(!editable);
-                if (ImGui::InputInt("##size", &size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue) && size >= 0 && size < 4096)
-                {
-                    property.array.resize(value, static_cast<size_t>(size));
-                    changed = true;
-                }
-                ImGui::EndDisabled();
-                EndRow();
-                count = property.array.size(value);
-                int removeIndex = -1;
-                for (size_t i = 0; i < count; ++i)
-                {
-                    std::string label = Text(EditorText::ArrayElement, i);
-                    BeginRow(label.c_str(), false);
-                    if (editable)
-                    {
-                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemInnerSpacing.x);
-                    }
-                    changed |= DrawValue("##element", property.element, property.array.element(value, i), !editable, options.level);
-                    if (editable)
-                    {
-                        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                        if (ImGui::Button("-", ImVec2(ImGui::GetFrameHeight(), 0.0f)))
-                        {
-                            removeIndex = static_cast<int>(i);
-                        }
-                    }
-                    EndRow();
-                }
-                if (removeIndex >= 0)
-                {
-                    Serialization::JsonDocument document;
-                    Serialization::JsonValue array;
-                    Serialization::WriteProperty(property, object, array, document.GetAllocator());
-                    if (array.IsArray() && removeIndex < static_cast<int>(array.Size()))
-                    {
-                        array.Erase(array.Begin() + removeIndex);
-                        Serialization::ReadProperty(property, object, array);
-                    }
-                    changed = true;
-                }
-                if (editable && ImGui::Button(Text(EditorText::AddElement)))
-                {
-                    property.array.resize(value, count + 1);
-                    changed = true;
-                }
-                ImGui::TreePop();
-            }
-            ImGui::PopID();
-            if (changed)
-            {
-                object.OnPropertiesChanged();
-            }
-            return changed;
+            changed = DrawArrayProperty(property, object, options, editable, overridden);
         }
-
-        BeginRow(property.displayName.c_str(), overridden);
-        changed = DrawValue("##value", property.value, value, !editable, options.level);
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_AllowWhenDisabled))
+        else
         {
-            ImGui::SetTooltip("%s", property.name.c_str());
-        }
-        if (options.onContextAction && overridden && ImGui::BeginPopupContextItem("PropertyContext"))
-        {
-            if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
+            BeginRow(property.displayName.c_str(), overridden);
+            changed = DrawValue("##value", property.value, property.GetValuePointer(&object), !editable, options.level);
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_AllowWhenDisabled))
             {
-                options.onContextAction(property, PropertyContextAction::Revert);
+                ImGui::SetTooltip("%s", property.name.c_str());
             }
-            if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
-            {
-                options.onContextAction(property, PropertyContextAction::Apply);
-            }
-            ImGui::EndPopup();
+            DrawOverrideMenu(property, options, overridden);
+            EndRow();
         }
-        EndRow();
         if (changed)
         {
             object.OnPropertiesChanged();

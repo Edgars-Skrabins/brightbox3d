@@ -42,5 +42,10 @@ namespace BrightBox3D::Editor
         static bool ClassField(const char* label, const Reflection::TypeInfo* baseType, std::string& typeName);
         static void BeginRow(const char* label, bool bold);
         static void EndRow();
+
+    private:
+        static bool DrawArrayProperty(const Reflection::PropertyInfo& property, Reflection::EngineObject& object, const PropertyDrawOptions& options, bool editable, bool overridden);
+        static bool DrawArrayElements(const Reflection::PropertyInfo& property, Reflection::EngineObject& object, const PropertyDrawOptions& options, bool editable);
+        static void DrawOverrideMenu(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options, bool overridden);
     };
 }

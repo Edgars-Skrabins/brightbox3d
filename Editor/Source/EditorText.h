@@ -384,6 +384,7 @@ namespace BrightBox3D::Editor
         TypeNameSuffix,
         DirtyMarker,
         CreateAssetButton,
+        RemoveElementButton,
         Count
     };
 

@@ -382,6 +382,7 @@ namespace BrightBox3D::Editor
             { "TypeNameSuffix", "[{}]", 1 },
             { "DirtyMarker", "{} *", 1 },
             { "CreateAssetButton", "+ Create", 0 },
+            { "RemoveElementButton", "-", 0 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EditorText::Count));
