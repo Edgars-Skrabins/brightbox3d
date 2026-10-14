@@ -29,7 +29,8 @@ namespace BrightBox3D::Assets
             if (guid.IsValid())
             {
                 auto existing = m_records.find(guid);
-                if (existing != m_records.end() && GetAbsolutePath(existing->second) == absolutePath)
+                std::filesystem::path existingPath = existing != m_records.end() ? GetAbsolutePath(existing->second) : std::filesystem::path();
+                if (existingPath == absolutePath || !std::filesystem::exists(existingPath))
                 {
                     return true;
                 }
