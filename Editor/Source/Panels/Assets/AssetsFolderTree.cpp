@@ -1,7 +1,6 @@
 #include "Panels/Assets/AssetsFolderTree.h"
 
 #include "Assets/AssetDatabase.h"
-#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorText.h"
 #include "Panels/Assets/AssetActions.h"
@@ -36,22 +35,6 @@ namespace BrightBox3D::Editor::AssetsFolderTree
                 }
             }
             return folders;
-        }
-
-        void HandleDrop(const std::string& folder)
-        {
-            if (!ImGui::BeginDragDropTarget())
-            {
-                return;
-            }
-            if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Asset))
-            {
-                if (const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(*dragged))
-                {
-                    Assets::AssetDatabase::Get().MoveAsset(*dragged, (folder.empty() ? "" : folder + "/") + record->name);
-                }
-            }
-            ImGui::EndDragDropTarget();
         }
 
         AssetsTarget FolderTarget(EditorContext& context, const std::string& folder)
@@ -111,7 +94,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
                 AssetsContextMenu::Draw(application, state, FolderTarget(context, folder));
                 ImGui::EndPopup();
             }
-            HandleDrop(folder);
+            AssetActions::AcceptMoveDrop(folder);
             if (open)
             {
                 for (const Assets::AssetRecord& child : folders)

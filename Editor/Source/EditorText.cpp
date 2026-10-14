@@ -172,7 +172,6 @@ namespace BrightBox3D::Editor
             { "NoProjectOpen", "No project open", 0 },
             { "BuiltinAssets", "Built-in", 0 },
             { "FolderUp", "Up", 0 },
-            { "AssetsFolderPath", "Assets/{}", 1 },
             { "RenameFailed", "Rename failed: '{}' already exists or cannot be written", 1 },
             { "DeleteAssetQuestion", "Delete Asset?", 0 },
             { "DeleteAssetConfirm", "Delete '{}'? This cannot be undone.", 1 },

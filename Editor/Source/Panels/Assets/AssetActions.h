@@ -27,6 +27,8 @@ namespace BrightBox3D::Editor::AssetActions
     void ShowInFileBrowser(EditorApplication& application, const AssetsTarget& target);
     void Duplicate(EditorApplication& application, const AssetsTarget& target);
     void CopyPath(const AssetsTarget& target);
+    std::string DisplayPath(const Assets::AssetRecord& record);
+    void AcceptMoveDrop(const std::string& folder);
     void Reimport(const AssetsTarget& target);
     void SetStartupLevel(EditorApplication& application, const AssetsTarget& target);
     void CreateVariant(EditorApplication& application, const AssetsTarget& target);

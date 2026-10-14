@@ -174,7 +174,6 @@ namespace BrightBox3D::Editor
         NoProjectOpen,
         BuiltinAssets,
         FolderUp,
-        AssetsFolderPath,
         RenameFailed,
         DeleteAssetQuestion,
         DeleteAssetConfirm,

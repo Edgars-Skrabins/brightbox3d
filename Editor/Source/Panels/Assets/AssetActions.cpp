@@ -2,6 +2,7 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Core/Log.h"
+#include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorText.h"
 #include "Panels/Assets/AssetsFolderTree.h"
@@ -132,14 +133,31 @@ namespace BrightBox3D::Editor::AssetActions
 
     void CopyPath(const AssetsTarget& target)
     {
-        Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         const Assets::AssetRecord* record = FindTarget(target);
-        if (record && database.IsBuiltin(record->guid))
+        ImGui::SetClipboardText((record ? DisplayPath(*record) : ProjectPath(target.folder)).c_str());
+    }
+
+    std::string DisplayPath(const Assets::AssetRecord& record)
+    {
+        return Assets::AssetDatabase::Get().IsBuiltin(record.guid) ? record.path : ProjectPath(record.path);
+    }
+
+    void AcceptMoveDrop(const std::string& folder)
+    {
+        if (!ImGui::BeginDragDropTarget())
         {
-            ImGui::SetClipboardText(record->path.c_str());
             return;
         }
-        ImGui::SetClipboardText(ProjectPath(record ? record->path : target.folder).c_str());
+        Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
+        if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Asset))
+        {
+            const Assets::AssetRecord* record = database.FindRecord(*dragged);
+            if (record && !database.IsBuiltin(*dragged) && record->path != folder && ParentFolder(record->path) != folder)
+            {
+                database.MoveAsset(*dragged, (folder.empty() ? "" : folder + "/") + record->name);
+            }
+        }
+        ImGui::EndDragDropTarget();
     }
 
     void Reimport(const AssetsTarget& target)
