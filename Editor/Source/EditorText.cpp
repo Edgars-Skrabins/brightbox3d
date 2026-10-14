@@ -198,6 +198,7 @@ namespace BrightBox3D::Editor
             { "RevertAllOverrides", "Revert All Overrides", 0 },
             { "CreateLevelObjectVariant", "Create LevelObjectVariant", 0 },
             { "CreateLevelObjectTemplate", "Create LevelObjectTemplate", 0 },
+            { "CreateLevelObjectTooltip", "Create LevelObject", 0 },
             { "KeepChanges", "Keep Changes", 0 },
             { "MissingTypeSuffix", "(missing {})", 1 },
             { "KeepChangesSuffix", "(keep changes)", 0 },

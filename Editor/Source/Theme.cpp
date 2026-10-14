@@ -1,13 +1,16 @@
 #include "Theme.h"
 
 #include "Core/FileSystem.h"
+#include "Core/Utf8.h"
 #include "EditorPreferences.h"
 #include "IconGlyphs.h"
 
 #include <imgui.h>
 
+#include <cmath>
 #include <filesystem>
 #include <iterator>
+#include <vector>
 
 namespace BrightBox3D::Editor
 {
@@ -199,6 +202,33 @@ namespace BrightBox3D::Editor
     float ScaledMetric(EditorMetric metric)
     {
         return EditorMetrics[static_cast<size_t>(metric)] * ThemeScale();
+    }
+
+    void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max)
+    {
+        const char* glyphText = IconGlyph(icon);
+        std::vector<uint32_t> codepoints = Core::Utf8::Decode(glyphText);
+        if (codepoints.empty())
+        {
+            return;
+        }
+        const ImFontGlyph* glyph = ImGui::GetFontBaked()->FindGlyph(static_cast<ImWchar>(codepoints[0]));
+        ImVec2 position(min.x + (max.x - min.x - (glyph->X1 - glyph->X0)) * 0.5f - glyph->X0, min.y + (max.y - min.y - (glyph->Y1 - glyph->Y0)) * 0.5f - glyph->Y0);
+        ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(std::floor(position.x), std::floor(position.y)), ImGui::GetColorU32(ImGuiCol_Text), glyphText);
+    }
+
+    bool IconButton(Icon icon, EditorText tooltip)
+    {
+        float size = ImGui::GetFrameHeight();
+        ImGui::PushID(static_cast<int>(icon));
+        bool pressed = ImGui::Button("##IconButton", ImVec2(size, size));
+        ImGui::PopID();
+        DrawCenteredIcon(icon, ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
+        {
+            ImGui::SetTooltip("%s", Text(tooltip));
+        }
+        return pressed;
     }
 
     void LoadEditorFonts(float contentScale)

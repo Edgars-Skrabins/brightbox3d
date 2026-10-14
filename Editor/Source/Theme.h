@@ -1,5 +1,10 @@
 #pragma once
 
+#include "EditorText.h"
+#include "IconGlyphs.h"
+
+struct ImVec2;
+
 namespace BrightBox3D::Editor
 {
     enum class EditorMetric
@@ -30,4 +35,6 @@ namespace BrightBox3D::Editor
     void PushSelectionColors();
     void PopSelectionColors();
     float ScaledMetric(EditorMetric metric);
+    void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max);
+    bool IconButton(Icon icon, EditorText tooltip);
 }

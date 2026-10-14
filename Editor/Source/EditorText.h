@@ -200,6 +200,7 @@ namespace BrightBox3D::Editor
         RevertAllOverrides,
         CreateLevelObjectVariant,
         CreateLevelObjectTemplate,
+        CreateLevelObjectTooltip,
         KeepChanges,
         MissingTypeSuffix,
         KeepChangesSuffix,

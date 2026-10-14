@@ -46,16 +46,12 @@ namespace BrightBox3D::Editor
         }
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
         ImGui::BeginDisabled(isDefault);
-        if (ImGui::Button(IconGlyph(Icon::RotateCcw), ImVec2(resetWidth, resetWidth)))
+        if (IconButton(Icon::RotateCcw, EditorText::ResetToDefault))
         {
             preferences.ResetColor(color);
             preferences.Save();
         }
         ImGui::EndDisabled();
-        if (!isDefault && ImGui::IsItemHovered())
-        {
-            ImGui::SetTooltip("%s", Text(EditorText::ResetToDefault));
-        }
         PropertyDrawer::EndRow();
     }
 
@@ -220,15 +216,11 @@ namespace BrightBox3D::Editor
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
         bool rebound = registry.IsShortcutRebound(id);
         ImGui::BeginDisabled(!rebound);
-        if (ImGui::Button(IconGlyph(Icon::RotateCcw), ImVec2(resetWidth, resetWidth)))
+        if (IconButton(Icon::RotateCcw, EditorText::ResetToDefault))
         {
             AssignShortcut(id, command.defaultShortcut);
         }
         ImGui::EndDisabled();
-        if (rebound && ImGui::IsItemHovered())
-        {
-            ImGui::SetTooltip("%s", Text(EditorText::ResetToDefault));
-        }
         PropertyDrawer::EndRow();
         ImGui::PopID();
     }

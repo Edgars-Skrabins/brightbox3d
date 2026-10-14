@@ -2,6 +2,7 @@
 
 #include "Commands/CommandRegistry.h"
 #include "Labels.h"
+#include "Theme.h"
 
 #include <imgui.h>
 
@@ -39,7 +40,7 @@ namespace BrightBox3D::Editor
         }
     }
 
-    bool CommandButton(CommandId id, float width)
+    bool CommandButton(CommandId id, float width, CommandButtonStyle style)
     {
         CommandRegistry& registry = CommandRegistry::Get();
         const EditorCommand& command = registry.GetCommand(id);
@@ -50,7 +51,17 @@ namespace BrightBox3D::Editor
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, command.checkedColor ? EditorColorVec4(*command.checkedColor) : ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
         }
         ImGui::BeginDisabled(!registry.IsEnabled(id));
-        bool pressed = ImGui::Button(ButtonLabel(id).c_str(), ImVec2(width, 0.0f));
+        bool pressed = false;
+        if (style == CommandButtonStyle::IconOnly)
+        {
+            float size = ImGui::GetFrameHeight();
+            pressed = ImGui::Button((std::string("###") + command.key).c_str(), ImVec2(size, size));
+            DrawCenteredIcon(registry.GetIcon(id), ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        }
+        else
+        {
+            pressed = ImGui::Button(ButtonLabel(id).c_str(), ImVec2(width, 0.0f));
+        }
         ImGui::EndDisabled();
         if (checked)
         {
