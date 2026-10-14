@@ -5,6 +5,7 @@
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Level/LevelAssets.h"
+#include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 
 #include <chrono>
@@ -105,7 +106,7 @@ namespace BrightBox3D::Level
         }
         else if (!(collection = GetLevel()->FindCollection(request.collection)))
         {
-            collection = GetLevel()->AddCollection(Serialization::GetString(asset->GetDocument(), "name", asset->GetName()), request.collection);
+            collection = GetLevel()->AddCollection(Serialization::GetString(asset->GetDocument(), LevelFileSchema::Name, asset->GetName()), request.collection);
             LevelSerializer::ReadCollection(*GetLevel(), *collection, asset->GetDocument());
             collection->SetDirty(false);
         }

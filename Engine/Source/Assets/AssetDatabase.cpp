@@ -1,5 +1,6 @@
 #include "Assets/AssetDatabase.h"
 
+#include "Assets/AssetFileSchema.h"
 #include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Hash.h"
@@ -162,7 +163,7 @@ namespace BrightBox3D::Assets
         Serialization::JsonDocument meta;
         if (std::filesystem::exists(metaPath) && Serialization::LoadJsonFile(metaPath, meta) && meta.IsObject())
         {
-            guid = Core::Guid::Parse(Serialization::GetString(meta, "guid"));
+            guid = Core::Guid::Parse(Serialization::GetString(meta, AssetFileSchema::Guid));
             if (guid.IsValid() && !m_records.count(guid))
             {
                 return true;
@@ -184,16 +185,16 @@ namespace BrightBox3D::Assets
 
         guid = Core::Guid::Generate();
         auto& allocator = meta.GetAllocator();
-        Serialization::SetMember(meta, "guid", Serialization::MakeString(guid.ToString(), allocator), allocator);
-        Serialization::SetMember(meta, "type", Serialization::MakeString(AssetTypeName(type), allocator), allocator);
-        if (!Serialization::FindMember(meta, "importer"))
+        Serialization::SetMember(meta, AssetFileSchema::Guid, Serialization::MakeString(guid.ToString(), allocator), allocator);
+        Serialization::SetMember(meta, AssetFileSchema::Type, Serialization::MakeString(AssetTypeName(type), allocator), allocator);
+        if (!Serialization::FindMember(meta, AssetFileSchema::Importer))
         {
             Serialization::JsonValue settings(rapidjson::kObjectType);
             if (AssetImporter* importer = GetImporter(type))
             {
                 importer->WriteDefaultSettings(settings, allocator);
             }
-            Serialization::SetMember(meta, "importer", std::move(settings), allocator);
+            Serialization::SetMember(meta, AssetFileSchema::Importer, std::move(settings), allocator);
         }
         return Serialization::SaveJsonFile(metaPath, meta);
     }
@@ -387,7 +388,7 @@ namespace BrightBox3D::Assets
         {
             return false;
         }
-        if (const Serialization::JsonValue* importer = Serialization::FindMember(meta, "importer"))
+        if (const Serialization::JsonValue* importer = Serialization::FindMember(meta, AssetFileSchema::Importer))
         {
             settings.CopyFrom(*importer, settings.GetAllocator());
         }
@@ -409,7 +410,7 @@ namespace BrightBox3D::Assets
         }
         Serialization::JsonValue copy;
         copy.CopyFrom(settings, meta.GetAllocator());
-        Serialization::SetMember(meta, "importer", std::move(copy), meta.GetAllocator());
+        Serialization::SetMember(meta, AssetFileSchema::Importer, std::move(copy), meta.GetAllocator());
         if (!Serialization::SaveJsonFile(metaPath, meta))
         {
             return false;
@@ -433,7 +434,7 @@ namespace BrightBox3D::Assets
             Serialization::JsonDocument document;
             if (Serialization::ParseJson(*meta, document))
             {
-                if (const Serialization::JsonValue* importer = Serialization::FindMember(document, "importer"))
+                if (const Serialization::JsonValue* importer = Serialization::FindMember(document, AssetFileSchema::Importer))
                 {
                     hash = Core::HashCombine(hash, Core::HashString(Serialization::WriteJson(*importer, false)));
                 }
@@ -631,9 +632,9 @@ namespace BrightBox3D::Assets
         for (const AssetRecord& record : GetRecords())
         {
             Serialization::JsonValue entry(rapidjson::kObjectType);
-            entry.AddMember("guid", Serialization::MakeString(record.guid.ToString(), allocator), allocator);
-            entry.AddMember("path", Serialization::MakeString(record.path, allocator), allocator);
-            entry.AddMember("type", Serialization::MakeString(AssetTypeName(record.type), allocator), allocator);
+            entry.AddMember(AssetFileSchema::Guid, Serialization::MakeString(record.guid.ToString(), allocator), allocator);
+            entry.AddMember(AssetFileSchema::Path, Serialization::MakeString(record.path, allocator), allocator);
+            entry.AddMember(AssetFileSchema::Type, Serialization::MakeString(AssetTypeName(record.type), allocator), allocator);
             manifest.PushBack(entry, allocator);
         }
         Serialization::SaveJsonFile(GetCookedDirectory() / CookedManifestFileName, manifest);
@@ -650,10 +651,10 @@ namespace BrightBox3D::Assets
         for (const Serialization::JsonValue& entry : manifest.GetArray())
         {
             AssetRecord record;
-            record.guid = Core::Guid::Parse(Serialization::GetString(entry, "guid"));
-            record.path = Serialization::GetString(entry, "path");
+            record.guid = Core::Guid::Parse(Serialization::GetString(entry, AssetFileSchema::Guid));
+            record.path = Serialization::GetString(entry, AssetFileSchema::Path);
             record.name = std::filesystem::path(record.path).filename().string();
-            record.type = AssetTypeFromName(Serialization::GetString(entry, "type"));
+            record.type = AssetTypeFromName(Serialization::GetString(entry, AssetFileSchema::Type));
             if (record.guid.IsValid())
             {
                 RegisterRecord(record);

@@ -5,6 +5,7 @@
 #include "Core/Hash.h"
 #include "Core/Log.h"
 #include "Level/LevelAssets.h"
+#include "Level/LevelFileSchema.h"
 #include "Level/MissingComponent.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
@@ -24,7 +25,6 @@ namespace BrightBox3D::Level
 
     namespace
     {
-        constexpr const char* TransformTarget = "transform";
         constexpr const char* MissingLevelObjectType = "$MissingLevelObject";
 
         void WriteRawJson(const std::string& text, JsonValue& out, JsonAllocator& allocator)
@@ -43,20 +43,20 @@ namespace BrightBox3D::Level
         void WriteComponent(const LevelObjectComponent& component, JsonValue& out, JsonAllocator& allocator)
         {
             out.SetObject();
-            out.AddMember("id", MakeString(component.GetLocalId().ToString(), allocator), allocator);
+            out.AddMember(LevelFileSchema::Id, MakeString(component.GetLocalId().ToString(), allocator), allocator);
             JsonValue properties(rapidjson::kObjectType);
             if (const auto* missing = Reflection::Cast<MissingComponent>(&component))
             {
-                out.AddMember("$type", MakeString(missing->GetMissingTypeName(), allocator), allocator);
+                out.AddMember(Serialization::TypeKey, MakeString(missing->GetMissingTypeName(), allocator), allocator);
                 WriteRawJson(missing->GetData(), properties, allocator);
             }
             else
             {
-                out.AddMember("$type", MakeString(component.GetType().GetName(), allocator), allocator);
+                out.AddMember(Serialization::TypeKey, MakeString(component.GetType().GetName(), allocator), allocator);
                 Serialization::SerializeProperties(component, properties, allocator);
             }
-            out.AddMember("enabled", JsonValue(component.IsEnabled()), allocator);
-            out.AddMember("properties", properties, allocator);
+            out.AddMember(LevelFileSchema::Enabled, JsonValue(component.IsEnabled()), allocator);
+            out.AddMember(LevelFileSchema::Properties, properties, allocator);
         }
 
         bool IsInSameLink(const LevelObject& object, const LevelObject& linkRoot)
@@ -96,7 +96,7 @@ namespace BrightBox3D::Level
             }
             if (component == &object.GetTransform())
             {
-                return TransformTarget;
+                return LevelFileSchema::TransformComponentKey;
             }
             return component->GetLocalId().ToString();
         }
@@ -107,7 +107,7 @@ namespace BrightBox3D::Level
             {
                 return nullptr;
             }
-            if (key == TransformTarget)
+            if (key == LevelFileSchema::TransformComponentKey)
             {
                 return &object.GetTransform();
             }
@@ -116,15 +116,15 @@ namespace BrightBox3D::Level
 
         bool PseudoPropertiesEqual(const LevelObject& a, const LevelObjectComponent* componentA, const LevelObject& b, const LevelObjectComponent* componentB, const std::string& property)
         {
-            if (property == "$name")
+            if (property == LevelFileSchema::PseudoName)
             {
                 return a.GetName() == b.GetName();
             }
-            if (property == "$active")
+            if (property == LevelFileSchema::PseudoActive)
             {
                 return a.IsActiveSelf() == b.IsActiveSelf();
             }
-            if (property == "$enabled")
+            if (property == LevelFileSchema::PseudoEnabled)
             {
                 return componentA && componentB && componentA->IsEnabled() == componentB->IsEnabled();
             }
@@ -133,15 +133,15 @@ namespace BrightBox3D::Level
 
         void WritePseudoProperty(const LevelObject& object, const LevelObjectComponent* component, const std::string& property, JsonValue& out, JsonAllocator& allocator)
         {
-            if (property == "$name")
+            if (property == LevelFileSchema::PseudoName)
             {
                 out = MakeString(object.GetName(), allocator);
             }
-            else if (property == "$active")
+            else if (property == LevelFileSchema::PseudoActive)
             {
                 out.SetBool(object.IsActiveSelf());
             }
-            else if (property == "$enabled")
+            else if (property == LevelFileSchema::PseudoEnabled)
             {
                 out.SetBool(component && component->IsEnabled());
             }
@@ -149,15 +149,15 @@ namespace BrightBox3D::Level
 
         void ReadPseudoProperty(LevelObject& object, LevelObjectComponent* component, const std::string& property, const JsonValue& value)
         {
-            if (property == "$name" && value.IsString())
+            if (property == LevelFileSchema::PseudoName && value.IsString())
             {
                 object.SetName(value.GetString());
             }
-            else if (property == "$active" && value.IsBool())
+            else if (property == LevelFileSchema::PseudoActive && value.IsBool())
             {
                 object.SetActive(value.GetBool());
             }
-            else if (property == "$enabled" && value.IsBool() && component)
+            else if (property == LevelFileSchema::PseudoEnabled && value.IsBool() && component)
             {
                 component->SetEnabled(value.GetBool());
             }
@@ -167,8 +167,8 @@ namespace BrightBox3D::Level
         {
             if (!isRoot)
             {
-                visitor(nullptr, nullptr, "$name", PseudoPropertiesEqual(live, nullptr, prototype, nullptr, "$name"));
-                visitor(nullptr, nullptr, "$active", PseudoPropertiesEqual(live, nullptr, prototype, nullptr, "$active"));
+                visitor(nullptr, nullptr, LevelFileSchema::PseudoName, PseudoPropertiesEqual(live, nullptr, prototype, nullptr, LevelFileSchema::PseudoName));
+                visitor(nullptr, nullptr, LevelFileSchema::PseudoActive, PseudoPropertiesEqual(live, nullptr, prototype, nullptr, LevelFileSchema::PseudoActive));
                 for (const Reflection::PropertyInfo* property : live.GetTransform().GetType().GetAllProperties())
                 {
                     visitor(&live.GetTransform(), &prototype.GetTransform(), property->name, Serialization::PropertyValuesEqual(*property, live.GetTransform(), prototype.GetTransform()));
@@ -191,7 +191,7 @@ namespace BrightBox3D::Level
                 {
                     continue;
                 }
-                visitor(component.get(), other, "$enabled", PseudoPropertiesEqual(live, component.get(), prototype, other, "$enabled"));
+                visitor(component.get(), other, LevelFileSchema::PseudoEnabled, PseudoPropertiesEqual(live, component.get(), prototype, other, LevelFileSchema::PseudoEnabled));
                 for (const Reflection::PropertyInfo* property : component->GetType().GetAllProperties())
                 {
                     if (property->IsSerialized())
@@ -223,13 +223,13 @@ namespace BrightBox3D::Level
                         return;
                     }
                     JsonValue entry(rapidjson::kObjectType);
-                    entry.AddMember("target", MakeString(object->GetLink().sourceId.ToString(), allocator), allocator);
+                    entry.AddMember(LevelFileSchema::Target, MakeString(object->GetLink().sourceId.ToString(), allocator), allocator);
                     std::string key = ComponentKey(*object, component);
                     if (!key.empty())
                     {
-                        entry.AddMember("component", MakeString(key, allocator), allocator);
+                        entry.AddMember(LevelFileSchema::Component, MakeString(key, allocator), allocator);
                     }
-                    entry.AddMember("property", MakeString(property, allocator), allocator);
+                    entry.AddMember(LevelFileSchema::Property, MakeString(property, allocator), allocator);
                     JsonValue value;
                     if (property[0] == '$')
                     {
@@ -240,7 +240,7 @@ namespace BrightBox3D::Level
                         const Reflection::EngineObject& target = component ? static_cast<const Reflection::EngineObject&>(*component) : static_cast<const Reflection::EngineObject&>(*object);
                         Serialization::WriteProperty(*target.GetType().FindProperty(property), target, value, allocator);
                     }
-                    entry.AddMember("value", value, allocator);
+                    entry.AddMember(LevelFileSchema::Value, value, allocator);
                     out.PushBack(entry, allocator);
                 });
             }
@@ -251,16 +251,16 @@ namespace BrightBox3D::Level
         void WriteLinkedNode(const LevelObject& root, JsonValue& out, JsonAllocator& allocator)
         {
             out.SetObject();
-            out.AddMember("id", MakeString(root.GetId().ToString(), allocator), allocator);
-            out.AddMember("levelObject", MakeString(root.GetLink().asset.ToString(), allocator), allocator);
-            out.AddMember("name", MakeString(root.GetName(), allocator), allocator);
-            out.AddMember("active", JsonValue(root.IsActiveSelf()), allocator);
+            out.AddMember(LevelFileSchema::Id, MakeString(root.GetId().ToString(), allocator), allocator);
+            out.AddMember(LevelFileSchema::LevelObjectAsset, MakeString(root.GetLink().asset.ToString(), allocator), allocator);
+            out.AddMember(LevelFileSchema::Name, MakeString(root.GetName(), allocator), allocator);
+            out.AddMember(LevelFileSchema::Active, JsonValue(root.IsActiveSelf()), allocator);
             JsonValue transform(rapidjson::kObjectType);
             Serialization::SerializeProperties(root.GetTransform(), transform, allocator);
-            out.AddMember("transform", transform, allocator);
+            out.AddMember(LevelFileSchema::Transform, transform, allocator);
             JsonValue overrides;
             WriteOverrides(root, overrides, allocator);
-            out.AddMember("overrides", overrides, allocator);
+            out.AddMember(LevelFileSchema::Overrides, overrides, allocator);
 
             std::vector<LevelObject*> linked;
             std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
@@ -274,10 +274,10 @@ namespace BrightBox3D::Level
                 }
                 JsonValue node;
                 WriteNode(*child, node, allocator, true, false);
-                node.AddMember("attachTo", MakeString(attachTo->GetLink().sourceId.ToString(), allocator), allocator);
+                node.AddMember(LevelFileSchema::AttachTo, MakeString(attachTo->GetLink().sourceId.ToString(), allocator), allocator);
                 children.PushBack(node, allocator);
             }
-            out.AddMember("children", children, allocator);
+            out.AddMember(LevelFileSchema::Children, children, allocator);
         }
 
         void WriteNode(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode)
@@ -295,25 +295,25 @@ namespace BrightBox3D::Level
 
             out.SetObject();
             Core::Guid id = assetMode && object.GetLink().sourceId.IsValid() ? object.GetLink().sourceId : object.GetId();
-            out.AddMember("id", MakeString(id.ToString(), allocator), allocator);
-            out.AddMember("name", MakeString(object.GetName(), allocator), allocator);
+            out.AddMember(LevelFileSchema::Id, MakeString(id.ToString(), allocator), allocator);
+            out.AddMember(LevelFileSchema::Name, MakeString(object.GetName(), allocator), allocator);
             JsonValue properties(rapidjson::kObjectType);
             if (!object.GetMissingTypeName().empty())
             {
-                out.AddMember("$type", MakeString(object.GetMissingTypeName(), allocator), allocator);
+                out.AddMember(Serialization::TypeKey, MakeString(object.GetMissingTypeName(), allocator), allocator);
                 WriteRawJson(object.GetMissingTypeData(), properties, allocator);
             }
             else
             {
-                out.AddMember("$type", MakeString(object.GetType().GetName(), allocator), allocator);
+                out.AddMember(Serialization::TypeKey, MakeString(object.GetType().GetName(), allocator), allocator);
                 Serialization::SerializeProperties(object, properties, allocator);
             }
-            out.AddMember("active", JsonValue(object.IsActiveSelf()), allocator);
-            out.AddMember("properties", properties, allocator);
+            out.AddMember(LevelFileSchema::Active, JsonValue(object.IsActiveSelf()), allocator);
+            out.AddMember(LevelFileSchema::Properties, properties, allocator);
 
             JsonValue transform(rapidjson::kObjectType);
             Serialization::SerializeProperties(object.GetTransform(), transform, allocator);
-            out.AddMember("transform", transform, allocator);
+            out.AddMember(LevelFileSchema::Transform, transform, allocator);
 
             JsonValue components(rapidjson::kArrayType);
             for (const auto& component : object.GetComponents())
@@ -326,7 +326,7 @@ namespace BrightBox3D::Level
                 WriteComponent(*component, entry, allocator);
                 components.PushBack(entry, allocator);
             }
-            out.AddMember("components", components, allocator);
+            out.AddMember(LevelFileSchema::Components, components, allocator);
 
             JsonValue children(rapidjson::kArrayType);
             for (const LevelObject* child : object.GetChildren())
@@ -339,7 +339,7 @@ namespace BrightBox3D::Level
                 WriteNode(*child, node, allocator, preserveLinks && !assetMode, assetMode);
                 children.PushBack(node, allocator);
             }
-            out.AddMember("children", children, allocator);
+            out.AddMember(LevelFileSchema::Children, children, allocator);
         }
 
         struct ReadContext
@@ -352,9 +352,9 @@ namespace BrightBox3D::Level
 
         std::unique_ptr<LevelObjectComponent> ReadComponent(const JsonValue& entry)
         {
-            std::string typeName = GetString(entry, "$type");
+            std::string typeName = GetString(entry, Serialization::TypeKey);
             const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
-            const JsonValue* properties = FindMember(entry, "properties");
+            const JsonValue* properties = FindMember(entry, LevelFileSchema::Properties);
             std::unique_ptr<LevelObjectComponent> component;
             if (type && type->IsA(LevelObjectComponent::StaticType()) && !type->IsA(Transform::StaticType()) && !type->IsAbstract())
             {
@@ -376,9 +376,9 @@ namespace BrightBox3D::Level
                 Core::Log::Warning(Core::Text(Core::EngineText::MissingComponentType, typeName));
                 component = std::move(missing);
             }
-            Core::Guid localId = Core::Guid::Parse(GetString(entry, "id"));
+            Core::Guid localId = Core::Guid::Parse(GetString(entry, LevelFileSchema::Id));
             component->SetLocalId(localId.IsValid() ? localId : Core::Guid::Generate());
-            component->SetEnabled(GetBool(entry, "enabled", true));
+            component->SetEnabled(GetBool(entry, LevelFileSchema::Enabled, true));
             return component;
         }
 
@@ -388,16 +388,16 @@ namespace BrightBox3D::Level
 
         LevelObject* ReadLinkedNode(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const Core::Guid& id, bool freshIds)
         {
-            Core::Guid asset = Core::Guid::Parse(GetString(node, "levelObject"));
+            Core::Guid asset = Core::Guid::Parse(GetString(node, LevelFileSchema::LevelObjectAsset));
             LevelObjectLibrary::Get().GetPrototype(asset);
             LevelObject* root = InstantiateAsset(level, asset, collection, parent, id, false, true);
             if (!root)
             {
                 Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString()));
                 std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
-                placeholder->SetName(GetString(node, "name", "Missing LevelObject"));
+                placeholder->SetName(GetString(node, LevelFileSchema::Name, "Missing LevelObject"));
                 placeholder->SetMissingType(MissingLevelObjectType, Serialization::WriteJson(node, false));
-                if (const JsonValue* transform = FindMember(node, "transform"))
+                if (const JsonValue* transform = FindMember(node, LevelFileSchema::Transform))
                 {
                     Serialization::DeserializeProperties(placeholder->GetTransform(), *transform);
                 }
@@ -405,9 +405,9 @@ namespace BrightBox3D::Level
                 return raw;
             }
 
-            root->SetName(GetString(node, "name", root->GetName()));
-            root->SetActive(GetBool(node, "active", root->IsActiveSelf()));
-            if (const JsonValue* transform = FindMember(node, "transform"))
+            root->SetName(GetString(node, LevelFileSchema::Name, root->GetName()));
+            root->SetActive(GetBool(node, LevelFileSchema::Active, root->IsActiveSelf()));
+            if (const JsonValue* transform = FindMember(node, LevelFileSchema::Transform))
             {
                 Serialization::DeserializeProperties(root->GetTransform(), *transform);
             }
@@ -426,24 +426,24 @@ namespace BrightBox3D::Level
             };
             index(*root);
 
-            if (const JsonValue* overrides = FindMember(node, "overrides"); overrides && overrides->IsArray())
+            if (const JsonValue* overrides = FindMember(node, LevelFileSchema::Overrides); overrides && overrides->IsArray())
             {
                 for (const JsonValue& entry : overrides->GetArray())
                 {
-                    auto it = bySource.find(Core::Guid::Parse(GetString(entry, "target")));
-                    const JsonValue* value = FindMember(entry, "value");
+                    auto it = bySource.find(Core::Guid::Parse(GetString(entry, LevelFileSchema::Target)));
+                    const JsonValue* value = FindMember(entry, LevelFileSchema::Value);
                     if (it == bySource.end() || !value)
                     {
                         continue;
                     }
                     LevelObject& object = *it->second;
-                    std::string componentKey = GetString(entry, "component");
+                    std::string componentKey = GetString(entry, LevelFileSchema::Component);
                     LevelObjectComponent* component = ResolveComponent(object, componentKey);
                     if (!componentKey.empty() && !component)
                     {
                         continue;
                     }
-                    std::string property = GetString(entry, "property");
+                    std::string property = GetString(entry, LevelFileSchema::Property);
                     if (!property.empty() && property[0] == '$')
                     {
                         ReadPseudoProperty(object, component, property, *value);
@@ -458,11 +458,11 @@ namespace BrightBox3D::Level
                 }
             }
 
-            if (const JsonValue* children = FindMember(node, "children"); children && children->IsArray())
+            if (const JsonValue* children = FindMember(node, LevelFileSchema::Children); children && children->IsArray())
             {
                 for (const JsonValue& child : children->GetArray())
                 {
-                    auto it = bySource.find(Core::Guid::Parse(GetString(child, "attachTo")));
+                    auto it = bySource.find(Core::Guid::Parse(GetString(child, LevelFileSchema::AttachTo)));
                     LevelObject* attach = it == bySource.end() ? root : it->second;
                     ReadContext childContext;
                     childContext.freshIds = freshIds;
@@ -474,7 +474,7 @@ namespace BrightBox3D::Level
 
         LevelObject* ReadVariantOfTemplate(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const ReadContext& context)
         {
-            Core::Guid parentAsset = Core::Guid::Parse(GetString(node, "levelObject"));
+            Core::Guid parentAsset = Core::Guid::Parse(GetString(node, LevelFileSchema::LevelObjectAsset));
             const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(parentAsset);
             if (!record || record->type != Assets::AssetType::LevelObjectTemplate)
             {
@@ -495,11 +495,11 @@ namespace BrightBox3D::Level
             {
                 return nullptr;
             }
-            if (FindMember(node, "levelObject"))
+            if (FindMember(node, LevelFileSchema::LevelObjectAsset))
             {
                 if (!context.asset.IsValid())
                 {
-                    Core::Guid id = context.freshIds ? Core::Guid::Generate() : Core::Guid::Parse(GetString(node, "id"));
+                    Core::Guid id = context.freshIds ? Core::Guid::Generate() : Core::Guid::Parse(GetString(node, LevelFileSchema::Id));
                     return ReadLinkedNode(level, collection, parent, node, id, context.freshIds);
                 }
                 if (isAssetRoot)
@@ -508,13 +508,13 @@ namespace BrightBox3D::Level
                 }
             }
 
-            std::string typeName = GetString(node, "$type", "LevelObject");
+            std::string typeName = GetString(node, Serialization::TypeKey, LevelObject::StaticType().GetName());
             const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(typeName);
             bool missing = !type || !type->IsA(LevelObject::StaticType()) || type->IsAbstract();
             std::unique_ptr<Reflection::EngineObject> created((missing ? &LevelObject::StaticType() : type)->CreateInstance());
             std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
 
-            Core::Guid sourceId = Core::Guid::Parse(GetString(node, "id"));
+            Core::Guid sourceId = Core::Guid::Parse(GetString(node, LevelFileSchema::Id));
             Core::Guid id = sourceId;
             if (context.asset.IsValid())
             {
@@ -526,9 +526,9 @@ namespace BrightBox3D::Level
                 id = Core::Guid::Generate();
             }
 
-            object->SetName(GetString(node, "name", "LevelObject"));
-            object->SetActive(GetBool(node, "active", true));
-            const JsonValue* properties = FindMember(node, "properties");
+            object->SetName(GetString(node, LevelFileSchema::Name, LevelObject::StaticType().GetName()));
+            object->SetActive(GetBool(node, LevelFileSchema::Active, true));
+            const JsonValue* properties = FindMember(node, LevelFileSchema::Properties);
             if (missing)
             {
                 object->SetMissingType(typeName, properties ? Serialization::WriteJson(*properties, false) : "{}");
@@ -538,11 +538,11 @@ namespace BrightBox3D::Level
             {
                 Serialization::DeserializeProperties(*object, *properties);
             }
-            if (const JsonValue* transform = FindMember(node, "transform"))
+            if (const JsonValue* transform = FindMember(node, LevelFileSchema::Transform))
             {
                 Serialization::DeserializeProperties(object->GetTransform(), *transform);
             }
-            if (const JsonValue* components = FindMember(node, "components"); components && components->IsArray())
+            if (const JsonValue* components = FindMember(node, LevelFileSchema::Components); components && components->IsArray())
             {
                 for (const JsonValue& entry : components->GetArray())
                 {
@@ -562,7 +562,7 @@ namespace BrightBox3D::Level
                 (*context.bySource)[sourceId] = raw;
             }
 
-            if (const JsonValue* children = FindMember(node, "children"); children && children->IsArray())
+            if (const JsonValue* children = FindMember(node, LevelFileSchema::Children); children && children->IsArray())
             {
                 for (const JsonValue& child : children->GetArray())
                 {
@@ -702,8 +702,8 @@ namespace BrightBox3D::Level
     {
         document.SetObject();
         auto& allocator = document.GetAllocator();
-        document.AddMember("$asset", JsonValue(Assets::AssetTypeName(type), allocator), allocator);
-        document.AddMember("version", 1, allocator);
+        document.AddMember(LevelFileSchema::AssetKind, JsonValue(Assets::AssetTypeName(type), allocator), allocator);
+        document.AddMember(LevelFileSchema::Version, LevelFileSchema::CurrentVersion, allocator);
         JsonValue node;
         if (type == Assets::AssetType::LevelObjectVariant && root.GetLink().isRoot && root.GetLink().asset.IsValid())
         {
@@ -713,16 +713,22 @@ namespace BrightBox3D::Level
         {
             WriteAssetNode(root, node, allocator);
         }
-        document.AddMember("root", node, allocator);
+        document.AddMember(LevelFileSchema::Root, node, allocator);
+    }
+
+    void LevelSerializer::WriteEmptyCollection(const std::string& name, JsonValue& out, JsonAllocator& allocator)
+    {
+        out.SetObject();
+        out.AddMember(LevelFileSchema::AssetKind, JsonValue(Assets::AssetTypeName(Assets::AssetType::LevelCollection), allocator), allocator);
+        out.AddMember(LevelFileSchema::Version, LevelFileSchema::CurrentVersion, allocator);
+        out.AddMember(LevelFileSchema::Name, MakeString(name, allocator), allocator);
+        out.AddMember(LevelFileSchema::Objects, JsonValue(rapidjson::kArrayType), allocator);
     }
 
     void LevelSerializer::WriteCollection(const LevelCollection& collection, JsonValue& out, JsonAllocator& allocator)
     {
-        out.SetObject();
-        out.AddMember("$asset", "LevelCollection", allocator);
-        out.AddMember("version", 1, allocator);
-        out.AddMember("name", MakeString(collection.GetName(), allocator), allocator);
-        JsonValue objects(rapidjson::kArrayType);
+        WriteEmptyCollection(collection.GetName(), out, allocator);
+        JsonValue& objects = out[LevelFileSchema::Objects];
         for (const LevelObject* root : collection.GetRoots())
         {
             if (root->GetHideInLevelContents() || root->IsPendingDestroy())
@@ -733,7 +739,6 @@ namespace BrightBox3D::Level
             WriteNode(*root, node, allocator, true, false);
             objects.PushBack(node, allocator);
         }
-        out.AddMember("objects", objects, allocator);
     }
 
     bool LevelSerializer::ReadCollection(Level& level, LevelCollection& collection, const JsonValue& document)
@@ -742,13 +747,13 @@ namespace BrightBox3D::Level
         {
             return false;
         }
-        std::string name = GetString(document, "name");
+        std::string name = GetString(document, LevelFileSchema::Name);
         if (!name.empty())
         {
             collection.SetName(name);
         }
         std::vector<LevelObject*> roots;
-        if (const JsonValue* objects = FindMember(document, "objects"); objects && objects->IsArray())
+        if (const JsonValue* objects = FindMember(document, LevelFileSchema::Objects); objects && objects->IsArray())
         {
             for (const JsonValue& node : objects->GetArray())
             {
@@ -768,20 +773,20 @@ namespace BrightBox3D::Level
     void LevelSerializer::WriteLevel(const Level& level, JsonValue& out, JsonAllocator& allocator)
     {
         out.SetObject();
-        out.AddMember("$asset", "Level", allocator);
-        out.AddMember("version", 1, allocator);
+        out.AddMember(LevelFileSchema::AssetKind, JsonValue(Assets::AssetTypeName(Assets::AssetType::Level), allocator), allocator);
+        out.AddMember(LevelFileSchema::Version, LevelFileSchema::CurrentVersion, allocator);
         JsonValue collections(rapidjson::kArrayType);
         for (const auto& collection : level.GetCollections())
         {
             JsonValue entry(rapidjson::kObjectType);
-            entry.AddMember("collection", MakeString(collection->GetAsset().ToString(), allocator), allocator);
-            entry.AddMember("name", MakeString(collection->GetName(), allocator), allocator);
+            entry.AddMember(LevelFileSchema::Collection, MakeString(collection->GetAsset().ToString(), allocator), allocator);
+            entry.AddMember(LevelFileSchema::Name, MakeString(collection->GetName(), allocator), allocator);
             collections.PushBack(entry, allocator);
         }
-        out.AddMember("collections", collections, allocator);
+        out.AddMember(LevelFileSchema::Collections, collections, allocator);
         JsonValue settings;
         settings.CopyFrom(level.GetSettings(), allocator);
-        out.AddMember("settings", settings, allocator);
+        out.AddMember(LevelFileSchema::Settings, settings, allocator);
     }
 
     bool LevelSerializer::LoadCollectionInto(Level& level, const Core::Guid& collectionAsset, LevelCollection** loaded)
@@ -792,7 +797,7 @@ namespace BrightBox3D::Level
             Core::Log::Error(Core::Text(Core::EngineText::CollectionLoadFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), collectionAsset.ToString()));
             return false;
         }
-        LevelCollection* collection = level.AddCollection(GetString(asset->GetDocument(), "name", asset->GetName()), collectionAsset);
+        LevelCollection* collection = level.AddCollection(GetString(asset->GetDocument(), LevelFileSchema::Name, asset->GetName()), collectionAsset);
         bool result = ReadCollection(level, *collection, asset->GetDocument());
         collection->SetDirty(false);
         if (loaded)
@@ -816,18 +821,18 @@ namespace BrightBox3D::Level
         auto level = std::make_unique<Level>(asset->GetName());
         level->SetAsset(levelAsset);
         const JsonValue& document = asset->GetDocument();
-        if (const JsonValue* settings = FindMember(document, "settings"); settings && settings->IsObject())
+        if (const JsonValue* settings = FindMember(document, LevelFileSchema::Settings); settings && settings->IsObject())
         {
             level->GetSettings().CopyFrom(*settings, level->GetSettings().GetAllocator());
         }
-        if (const JsonValue* collections = FindMember(document, "collections"); collections && collections->IsArray())
+        if (const JsonValue* collections = FindMember(document, LevelFileSchema::Collections); collections && collections->IsArray())
         {
             for (const JsonValue& entry : collections->GetArray())
             {
-                Core::Guid guid = Core::Guid::Parse(GetString(entry, "collection"));
+                Core::Guid guid = Core::Guid::Parse(GetString(entry, LevelFileSchema::Collection));
                 if (!LoadCollectionInto(*level, guid))
                 {
-                    LevelCollection* missing = level->AddCollection(GetString(entry, "name", "Missing Collection"), guid);
+                    LevelCollection* missing = level->AddCollection(GetString(entry, LevelFileSchema::Name, "Missing Collection"), guid);
                     missing->SetDirty(false);
                 }
             }
@@ -891,25 +896,21 @@ namespace BrightBox3D::Level
         std::string folder = std::filesystem::path(path).parent_path().generic_string();
 
         JsonDocument collection;
-        collection.SetObject();
-        collection.AddMember("$asset", "LevelCollection", collection.GetAllocator());
-        collection.AddMember("version", 1, collection.GetAllocator());
-        collection.AddMember("name", "Main", collection.GetAllocator());
-        collection.AddMember("objects", JsonValue(rapidjson::kArrayType), collection.GetAllocator());
+        WriteEmptyCollection("Main", collection, collection.GetAllocator());
         Core::Guid collectionGuid = database.CreateJsonAsset(database.MakeUniquePath((folder.empty() ? "" : folder + "/") + name + "_Main.collection"), collection);
 
         JsonDocument level;
         level.SetObject();
         auto& allocator = level.GetAllocator();
-        level.AddMember("$asset", "Level", allocator);
-        level.AddMember("version", 1, allocator);
+        level.AddMember(LevelFileSchema::AssetKind, JsonValue(Assets::AssetTypeName(Assets::AssetType::Level), allocator), allocator);
+        level.AddMember(LevelFileSchema::Version, LevelFileSchema::CurrentVersion, allocator);
         JsonValue collections(rapidjson::kArrayType);
         JsonValue entry(rapidjson::kObjectType);
-        entry.AddMember("collection", MakeString(collectionGuid.ToString(), allocator), allocator);
-        entry.AddMember("name", "Main", allocator);
+        entry.AddMember(LevelFileSchema::Collection, MakeString(collectionGuid.ToString(), allocator), allocator);
+        entry.AddMember(LevelFileSchema::Name, "Main", allocator);
         collections.PushBack(entry, allocator);
-        level.AddMember("collections", collections, allocator);
-        level.AddMember("settings", JsonValue(rapidjson::kObjectType), allocator);
+        level.AddMember(LevelFileSchema::Collections, collections, allocator);
+        level.AddMember(LevelFileSchema::Settings, JsonValue(rapidjson::kObjectType), allocator);
         Core::Guid guid = database.CreateJsonAsset(path, level);
         if (!guid.IsValid() && error)
         {
@@ -942,10 +943,10 @@ namespace BrightBox3D::Level
         for (const JsonValue& entry : overrides.GetArray())
         {
             PropertyOverride item;
-            item.target = Core::Guid::Parse(GetString(entry, "target"));
-            std::string component = GetString(entry, "component");
-            item.component = component == TransformTarget ? Core::Guid{ 0, 1 } : Core::Guid::Parse(component);
-            item.property = GetString(entry, "property");
+            item.target = Core::Guid::Parse(GetString(entry, LevelFileSchema::Target));
+            std::string component = GetString(entry, LevelFileSchema::Component);
+            item.component = component == LevelFileSchema::TransformComponentKey ? Core::Guid{ 0, 1 } : Core::Guid::Parse(component);
+            item.property = GetString(entry, LevelFileSchema::Property);
             result.push_back(item);
         }
         return result;
@@ -959,7 +960,7 @@ namespace BrightBox3D::Level
             return false;
         }
         bool isRoot = linkRoot == &object;
-        if (isRoot && (component == &object.GetTransform() || property == "$name" || property == "$active"))
+        if (isRoot && (component == &object.GetTransform() || property == LevelFileSchema::PseudoName || property == LevelFileSchema::PseudoActive))
         {
             return false;
         }
@@ -1157,7 +1158,7 @@ namespace BrightBox3D::Level
         }
         JsonDocument document;
         WriteLinkedNode(linkRoot, document, document.GetAllocator());
-        document["overrides"].SetArray();
+        document[LevelFileSchema::Overrides].SetArray();
         Level* level = linkRoot.GetLevel();
         LevelObject* parent = linkRoot.GetParent();
         LevelCollection* collection = linkRoot.GetCollection();

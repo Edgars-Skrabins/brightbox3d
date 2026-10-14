@@ -13,6 +13,7 @@
 #include "Framework/LevelGameplaySettings.h"
 #include "Geometry/ModelAsset.h"
 #include "ImGui/ImGuiRenderer.h"
+#include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 #include "Level/MissingComponent.h"
 #include "ObjectIcons.h"
@@ -180,7 +181,7 @@ namespace BrightBox3D::Editor
             }
             ImGui::SameLine();
         }
-        bool overriddenEnabled = !isTransform && LevelSerializer::IsPropertyOverridden(object, &component, "$enabled");
+        bool overriddenEnabled = !isTransform && LevelSerializer::IsPropertyOverridden(object, &component, Level::LevelFileSchema::PseudoEnabled);
         if (overriddenEnabled)
         {
             ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", title.c_str());
@@ -277,7 +278,7 @@ namespace BrightBox3D::Editor
             {
                 ImGui::SetKeyboardFocusHere();
             }
-            ImGui::InputTextWithHint("##search", "Search components", &m_componentFilter);
+            ImGui::InputTextWithHint("##search", Text(EditorText::SearchComponentsHint), &m_componentFilter);
             std::map<std::string, std::vector<const Reflection::TypeInfo*>> byCategory;
             for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObjectComponent::StaticType()))
             {

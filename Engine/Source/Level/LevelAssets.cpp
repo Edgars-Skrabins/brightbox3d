@@ -1,6 +1,7 @@
 #include "Level/LevelAssets.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Level/LevelFileSchema.h"
 
 namespace BrightBox3D::Level
 {
@@ -31,18 +32,18 @@ namespace BrightBox3D::Level
 
     const Serialization::JsonValue* LevelObjectVariantAsset::GetRoot() const
     {
-        return Serialization::FindMember(GetDocument(), "root");
+        return Serialization::FindMember(GetDocument(), LevelFileSchema::Root);
     }
 
     Core::Guid LevelObjectVariantAsset::GetParentTemplate() const
     {
         const Serialization::JsonValue* root = GetRoot();
-        return root ? Core::Guid::Parse(Serialization::GetString(*root, "levelObject")) : Core::Guid{};
+        return root ? Core::Guid::Parse(Serialization::GetString(*root, LevelFileSchema::LevelObjectAsset)) : Core::Guid{};
     }
 
     const Serialization::JsonValue* LevelObjectTemplateAsset::GetRoot() const
     {
-        return Serialization::FindMember(GetDocument(), "root");
+        return Serialization::FindMember(GetDocument(), LevelFileSchema::Root);
     }
 
     void RegisterLevelAssetImporters()

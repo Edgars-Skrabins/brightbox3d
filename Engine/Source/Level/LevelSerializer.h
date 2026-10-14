@@ -24,6 +24,7 @@ namespace BrightBox3D::Level
         static void WriteObject(const LevelObject& object, Serialization::JsonValue& out, Serialization::JsonAllocator& allocator, bool preserveLinks = true);
         static LevelObject* ReadObject(Level& level, LevelCollection* collection, LevelObject* parent, const Serialization::JsonValue& node, bool initialize = true);
 
+        static void WriteEmptyCollection(const std::string& name, Serialization::JsonValue& out, Serialization::JsonAllocator& allocator);
         static void WriteCollection(const LevelCollection& collection, Serialization::JsonValue& out, Serialization::JsonAllocator& allocator);
         static bool ReadCollection(Level& level, LevelCollection& collection, const Serialization::JsonValue& document);
 

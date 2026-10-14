@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "EditorContext.h"
 #include "EditorText.h"
+#include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 
 #include <functional>
@@ -82,8 +83,8 @@ namespace BrightBox3D::Editor
         }
         JsonDocument linked;
         linked.SetObject();
-        linked.AddMember("levelObject", Serialization::MakeString(templateAsset.ToString(), linked.GetAllocator()), linked.GetAllocator());
-        linked.AddMember("overrides", JsonValue(rapidjson::kArrayType), linked.GetAllocator());
+        linked.AddMember(Level::LevelFileSchema::LevelObjectAsset, Serialization::MakeString(templateAsset.ToString(), linked.GetAllocator()), linked.GetAllocator());
+        linked.AddMember(Level::LevelFileSchema::Overrides, JsonValue(rapidjson::kArrayType), linked.GetAllocator());
         Level::Level scratch;
         LevelObject* variant = LevelSerializer::ReadObject(scratch, nullptr, nullptr, linked, false);
         if (!variant)

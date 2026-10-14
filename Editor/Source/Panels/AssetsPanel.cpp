@@ -192,11 +192,7 @@ namespace BrightBox3D::Editor
         if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelCollection)))
         {
             Serialization::JsonDocument document;
-            document.SetObject();
-            document.AddMember("$asset", "LevelCollection", document.GetAllocator());
-            document.AddMember("version", 1, document.GetAllocator());
-            document.AddMember("name", Serialization::JsonValue(Text(EditorText::NewCollectionName), document.GetAllocator()), document.GetAllocator());
-            document.AddMember("objects", Serialization::JsonValue(rapidjson::kArrayType), document.GetAllocator());
+            Level::LevelSerializer::WriteEmptyCollection(Text(EditorText::NewCollectionName), document, document.GetAllocator());
             context.GetSelectionService().SelectAsset(database.CreateJsonAsset(database.MakeUniquePath(prefix + Text(EditorText::NewCollectionName) + Assets::AssetTypeExtension(Assets::AssetType::LevelCollection)), document));
         }
         if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelObjectTemplate)))
@@ -388,7 +384,7 @@ namespace BrightBox3D::Editor
             ImGui::TextDisabled("%s", Text(EditorText::AssetsFolderPath, CurrentFolder()).c_str());
             ImGui::SameLine();
             ImGui::SetNextItemWidth(160.0f);
-            ImGui::InputTextWithHint("##filter", "Search", &m_filter);
+            ImGui::InputTextWithHint("##filter", Text(EditorText::SearchHint), &m_filter);
             ImGui::SameLine();
             ImGui::SetNextItemWidth(80.0f);
             ImGui::SliderFloat("##size", &m_tileSize, 56.0f, 160.0f, "");

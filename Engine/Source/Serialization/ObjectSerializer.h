@@ -24,5 +24,5 @@ namespace BrightBox3D::Serialization
     void CopyPropertyValue(const Reflection::PropertyInfo& property, const Reflection::EngineObject& source, Reflection::EngineObject& destination);
     void CopyProperties(const Reflection::EngineObject& source, Reflection::EngineObject& destination);
 
-    inline constexpr const char* TypeKey = "$type";
+    inline constexpr char TypeKey[] = "$type";
 }

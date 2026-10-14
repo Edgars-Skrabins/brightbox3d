@@ -5,6 +5,7 @@
 #include "EditorContext.h"
 #include "EditorText.h"
 #include "Geometry/ModelAsset.h"
+#include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 #include "Rendering/Light.h"
 #include "Rendering/MeshRenderer.h"
@@ -31,7 +32,7 @@ namespace BrightBox3D::Editor
         {
             return nullptr;
         }
-        Core::Guid id = Core::Guid::Parse(Serialization::GetString(snapshot, "id"));
+        Core::Guid id = Core::Guid::Parse(Serialization::GetString(snapshot, Level::LevelFileSchema::Id));
         if (LevelObject* existing = level->FindObject(id))
         {
             level->DestroyObjectImmediate(existing);
