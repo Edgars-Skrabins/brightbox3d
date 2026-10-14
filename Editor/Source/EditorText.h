@@ -383,6 +383,7 @@ namespace BrightBox3D::Editor
         AddExistingCollection,
         TypeNameSuffix,
         DirtyMarker,
+        CreateAssetButton,
         Count
     };
 

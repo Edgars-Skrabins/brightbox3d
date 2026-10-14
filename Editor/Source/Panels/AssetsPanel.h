@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Core/Guid.h"
-#include "Widgets/InlineRename.h"
+#include "Panels/Assets/AssetsItemView.h"
 
 #include <filesystem>
-#include <string>
 #include <vector>
 
 namespace BrightBox3D::Editor
@@ -19,16 +18,10 @@ namespace BrightBox3D::Editor
         void ImportFiles(const std::vector<std::filesystem::path>& files);
 
     private:
-        void DrawFolderTree(const std::string& folder, const std::string& label);
-        void DrawCreateMenu();
-        void DrawItemContextMenu(const Core::Guid& guid);
-        void OpenAsset(const Core::Guid& guid);
-        std::string CurrentFolder() const;
+        void DrawDeleteConfirmation();
 
         EditorApplication& m_application;
-        std::string m_filter;
-        float m_tileSize = 84.0f;
-        InlineRename m_rename;
+        AssetsItemView m_items;
         Core::Guid m_pendingDelete;
     };
 }

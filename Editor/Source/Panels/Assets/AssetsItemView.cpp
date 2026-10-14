@@ -1,0 +1,327 @@
+#include "Panels/Assets/AssetsItemView.h"
+
+#include "Assets/AssetDatabase.h"
+#include "Core/Log.h"
+#include "Core/StringUtils.h"
+#include "DragDrop.h"
+#include "EditorApplication.h"
+#include "EditorPreferences.h"
+#include "EditorText.h"
+#include "ImGui/ImGuiRenderer.h"
+#include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/AssetsFolderTree.h"
+#include "Thumbnails.h"
+
+#include <misc/cpp/imgui_stdlib.h>
+
+#include <algorithm>
+
+namespace BrightBox3D::Editor
+{
+    namespace
+    {
+        constexpr float TileSpacing = 16.0f;
+        constexpr float ThumbnailInset = 4.0f;
+        constexpr float ThumbnailRounding = 4.0f;
+        constexpr float TypeStripeHeight = 3.0f;
+        constexpr float LabelLines = 2.0f;
+        constexpr float FilterWidth = 160.0f;
+        constexpr float TileSliderWidth = 80.0f;
+        constexpr float MinTileSize = 56.0f;
+        constexpr float MaxTileSize = 160.0f;
+        constexpr float MinDropZoneHeight = 40.0f;
+        constexpr Assets::AssetType BuiltinTypes[] = { Assets::AssetType::Model, Assets::AssetType::Material };
+
+        ImU32 TypeColor(Assets::AssetType type)
+        {
+            switch (type)
+            {
+            case Assets::AssetType::Folder:
+                return EditorColorU32(EditorColor::AssetFolder);
+            case Assets::AssetType::Level:
+                return EditorColorU32(EditorColor::AssetLevel);
+            case Assets::AssetType::LevelCollection:
+                return EditorColorU32(EditorColor::AssetCollection);
+            case Assets::AssetType::LevelObjectVariant:
+                return EditorColorU32(EditorColor::AssetLevelObject);
+            case Assets::AssetType::LevelObjectTemplate:
+                return EditorColorU32(EditorColor::AssetTemplate);
+            case Assets::AssetType::Material:
+                return EditorColorU32(EditorColor::AssetMaterial);
+            case Assets::AssetType::Model:
+                return EditorColorU32(EditorColor::AssetModel);
+            case Assets::AssetType::Texture:
+                return EditorColorU32(EditorColor::AssetTexture);
+            case Assets::AssetType::Screen:
+            case Assets::AssetType::Widget:
+                return EditorColorU32(EditorColor::AssetUI);
+            case Assets::AssetType::StyleSheet:
+                return EditorColorU32(EditorColor::AssetStyleSheet);
+            default:
+                return EditorColorU32(EditorColor::AssetOther);
+            }
+        }
+
+        const char* TypeGlyph(Assets::AssetType type)
+        {
+            switch (type)
+            {
+            case Assets::AssetType::Folder:
+                return Text(EditorText::AssetBadgeFolder);
+            case Assets::AssetType::Level:
+                return Text(EditorText::AssetBadgeLevel);
+            case Assets::AssetType::LevelCollection:
+                return Text(EditorText::AssetBadgeLevelCollection);
+            case Assets::AssetType::LevelObjectVariant:
+                return Text(EditorText::AssetBadgeLevelObjectVariant);
+            case Assets::AssetType::LevelObjectTemplate:
+                return Text(EditorText::AssetBadgeLevelObjectTemplate);
+            case Assets::AssetType::Material:
+                return Text(EditorText::AssetBadgeMaterial);
+            case Assets::AssetType::Model:
+                return Text(EditorText::AssetBadgeModel);
+            case Assets::AssetType::Texture:
+                return Text(EditorText::AssetBadgeTexture);
+            case Assets::AssetType::Screen:
+                return Text(EditorText::AssetBadgeScreen);
+            case Assets::AssetType::Widget:
+                return Text(EditorText::AssetBadgeWidget);
+            case Assets::AssetType::StyleSheet:
+                return Text(EditorText::AssetBadgeStyleSheet);
+            case Assets::AssetType::Font:
+                return Text(EditorText::AssetBadgeFont);
+            default:
+                return Text(EditorText::AssetBadgeUnknown);
+            }
+        }
+
+        bool SortFoldersFirst(const Assets::AssetRecord& a, const Assets::AssetRecord& b)
+        {
+            bool aFolder = a.type == Assets::AssetType::Folder;
+            bool bFolder = b.type == Assets::AssetType::Folder;
+            if (aFolder != bFolder)
+            {
+                return aFolder;
+            }
+            return a.name < b.name;
+        }
+    }
+
+    AssetsItemView::AssetsItemView(EditorApplication& application) : m_application(application)
+    {
+    }
+
+    std::string AssetsItemView::CurrentFolder() const
+    {
+        return m_application.GetContext().GetAssetCreationService().GetAssetsFolder();
+    }
+
+    void AssetsItemView::DrawToolbar()
+    {
+        if (ImGui::Button(Text(EditorText::CreateAssetButton)))
+        {
+            ImGui::OpenPopup("CreateAsset");
+        }
+        if (ImGui::BeginPopup("CreateAsset"))
+        {
+            AssetsContextMenu::DrawCreateMenu(m_application, CurrentFolder());
+            ImGui::EndPopup();
+        }
+        ImGui::SameLine();
+        if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
+        {
+            m_application.GetContext().GetAssetCreationService().SetAssetsFolder(CurrentFolder() == BuiltinFolder ? "" : ParentFolder(CurrentFolder()));
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", Text(EditorText::AssetsFolderPath, CurrentFolder()).c_str());
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(FilterWidth);
+        ImGui::InputTextWithHint("##filter", Text(EditorText::SearchHint), &m_filter);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(TileSliderWidth);
+        ImGui::SliderFloat("##size", &m_tileSize, MinTileSize, MaxTileSize, "");
+    }
+
+    std::vector<Assets::AssetRecord> AssetsItemView::CollectItems() const
+    {
+        Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
+        std::string filter = Core::ToLower(m_filter);
+        std::string folder = CurrentFolder();
+        std::vector<Assets::AssetRecord> items;
+        for (const Assets::AssetRecord& record : database.GetRecords())
+        {
+            if (database.IsBuiltin(record.guid))
+            {
+                continue;
+            }
+            bool matches = filter.empty() ? ParentFolder(record.path) == folder : Core::ToLower(record.path).find(filter) != std::string::npos;
+            if (matches)
+            {
+                items.push_back(record);
+            }
+        }
+        if (folder == BuiltinFolder)
+        {
+            for (Assets::AssetType type : BuiltinTypes)
+            {
+                for (const Assets::AssetRecord& record : database.GetRecords(type))
+                {
+                    if (database.IsBuiltin(record.guid))
+                    {
+                        items.push_back(record);
+                    }
+                }
+            }
+        }
+        std::stable_sort(items.begin(), items.end(), SortFoldersFirst);
+        return items;
+    }
+
+    void AssetsItemView::HandleItemDrop(const Assets::AssetRecord& record)
+    {
+        if (record.type != Assets::AssetType::Folder || !ImGui::BeginDragDropTarget())
+        {
+            return;
+        }
+        Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
+        if (std::optional<Core::Guid> dragged = AcceptPayload(DragDropPayload::Asset))
+        {
+            if (const Assets::AssetRecord* draggedRecord = database.FindRecord(*dragged); draggedRecord && *dragged != record.guid)
+            {
+                database.MoveAsset(*dragged, record.path + "/" + draggedRecord->name);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void AssetsItemView::DrawThumbnail(const Assets::AssetRecord& record, const ImVec2& cursor)
+    {
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 imageMin(cursor.x + ThumbnailInset, cursor.y + ThumbnailInset);
+        ImVec2 imageMax(cursor.x + m_tileSize - ThumbnailInset, cursor.y + m_tileSize - ThumbnailInset);
+        RHI::Texture* thumbnail = record.type == Assets::AssetType::Folder ? nullptr : m_application.GetThumbnails().Get(record.guid);
+        if (thumbnail)
+        {
+            drawList->AddImage(ImGuiRenderer::ToTextureId(thumbnail), imageMin, imageMax);
+        }
+        else
+        {
+            drawList->AddRectFilled(imageMin, imageMax, EditorColorU32(EditorColor::Control), ThumbnailRounding);
+            const char* glyph = TypeGlyph(record.type);
+            ImVec2 size = ImGui::CalcTextSize(glyph);
+            drawList->AddText(ImVec2((imageMin.x + imageMax.x - size.x) * 0.5f, (imageMin.y + imageMax.y - size.y) * 0.5f), TypeColor(record.type), glyph);
+        }
+        drawList->AddRectFilled(ImVec2(imageMin.x, imageMax.y - TypeStripeHeight), ImVec2(imageMax.x, imageMax.y), TypeColor(record.type));
+    }
+
+    void AssetsItemView::DrawLabel(const Assets::AssetRecord& record, const ImVec2& cursor)
+    {
+        if (!m_rename.IsRenaming(record.guid))
+        {
+            ImVec2 textSize = ImGui::CalcTextSize(record.name.c_str(), nullptr, false, m_tileSize);
+            ImVec4 clip(cursor.x, cursor.y + m_tileSize, cursor.x + m_tileSize, cursor.y + m_tileSize + ImGui::GetTextLineHeightWithSpacing() * LabelLines);
+            ImGui::GetWindowDrawList()->AddText(nullptr, 0.0f, ImVec2(cursor.x + std::max(0.0f, (m_tileSize - textSize.x) * 0.5f), cursor.y + m_tileSize), ImGui::GetColorU32(ImGuiCol_Text), record.name.c_str(), nullptr, m_tileSize, &clip);
+            return;
+        }
+        ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + m_tileSize));
+        if (std::optional<std::string> renamed = m_rename.Draw(m_tileSize))
+        {
+            std::string extension = record.type == Assets::AssetType::Folder ? "" : record.name.substr(std::min(record.name.find('.'), record.name.size()));
+            std::string parent = ParentFolder(record.path);
+            std::string target = (parent.empty() ? "" : parent + "/") + *renamed + extension;
+            if (!Assets::AssetDatabase::Get().MoveAsset(record.guid, target))
+            {
+                Core::Log::Error(Text(EditorText::RenameFailed, target));
+            }
+        }
+    }
+
+    void AssetsItemView::DrawItem(const Assets::AssetRecord& record, Core::Guid& pendingDelete)
+    {
+        SelectionService& selection = m_application.GetContext().GetSelectionService();
+        ImGui::PushID(record.guid.ToString().c_str());
+        ImGui::BeginGroup();
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        bool selected = selection.GetFocus() == SelectionFocus::Asset && selection.GetSelectedAsset() == record.guid;
+        if (ImGui::Selectable("##tile", selected, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(m_tileSize, m_tileSize + ImGui::GetTextLineHeightWithSpacing() * LabelLines)))
+        {
+            selection.SelectAsset(record.guid);
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                AssetsContextMenu::OpenAsset(m_application, record.guid);
+            }
+        }
+        if (ImGui::BeginDragDropSource())
+        {
+            SetPayload(record.guid, DragDropPayload::Asset);
+            ImGui::TextUnformatted(record.name.c_str());
+            ImGui::EndDragDropSource();
+        }
+        HandleItemDrop(record);
+        if (ImGui::BeginPopupContextItem("ItemContext"))
+        {
+            selection.SelectAsset(record.guid);
+            AssetsContextMenu::DrawItemMenu(m_application, record.guid, m_rename, pendingDelete);
+            ImGui::EndPopup();
+        }
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+        {
+            ImGui::SetTooltip("%s\n%s", record.path.c_str(), Assets::AssetTypeName(record.type));
+        }
+        DrawThumbnail(record, cursor);
+        DrawLabel(record, cursor);
+        ImGui::EndGroup();
+        ImGui::PopID();
+    }
+
+    void AssetsItemView::DrawDropZone()
+    {
+        ImGui::SetCursorPos(ImVec2(0, std::max(ImGui::GetCursorPosY(), 0.0f)));
+        ImGui::InvisibleButton("##dropzone", ImVec2(std::max(1.0f, ImGui::GetContentRegionAvail().x), std::max(MinDropZoneHeight, ImGui::GetContentRegionAvail().y)));
+        if (!ImGui::BeginDragDropTarget())
+        {
+            return;
+        }
+        EditorContext& context = m_application.GetContext();
+        if (std::optional<Core::Guid> id = AcceptPayload(DragDropPayload::Object))
+        {
+            if (Level::Level* level = context.GetLevelService().GetActiveLevel(); level && !context.GetLevelService().IsPlaying())
+            {
+                if (Level::LevelObject* object = level->FindObject(*id))
+                {
+                    context.GetAssetCreationService().CreateVariantAsset(*object, CurrentFolder());
+                }
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    void AssetsItemView::Draw(Core::Guid& pendingDelete)
+    {
+        DrawToolbar();
+        ImGui::BeginChild("Items", ImVec2(0, 0), ImGuiChildFlags_None);
+        std::vector<Assets::AssetRecord> items = CollectItems();
+        float cell = m_tileSize + TileSpacing;
+        int columns = std::max(1, static_cast<int>(ImGui::GetContentRegionAvail().x / cell));
+        int column = 0;
+        for (const Assets::AssetRecord& record : items)
+        {
+            DrawItem(record, pendingDelete);
+            if (++column < columns)
+            {
+                ImGui::SameLine(0.0f, TileSpacing);
+            }
+            else
+            {
+                column = 0;
+            }
+        }
+        if (ImGui::BeginPopupContextWindow("ItemsContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+        {
+            AssetsContextMenu::DrawCreateMenu(m_application, CurrentFolder());
+            ImGui::EndPopup();
+        }
+        DrawDropZone();
+        ImGui::EndChild();
+    }
+}
