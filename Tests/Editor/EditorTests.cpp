@@ -264,9 +264,12 @@ public:
 )");
     WriteFile(source / "Scorer.cpp", R"(#include "Scorer.h"
 
+#include "Core/Debug.h"
+
 void Scorer::OnGameUpdate(float deltaTime)
 {
     m_score += 10;
+    BrightBox3D::Debug::Log("Scorer updated");
 }
 )");
     ASSERT_TRUE(compile()) << reload.GetStatusText();
@@ -291,6 +294,17 @@ void Scorer::OnGameUpdate(float deltaTime)
     level->Update(0.016f);
     EXPECT_EQ(reloaded->FindProperty("m_score")->GetValue<int>(restored), 61);
     level->EndPlay();
+    int gameLogs = 0;
+    Core::Log::ForEach([&](const Core::LogEntry& entry)
+    {
+        if (entry.message == "Scorer updated")
+        {
+            EXPECT_EQ(entry.source, Core::LogSource::Game);
+            EXPECT_NE(entry.file.find("Scorer.cpp"), std::string::npos) << entry.file;
+            ++gameLogs;
+        }
+    });
+    EXPECT_EQ(gameLogs, 2);
 
     reload.OnProjectClosed();
     EXPECT_EQ(Reflection::TypeRegistry::Find("Scorer"), nullptr);
