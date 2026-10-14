@@ -1,8 +1,11 @@
+#include "Math/ColorSpace.h"
 #include "Math/Geometry.h"
 #include "Math/Matrix4.h"
 #include "Math/Quaternion.h"
 
 #include <gtest/gtest.h>
+
+#include <cmath>
 
 using namespace BrightBox3D::Math;
 
@@ -118,4 +121,28 @@ TEST(GeometryTests, RayHitsBounds)
     float distance = 0.0f;
     EXPECT_TRUE(ray.IntersectsBounds({ { -1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f, 1.0f } }, distance));
     EXPECT_NEAR(distance, 9.0f, 1.0e-4f);
+}
+
+TEST(ColorSpaceTests, MatchesKnownSrgbValues)
+{
+    EXPECT_FLOAT_EQ(SrgbToLinear(0.0f), 0.0f);
+    EXPECT_NEAR(SrgbToLinear(1.0f), 1.0f, 1.0e-6f);
+    EXPECT_NEAR(SrgbToLinear(0.5f), 0.214041f, 1.0e-5f);
+    EXPECT_NEAR(LinearToSrgb(0.5f), 0.735357f, 1.0e-5f);
+    EXPECT_NEAR(LinearToSrgb(0.0018f), 0.0018f * 12.92f, 1.0e-7f);
+}
+
+TEST(ColorSpaceTests, RoundTripsAndStaysContinuousAndIncreasing)
+{
+    float previous = -1.0f;
+    for (int step = 0; step <= 1000; ++step)
+    {
+        float value = step / 1000.0f;
+        float linear = SrgbToLinear(value);
+        EXPECT_NEAR(LinearToSrgb(linear), value, 1.0e-5f) << value;
+        EXPECT_GT(linear, previous) << value;
+        previous = linear;
+    }
+    EXPECT_NEAR(SrgbLinearThreshold / SrgbLinearSlope, std::pow((SrgbLinearThreshold + SrgbOffset) / SrgbScale, SrgbGamma), 1.0e-6f);
+    EXPECT_NEAR(LinearSrgbThreshold * SrgbLinearSlope, SrgbScale * std::pow(LinearSrgbThreshold, 1.0f / SrgbGamma) - SrgbOffset, 1.0e-5f);
 }
