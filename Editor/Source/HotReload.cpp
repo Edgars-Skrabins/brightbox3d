@@ -9,7 +9,10 @@
 #include "Runtime/ProjectLayout.h"
 #include "Runtime/ProjectTemplates.h"
 
+#include <algorithm>
+#include <array>
 #include <regex>
+#include <string_view>
 #include <thread>
 
 namespace BrightBox3D::Editor
@@ -21,6 +24,15 @@ namespace BrightBox3D::Editor
         constexpr const char* NinjaGenerator = "Ninja";
         constexpr std::chrono::milliseconds CancelTimeout(2000);
         constexpr const char* GeneratorCacheEntry = "CMAKE_GENERATOR:INTERNAL=";
+        constexpr const char* WarningSeverity = "warning";
+        constexpr std::array<std::string_view, 2> CompiledExtensions = { ".cpp", ".h" };
+        constexpr std::array<std::string_view, 4> WatchedExtensions = { ".cpp", ".h", ".hpp", ".inl" };
+
+        template <size_t Count>
+        bool IsOneOf(std::string_view extension, const std::array<std::string_view, Count>& extensions)
+        {
+            return std::find(extensions.begin(), extensions.end(), extension) != extensions.end();
+        }
 
         std::filesystem::path SdkPath()
         {
@@ -137,7 +149,7 @@ namespace BrightBox3D::Editor
         for (std::filesystem::recursive_directory_iterator it(project.GetSourceDirectory(), error), end; !error && it != end; it.increment(error))
         {
             std::string extension = it->path().extension().string();
-            if (extension == ".cpp" || extension == ".h")
+            if (IsOneOf(extension, CompiledExtensions))
             {
                 return true;
             }
@@ -209,7 +221,7 @@ namespace BrightBox3D::Editor
     void HotReload::NotifySourceChanged(const std::filesystem::path& path)
     {
         std::string extension = Core::ToLower(path.extension().string());
-        if (extension != ".cpp" && extension != ".h" && extension != ".hpp" && extension != ".inl")
+        if (!IsOneOf(extension, WatchedExtensions))
         {
             return;
         }
@@ -331,13 +343,13 @@ namespace BrightBox3D::Editor
             std::smatch match;
             if (std::regex_match(line, match, clangPattern))
             {
-                bool isError = match[4].str() != "warning";
+                bool isError = match[4].str() != WarningSeverity;
                 errors += isError ? 1 : 0;
                 Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[5].str(), "Compiler", match[1].str(), std::stoi(match[2].str()));
             }
             else if (std::regex_match(line, match, msvcPattern))
             {
-                bool isError = match[3].str() != "warning";
+                bool isError = match[3].str() != WarningSeverity;
                 errors += isError ? 1 : 0;
                 Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[4].str() + ": " + match[5].str(), "Compiler", match[1].str(), std::stoi(match[2].str()));
             }

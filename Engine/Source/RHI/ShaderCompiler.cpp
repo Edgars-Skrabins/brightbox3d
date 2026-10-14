@@ -22,10 +22,13 @@ namespace BrightBox3D::RHI
     {
         constexpr uint32_t TextureBindingShift = 32;
         constexpr uint32_t SamplerBindingShift = 64;
+        constexpr int MaxIncludeDepth = 32;
+        constexpr const char* IncludeDirective = "#include";
+        constexpr const char* PragmaOnceDirective = "#pragma once";
 
         bool PreprocessRecursive(const std::string& source, const std::filesystem::path& directory, std::set<std::string>& included, std::string& output, std::string& error, int depth)
         {
-            if (depth > 32)
+            if (depth > MaxIncludeDepth)
             {
                 error = Core::Text(Core::EngineText::ShaderIncludeDepth);
                 return false;
@@ -35,7 +38,7 @@ namespace BrightBox3D::RHI
             while (std::getline(stream, line))
             {
                 std::string trimmed = Core::Trim(line);
-                if (Core::StartsWith(trimmed, "#include"))
+                if (Core::StartsWith(trimmed, IncludeDirective))
                 {
                     size_t open = trimmed.find('"');
                     size_t close = trimmed.rfind('"');
@@ -65,7 +68,7 @@ namespace BrightBox3D::RHI
                     output += "\n";
                     continue;
                 }
-                if (trimmed == "#pragma once")
+                if (trimmed == PragmaOnceDirective)
                 {
                     output += "\n";
                     continue;
