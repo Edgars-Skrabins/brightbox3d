@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace BrightBox3D::Assets
@@ -42,6 +43,9 @@ namespace BrightBox3D::Assets
         static constexpr const char* CacheFolder = "Cache";
         static constexpr const char* CookedFolder = "Cooked";
         static constexpr const char* CookedManifestFileName = "Manifest.json";
+        static constexpr const char* MetaExtension = ".meta";
+        static constexpr const char* TempExtension = ".tmp";
+        static constexpr const char* CookedExtension = ".bin";
 
         static AssetDatabase& Get();
         static bool IsIgnoredPath(const std::filesystem::path& path);
@@ -117,6 +121,12 @@ namespace BrightBox3D::Assets
         uint64_t ComputeSourceHash(const AssetRecord& record) const;
         std::unique_ptr<Reflection::EngineObject> CreateImportSettings(AssetType type) const;
         void RegisterRecord(AssetRecord record);
+        AssetRecord DescribeAsset(const std::filesystem::path& path, AssetType type, const Core::Guid& guid) const;
+        bool RegisterScanned(AssetRecord record);
+        std::vector<Core::Guid> ScanAssets(std::unordered_set<Core::Guid>& seen);
+        std::vector<Core::Guid> RemoveMissing(const std::unordered_set<Core::Guid>& seen);
+        std::shared_ptr<Asset> LoadBuiltin(const Core::Guid& guid);
+        bool ReadCookedPayload(const AssetRecord& record, const AssetImporter& importer, std::vector<uint8_t>& payload);
         void RemoveRecord(const Core::Guid& guid);
         void LoadCookedManifest();
         void SaveCookedManifest() const;
