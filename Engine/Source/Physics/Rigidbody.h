@@ -21,6 +21,8 @@ namespace BrightBox3D::Physics
     {
         BrightBody()
     public:
+        static constexpr uint32_t InvalidBodyId = 0xFFFFFFFFu;
+
         void OnPropertiesChanged() override;
 
         MotionType GetMotionType() const { return m_motionType; }
@@ -70,6 +72,6 @@ namespace BrightBox3D::Physics
         BrightProperty(.edit = Edit::Anywhere, .category = Categories::Body)
         bool m_continuousCollision = false;
 
-        uint32_t m_bodyId = 0xFFFFFFFFu;
+        uint32_t m_bodyId = InvalidBodyId;
     };
 }
