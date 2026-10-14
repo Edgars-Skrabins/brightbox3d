@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 #include "Core/Guid.h"
 #include "Core/Hash.h"
@@ -54,7 +55,7 @@ TEST(HashTests, IsStable)
 
 TEST(FileSystemTests, WritesAndReadsText)
 {
-    auto path = std::filesystem::temp_directory_path() / "BrightBox3DTests" / "file.txt";
+    auto path = BrightBox3D::Tests::MakeTempDirectory("FileSystem") / "file.txt";
     ASSERT_TRUE(FileSystem::WriteText(path, "content"));
     auto text = FileSystem::ReadText(path);
     ASSERT_TRUE(text.has_value());
@@ -73,9 +74,7 @@ TEST(ProcessTests, CapturesOutputAndExitCode)
 
 TEST(ProcessTests, TerminateKillsTheWholeProcessTree)
 {
-    auto directory = std::filesystem::temp_directory_path() / "BrightBox3DTests" / "Terminate";
-    std::filesystem::remove_all(directory);
-    std::filesystem::create_directories(directory);
+    auto directory = BrightBox3D::Tests::MakeTempDirectory("Terminate");
     auto pidFile = directory / "child.pid";
 
     AsyncProcess process;

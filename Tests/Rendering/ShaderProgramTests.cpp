@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Rendering/ShaderLibrary.h"
 #include "Rendering/ShaderProgram.h"
 #include "RHI/Device.h"
@@ -11,9 +12,9 @@ using Rendering::ShaderProgram;
 
 TEST(ShaderProgramTests, EveryProgramCompilesBothStages)
 {
-    std::unique_ptr<RHI::Device> device = RHI::Device::Create();
-    ASSERT_NE(device, nullptr);
-    Rendering::ShaderLibrary shaders(*device, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
+    std::unique_ptr<Runtime::RenderContext> context = Tests::CreateTestRenderContext();
+    ASSERT_NE(context, nullptr);
+    Rendering::ShaderLibrary& shaders = context->GetShaders();
     for (int index = 0; index < static_cast<int>(ShaderProgram::Count); ++index)
     {
         ShaderProgram program = static_cast<ShaderProgram>(index);

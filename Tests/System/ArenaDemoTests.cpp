@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 #include "Core/Process.h"
 #include "EditorContext.h"
@@ -161,7 +162,7 @@ TEST(SystemTests, ArenaDemoAuthorsBuildsAndRunsPackagedGame)
     {
         GTEST_SKIP() << "CMake is not available";
     }
-    std::filesystem::path root = std::filesystem::temp_directory_path() / ("ArenaDemo_" + Core::Guid::Generate().ToString());
+    std::filesystem::path root = Tests::MakeTempDirectory("ArenaDemo");
     std::error_code ignored;
     std::string error;
     ASSERT_TRUE(Runtime::Project::Create(root, "ArenaDemo", error)) << error;
@@ -200,7 +201,7 @@ TEST(SystemTests, ArenaDemoAuthorsBuildsAndRunsPackagedGame)
         ExportAuthoredAssets(root, SampleRoot);
     }
 
-    std::filesystem::path screenshot = std::filesystem::path(std::getenv("BRIGHT_TEST_OUTPUT") ? std::getenv("BRIGHT_TEST_OUTPUT") : std::filesystem::temp_directory_path().string()) / "BrightBox3D_ArenaDemo.png";
+    std::filesystem::path screenshot = Tests::TestOutputPath("BrightBox3D_ArenaDemo.png");
     std::filesystem::remove(screenshot, ignored);
     Core::ProcessResult run = Core::Process::Run({ (output / "ArenaDemo").string(), "--frames", "150", "--screenshot", screenshot.string() }, output);
     EXPECT_EQ(run.exitCode, 0) << run.output;

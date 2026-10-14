@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 #include "Core/StringUtils.h"
 #include "EditorText.h"
@@ -15,8 +16,7 @@ namespace
 {
     std::filesystem::path WriteOverrides(const std::string& name, const std::string& json)
     {
-        std::filesystem::path path = std::filesystem::temp_directory_path() / "BrightTestsEditorText" / name;
-        std::filesystem::create_directories(path.parent_path());
+        std::filesystem::path path = Tests::MakeTempDirectory("EditorText") / name;
         Core::FileSystem::WriteText(path, json);
         return path;
     }

@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Level/Level.h"
 #include "Level/LevelSerializer.h"
 #include "Level/LevelStreaming.h"
@@ -15,7 +16,7 @@ using BrightBox3D::Level::LevelObject;
 
 TEST(StreamingTests, LoadsAndUnloadsCollectionsDuringPlay)
 {
-    std::filesystem::path root = std::filesystem::temp_directory_path() / ("BrightStreaming_" + Core::Guid::Generate().ToString());
+    std::filesystem::path root = Tests::MakeTempDirectory("Streaming");
     std::filesystem::create_directories(root / "Assets");
     Assets::AssetDatabase::Get().Open(root);
 

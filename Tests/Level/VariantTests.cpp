@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Framework/Camera.h"
 #include "Level/Level.h"
 #include "Level/LevelAssets.h"
@@ -27,7 +28,7 @@ namespace
     public:
         VariantProject()
         {
-            m_root = std::filesystem::temp_directory_path() / ("BrightBox3DVariants_" + Core::Guid::Generate().ToString());
+            m_root = Tests::MakeTempDirectory("Variants");
             std::filesystem::create_directories(m_root / "Assets");
         }
 

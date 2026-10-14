@@ -1,5 +1,5 @@
 #include "Assets/AssetDatabase.h"
-#include "Core/Guid.h"
+#include "Common/TestUtilities.h"
 #include "Level/Level.h"
 #include "Level/LevelCollection.h"
 #include "Level/LevelSerializer.h"
@@ -15,8 +15,7 @@ using namespace BrightBox3D;
 
 TEST(LevelFileFormatTests, SampleCollectionsRewriteToTheSameJson)
 {
-    std::filesystem::path root = std::filesystem::temp_directory_path() / ("BrightTests_LevelFormat_" + Core::Guid::Generate().ToString());
-    std::filesystem::create_directories(root);
+    std::filesystem::path root = Tests::MakeTempDirectory("LevelFormat");
     std::filesystem::copy(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / "Assets", root / "Assets", std::filesystem::copy_options::recursive);
     std::filesystem::copy_file(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / Runtime::Project::FileName, root / Runtime::Project::FileName);
     Runtime::Project project;

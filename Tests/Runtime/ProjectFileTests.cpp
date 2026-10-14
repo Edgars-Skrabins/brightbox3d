@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 #include "Core/Guid.h"
 #include "Runtime/GameManifest.h"
@@ -12,17 +13,11 @@ using namespace BrightBox3D;
 
 namespace
 {
-    std::filesystem::path MakeTempDirectory(const std::string& name)
-    {
-        std::filesystem::path directory = std::filesystem::temp_directory_path() / ("BrightTests_" + name + "_" + Core::Guid::Generate().ToString());
-        std::filesystem::create_directories(directory);
-        return directory;
-    }
 }
 
 TEST(ProjectFileTests, SampleProjectWithNestedSettingsLoads)
 {
-    std::filesystem::path directory = MakeTempDirectory("Project");
+    std::filesystem::path directory = Tests::MakeTempDirectory("Project");
     std::filesystem::copy_file(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / Runtime::Project::FileName, directory / Runtime::Project::FileName);
     Runtime::Project project;
     std::string error;
@@ -52,7 +47,7 @@ TEST(ProjectFileTests, SampleProjectWithNestedSettingsLoads)
 
 TEST(ProjectFileTests, CreatedProjectUsesSanitizedModuleName)
 {
-    std::filesystem::path directory = MakeTempDirectory("Create");
+    std::filesystem::path directory = Tests::MakeTempDirectory("Create");
     std::string error;
     ASSERT_TRUE(Runtime::Project::Create(directory, "My Game 2", error)) << error;
     Runtime::Project project;
@@ -65,7 +60,7 @@ TEST(ProjectFileTests, CreatedProjectUsesSanitizedModuleName)
 
 TEST(ProjectFileTests, GameManifestRoundTripsAndReadsOldFiles)
 {
-    std::filesystem::path directory = MakeTempDirectory("Manifest");
+    std::filesystem::path directory = Tests::MakeTempDirectory("Manifest");
     Core::FileSystem::WriteText(directory / "Old.json", R"({ "name": "Arena", "gameModule": "ArenaDemo", "startupLevel": "8660f0967eb8f80adf88b2b3281c4293", "fixedTimeStep": 0.02 })");
     Runtime::GameManifest manifest;
     std::string error;

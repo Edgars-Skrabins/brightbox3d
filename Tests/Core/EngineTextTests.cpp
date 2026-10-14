@@ -1,6 +1,6 @@
+#include "Common/TestUtilities.h"
 #include "Core/EngineText.h"
 #include "Core/FileSystem.h"
-#include "Core/Guid.h"
 #include "Core/StringUtils.h"
 #include "Serialization/EngineTextOverrides.h"
 
@@ -26,7 +26,7 @@ namespace
 
         std::filesystem::path WriteOverrides(const std::string& json)
         {
-            std::filesystem::path path = std::filesystem::temp_directory_path() / ("BrightTests_EngineText_" + Core::Guid::Generate().ToString() + ".json");
+            std::filesystem::path path = Tests::MakeTempDirectory("EngineText") / "Overrides.json";
             Core::FileSystem::WriteText(path, json);
             return path;
         }

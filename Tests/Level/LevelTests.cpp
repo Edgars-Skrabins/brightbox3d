@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Level/Level.h"
 #include "Level/LevelAssets.h"
 #include "Level/LevelSerializer.h"
@@ -56,7 +57,7 @@ namespace
     public:
         TempProject()
         {
-            m_root = std::filesystem::temp_directory_path() / ("BrightBox3DProject_" + Core::Guid::Generate().ToString());
+            m_root = Tests::MakeTempDirectory("Project");
             std::filesystem::create_directories(m_root / "Assets");
             Assets::AssetDatabase::Get().Open(m_root);
         }

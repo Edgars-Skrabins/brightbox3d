@@ -1,5 +1,5 @@
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
-#include "Core/Guid.h"
 #include "RecentProjects.h"
 #include "Runtime/Project.h"
 
@@ -11,8 +11,7 @@ using namespace BrightBox3D;
 
 TEST(RecentProjectsTests, LegacyListLoadsAndNewFormatRoundTrips)
 {
-    std::filesystem::path directory = std::filesystem::temp_directory_path() / ("BrightTests_Recent_" + Core::Guid::Generate().ToString());
-    std::filesystem::create_directories(directory);
+    std::filesystem::path directory = Tests::MakeTempDirectory("Recent");
     std::filesystem::path sample = std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo";
     std::filesystem::path missing = directory / "Missing";
     Core::FileSystem::WriteText(directory / "Legacy.json", "[\"" + sample.generic_string() + "\", \"" + missing.generic_string() + "\"]");

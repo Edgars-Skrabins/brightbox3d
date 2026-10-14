@@ -1,6 +1,7 @@
 #include "Commands/CommandRegistry.h"
 #include "Commands/KeyChord.h"
 #include "Commands/ShortcutBindings.h"
+#include "Common/TestUtilities.h"
 #include "EditorPreferences.h"
 
 #include <gtest/gtest.h>
@@ -151,9 +152,7 @@ TEST_F(CommandTests, ReboundShortcutSurvivesPreferencesSaveAndLoad)
     CommandRegistry::Get().SetShortcut(CommandId::Save, { ImGuiKey_K, ImGuiMod_Ctrl | ImGuiMod_Shift });
     CommandRegistry::Get().SetShortcut(CommandId::Undo, {});
 
-    std::filesystem::path path = std::filesystem::temp_directory_path() / "BrightTestsShortcuts" / "Preferences.json";
-    std::filesystem::remove_all(path.parent_path());
-    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::path path = Tests::MakeTempDirectory("Shortcuts") / "Preferences.json";
     Editor::EditorPreferences::Get().Load(path);
     Editor::EditorPreferences::Get().Save();
 

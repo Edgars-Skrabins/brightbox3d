@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Core/Log.h"
 #include "Level/Level.h"
 #include "Rendering/BuiltinAssets.h"
@@ -6,6 +7,7 @@
 #include "Rendering/MeshRenderer.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/TextureCapture.h"
+#include "Runtime/RenderContext.h"
 
 #include <gtest/gtest.h>
 
@@ -27,21 +29,14 @@ namespace
         renderer->SetModel(Assets::AssetReference<ModelAsset>(model));
         return object;
     }
-
-    std::filesystem::path OutputDirectory()
-    {
-        const char* directory = std::getenv("BRIGHT_TEST_OUTPUT");
-        return directory ? std::filesystem::path(directory) : std::filesystem::temp_directory_path();
-    }
 }
 
 TEST(RendererTests, RendersLitSceneWithShadows)
 {
-    std::unique_ptr<RHI::Device> device = RHI::Device::Create();
-    ASSERT_NE(device, nullptr);
-    ShaderLibrary shaders(*device, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
-    GpuResourceCache resources(*device);
-    Renderer renderer(*device, shaders, resources);
+    std::unique_ptr<Runtime::RenderContext> context = Tests::CreateTestRenderContext();
+    ASSERT_NE(context, nullptr);
+    RHI::Device& device = context->GetDevice();
+    Renderer& renderer = context->GetRenderer();
 
     Level::Level level;
     AddMesh(level, BuiltinAssets::Plane(), { 0, 0, 0 }, { 2, 1, 2 });
@@ -77,13 +72,13 @@ TEST(RendererTests, RendersLitSceneWithShadows)
     outputDesc.height = 360;
     outputDesc.format = RHI::Format::RGBA8Unorm;
     outputDesc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-    auto output = device->CreateTexture(outputDesc);
+    auto output = device.CreateTexture(outputDesc);
 
     for (int frame = 0; frame < 2; ++frame)
     {
-        RHI::CommandList& commands = device->BeginFrame();
+        RHI::CommandList& commands = device.BeginFrame();
         renderer.Render(commands, &level, view, output.get());
-        device->EndFrame({});
+        device.EndFrame({});
     }
 
     EXPECT_GT(renderer.GetStatistics().drawCalls, 4u);
@@ -98,12 +93,12 @@ TEST(RendererTests, RendersLitSceneWithShadows)
         {
             view.debugMode = static_cast<RenderDebugMode>(std::atoi(mode));
         }
-        RHI::CommandList& commands = device->BeginFrame();
+        RHI::CommandList& commands = device.BeginFrame();
         renderer.Render(commands, &level, view, output.get());
-        device->EndFrame({});
+        device.EndFrame({});
     }
-    ASSERT_TRUE(Rendering::ReadbackRGBA(*device, *output, pixels));
-    Rendering::SavePng(*device, *output, OutputDirectory() / (std::getenv("BRIGHT_DEBUG_MODE") ? "BrightBox3D_RendererTestDebug.png" : (std::getenv("BRIGHT_NO_SHADOWS") ? "BrightBox3D_RendererTestNoShadows.png" : "BrightBox3D_RendererTest.png")));
+    ASSERT_TRUE(Rendering::ReadbackRGBA(device, *output, pixels));
+    Rendering::SavePng(device, *output, Tests::TestOutputPath(std::getenv("BRIGHT_DEBUG_MODE") ? "BrightBox3D_RendererTestDebug.png" : (std::getenv("BRIGHT_NO_SHADOWS") ? "BrightBox3D_RendererTestNoShadows.png" : "BrightBox3D_RendererTest.png")));
 
     auto pixel = [&](int x, int y)
     {
@@ -118,11 +113,10 @@ TEST(RendererTests, RendersLitSceneWithShadows)
 
 TEST(RendererTests, PostProcessingAndAntiAliasingModes)
 {
-    std::unique_ptr<RHI::Device> device = RHI::Device::Create();
-    ASSERT_NE(device, nullptr);
-    ShaderLibrary shaders(*device, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
-    GpuResourceCache resources(*device);
-    Renderer renderer(*device, shaders, resources);
+    std::unique_ptr<Runtime::RenderContext> context = Tests::CreateTestRenderContext();
+    ASSERT_NE(context, nullptr);
+    RHI::Device& device = context->GetDevice();
+    Renderer& renderer = context->GetRenderer();
 
     Level::Level level;
     AddMesh(level, BuiltinAssets::Plane(), { 0, 0, 0 }, { 2, 1, 2 });
@@ -149,7 +143,7 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
     outputDesc.height = 270;
     outputDesc.format = RHI::Format::RGBA8Unorm;
     outputDesc.usage = RHI::TextureUsageRenderTarget | RHI::TextureUsageSampled;
-    auto output = device->CreateTexture(outputDesc);
+    auto output = device.CreateTexture(outputDesc);
 
     int errorsBefore = Core::Log::Count(Core::LogLevel::Error);
     const char* names[] = { "None", "FXAA", "SMAA", "TAA" };
@@ -169,13 +163,13 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
         view.post.vignetteIntensity = 0.3f;
         for (int frame = 0; frame < (mode == 3 ? 12 : 1); ++frame)
         {
-            RHI::CommandList& commands = device->BeginFrame();
+            RHI::CommandList& commands = device.BeginFrame();
             renderer.Render(commands, &level, view, output.get());
-            device->EndFrame({});
+            device.EndFrame({});
         }
         std::vector<uint8_t> pixels;
-        ASSERT_TRUE(Rendering::ReadbackRGBA(*device, *output, pixels));
-        Rendering::SavePng(*device, *output, OutputDirectory() / (std::string("BrightBox3D_AA_") + names[mode] + ".png"));
+        ASSERT_TRUE(Rendering::ReadbackRGBA(device, *output, pixels));
+        Rendering::SavePng(device, *output, Tests::TestOutputPath(std::string("BrightBox3D_AA_") + names[mode] + ".png"));
         uint64_t sum = 0;
         for (size_t i = 0; i < pixels.size(); i += 4)
         {

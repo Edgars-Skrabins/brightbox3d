@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 #include "Core/Process.h"
 
@@ -84,8 +85,7 @@ TEST(CompileErrorTests, StringCategoryIsAnError)
 
 TEST(CompileErrorTests, HeaderToolRejectsOldStyleSpecifiers)
 {
-    std::filesystem::path output = std::filesystem::temp_directory_path() / "BrightTestsCompileErrors" / "OldStyleSpecifier.gen.cpp";
-    std::filesystem::create_directories(output.parent_path());
+    std::filesystem::path output = Tests::MakeTempDirectory("CompileErrors") / "OldStyleSpecifier.gen.cpp";
     Core::ProcessResult result = Core::Process::Run({ BRIGHT_HEADER_TOOL, "--header", SnippetPath("OldStyleSpecifier").string(), "--include", "OldStyleSpecifier.h", "--output", output.string() });
     ASSERT_TRUE(result.started);
     EXPECT_NE(result.exitCode, 0);

@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Level/Level.h"
 #include "Rendering/TextureCapture.h"
 #include "Runtime/RenderContext.h"
@@ -8,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <filesystem>
 
 using namespace BrightBox3D;
@@ -36,12 +36,6 @@ namespace
         </Panel>
     </Panel>
 </Screen>)";
-
-    std::filesystem::path OutputDirectory()
-    {
-        const char* directory = std::getenv("BRIGHT_TEST_OUTPUT");
-        return directory ? std::filesystem::path(directory) : std::filesystem::temp_directory_path();
-    }
 }
 
 TEST(UITests, StyleSheetParsesSelectorsAndSpecificity)
@@ -109,7 +103,7 @@ TEST(UITests, BindingsLayoutInputAndRendering)
     document.Update(roots, input, 640.0f, 360.0f, 0.016f);
     EXPECT_NEAR(player->m_volume, 0.75f, 0.02f);
 
-    std::unique_ptr<Runtime::RenderContext> renderContext = Runtime::RenderContext::Create(nullptr, BRIGHT_ENGINE_CONTENT_DIR "/Shaders");
+    std::unique_ptr<Runtime::RenderContext> renderContext = Tests::CreateTestRenderContext();
     ASSERT_NE(renderContext, nullptr);
     RHI::Device& device = renderContext->GetDevice();
     RHI::TextureDesc desc;
@@ -127,7 +121,7 @@ TEST(UITests, BindingsLayoutInputAndRendering)
     device.EndFrame({});
     std::vector<uint8_t> pixels;
     ASSERT_TRUE(Rendering::ReadbackRGBA(device, *target, pixels));
-    Rendering::SavePng(device, *target, OutputDirectory() / "BrightBox3D_UITest.png");
+    Rendering::SavePng(device, *target, Tests::TestOutputPath("BrightBox3D_UITest.png"));
     size_t index = (static_cast<size_t>(cy) * 640 + static_cast<size_t>(cx - leave->GetWidth() * 0.45f)) * 4;
     EXPECT_GT(pixels[index], pixels[index + 2]);
 }

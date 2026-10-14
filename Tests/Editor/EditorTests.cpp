@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Core/Log.h"
 #include "EditorContext.h"
 #include "Framework/LevelGameplaySettings.h"
@@ -27,7 +28,7 @@ namespace
     protected:
         void SetUp() override
         {
-            m_root = std::filesystem::temp_directory_path() / ("BrightEditorTest_" + Core::Guid::Generate().ToString());
+            m_root = Tests::MakeTempDirectory("Editor");
             std::string error;
             ASSERT_TRUE(Runtime::Project::Create(m_root, "EditorTest", error)) << error;
             ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;

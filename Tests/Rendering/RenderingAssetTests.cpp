@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Common/TestUtilities.h"
 #include "Geometry/ModelAsset.h"
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/MaterialAsset.h"
@@ -23,7 +24,7 @@ namespace
     public:
         RenderingProject()
         {
-            m_root = std::filesystem::temp_directory_path() / ("BrightBox3DRendering_" + Core::Guid::Generate().ToString());
+            m_root = Tests::MakeTempDirectory("Rendering");
             std::filesystem::create_directories(m_root / "Assets");
         }
 
