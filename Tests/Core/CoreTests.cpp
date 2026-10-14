@@ -9,7 +9,11 @@
 
 #include <chrono>
 #include <optional>
+#include <set>
+#include <string>
 #include <thread>
+#include <unordered_set>
+#include <vector>
 
 #if !defined(_WIN32)
 #include <csignal>
@@ -30,6 +34,38 @@ TEST(GuidTests, GeneratesUniqueValues)
     EXPECT_NE(Guid::Generate(), Guid::Generate());
 }
 
+TEST(GuidTests, ParseAcceptsEitherCaseAndRejectsMalformedText)
+{
+    Guid guid = Guid::Parse("0123456789abcdef0123456789ABCDEF");
+    EXPECT_TRUE(guid.IsValid());
+    EXPECT_EQ(guid.high, 0x0123456789ABCDEFull);
+    EXPECT_EQ(guid.low, 0x0123456789ABCDEFull);
+    EXPECT_EQ(guid.ToString(), "0123456789abcdef0123456789abcdef");
+    EXPECT_FALSE(Guid::Parse("0123456789abcdef0123456789abcde").IsValid());
+    EXPECT_FALSE(Guid::Parse("0123456789abcdef0123456789abcdef0").IsValid());
+    EXPECT_FALSE(Guid::Parse("0123456789abcdef0123456789abcdeg").IsValid());
+    EXPECT_FALSE(Guid::Parse("").IsValid());
+    EXPECT_FALSE(Guid{}.IsValid());
+    EXPECT_EQ(Guid{}.ToString(), std::string(32, '0'));
+}
+
+TEST(GuidTests, OrderingAndHashingDeduplicateInContainers)
+{
+    Guid first = Guid::Parse("00000000000000010000000000000000");
+    Guid second = Guid::Parse("00000000000000010000000000000001");
+    Guid third = Guid::Parse("00000000000000020000000000000000");
+    EXPECT_TRUE(first < second);
+    EXPECT_TRUE(second < third);
+    EXPECT_FALSE(third < first);
+
+    std::set<Guid> ordered = { third, first, second, first };
+    EXPECT_EQ(ordered.size(), 3u);
+    EXPECT_EQ(*ordered.begin(), first);
+    std::unordered_set<Guid> hashed = { third, first, second, third };
+    EXPECT_EQ(hashed.size(), 3u);
+    EXPECT_TRUE(hashed.count(second));
+}
+
 TEST(StringUtilsTests, PrettifiesMemberNames)
 {
     EXPECT_EQ(PrettifyName("m_moveSpeed"), "Move Speed");
@@ -45,6 +81,42 @@ TEST(StringUtilsTests, SplitAndTrim)
     ASSERT_EQ(parts.size(), 4u);
     EXPECT_EQ(parts[2], "");
     EXPECT_EQ(Trim("  hello \n"), "hello");
+}
+
+TEST(StringUtilsTests, CaseAndAffixChecks)
+{
+    EXPECT_EQ(ToLower("MiXeD.PNG"), "mixed.png");
+    EXPECT_TRUE(StartsWith("Assets/Main.css", "Assets/"));
+    EXPECT_TRUE(StartsWith("Assets", ""));
+    EXPECT_FALSE(StartsWith("As", "Assets"));
+    EXPECT_TRUE(EndsWith("Hud.screen.xml", ".screen.xml"));
+    EXPECT_FALSE(EndsWith("xml", "screen.xml"));
+    EXPECT_FALSE(EndsWith("Main.CSS", ".css"));
+}
+
+TEST(StringUtilsTests, ReplaceAllHandlesGrowthAndEmptyPatterns)
+{
+    EXPECT_EQ(ReplaceAll("a.b.c", ".", "/"), "a/b/c");
+    EXPECT_EQ(ReplaceAll("aaa", "a", "aa"), "aaaaaa");
+    EXPECT_EQ(ReplaceAll("{Name} and {Name}", "{Name}", ""), " and ");
+    EXPECT_EQ(ReplaceAll("unchanged", "", "x"), "unchanged");
+    EXPECT_EQ(ReplaceAll("unchanged", "missing", "x"), "unchanged");
+}
+
+TEST(StringUtilsTests, SplitKeepsLeadingAndTrailingEmptyParts)
+{
+    std::vector<std::string> expected = { "", "a", "", "b", "" };
+    EXPECT_EQ(Split(",a,,b,", ','), expected);
+    EXPECT_EQ(Split("", ','), std::vector<std::string>{ "" });
+    EXPECT_EQ(Trim(" \t\r\n "), "");
+}
+
+TEST(StringUtilsTests, CountsFormatPlaceholdersButNotEscapedBraces)
+{
+    EXPECT_EQ(CountFormatPlaceholders("No placeholders"), 0);
+    EXPECT_EQ(CountFormatPlaceholders("{} of {}"), 2);
+    EXPECT_EQ(CountFormatPlaceholders("{{literal}} {}"), 1);
+    EXPECT_EQ(CountFormatPlaceholders("{0} {1:.2f}"), 2);
 }
 
 TEST(HashTests, IsStable)
