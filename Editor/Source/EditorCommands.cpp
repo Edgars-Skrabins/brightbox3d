@@ -260,6 +260,22 @@ namespace BrightBox3D::Editor
             });
         }
 
+        void RegisterAssetsLayout(CommandRegistry& registry, CommandId id, const char* key, Icon icon, EditorText label, AssetsLayout layout)
+        {
+            registry.Register(id, {
+                .key = key,
+                .icon = icon,
+                .label = label,
+                .scope = CommandScope::Assets,
+                .isChecked = [layout] { return EditorPreferences::Get().GetAssetsLayout() == layout; },
+                .execute = [layout]
+                {
+                    EditorPreferences::Get().SetAssetsLayout(layout);
+                    EditorPreferences::Get().Save();
+                },
+            });
+        }
+
         void RegisterAssetsCommands(CommandRegistry& registry, EditorApplication& application)
         {
             auto target = [&application] { return application.GetAssets().GetCommandTarget(); };
@@ -351,6 +367,8 @@ namespace BrightBox3D::Editor
                 .defaultShortcut = Chord(ImGuiKey_R, ImGuiMod_Ctrl),
                 .execute = [] { Assets::AssetDatabase::Get().Refresh(); },
             });
+            RegisterAssetsLayout(registry, CommandId::AssetsOneColumnLayout, "AssetsOneColumnLayout", Icon::ListTree, EditorText::OneColumnLayout, AssetsLayout::OneColumn);
+            RegisterAssetsLayout(registry, CommandId::AssetsTwoColumnLayout, "AssetsTwoColumnLayout", Icon::Columns2, EditorText::TwoColumnLayout, AssetsLayout::TwoColumn);
         }
     }
 

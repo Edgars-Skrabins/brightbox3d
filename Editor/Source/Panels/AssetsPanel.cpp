@@ -3,6 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Commands/CommandRegistry.h"
 #include "EditorApplication.h"
+#include "EditorPreferences.h"
 #include "EditorText.h"
 #include "EditorWindows.h"
 #include "Labels.h"
@@ -20,7 +21,7 @@ namespace BrightBox3D::Editor
         constexpr const char* DeletePopupId = "DeleteAsset";
     }
 
-    AssetsPanel::AssetsPanel(EditorApplication& application) : m_application(application), m_items(application, m_state)
+    AssetsPanel::AssetsPanel(EditorApplication& application) : m_application(application), m_items(application, m_state), m_tree(application, m_state)
     {
     }
 
@@ -80,6 +81,24 @@ namespace BrightBox3D::Editor
         ImGui::EndPopup();
     }
 
+    void AssetsPanel::DrawTwoColumns()
+    {
+        if (!ImGui::BeginTable("AssetsLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+        {
+            return;
+        }
+        ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, FolderColumnWidth);
+        ImGui::TableSetupColumn("Items", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::BeginChild("FolderTree");
+        AssetsFolderTree::Draw(m_application, m_state);
+        ImGui::EndChild();
+        ImGui::TableSetColumnIndex(1);
+        m_items.Draw();
+        ImGui::EndTable();
+    }
+
     void AssetsPanel::Draw()
     {
         if (!ImGui::Begin(WindowTitle(EditorWindow::Assets).c_str()))
@@ -95,18 +114,13 @@ namespace BrightBox3D::Editor
         }
         m_state.menuTarget.reset();
         PushSelectionColors();
-        if (ImGui::BeginTable("AssetsLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+        if (EditorPreferences::Get().GetAssetsLayout() == AssetsLayout::OneColumn)
         {
-            ImGui::TableSetupColumn("Folders", ImGuiTableColumnFlags_WidthFixed, FolderColumnWidth);
-            ImGui::TableSetupColumn("Items", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::BeginChild("FolderTree");
-            AssetsFolderTree::Draw(m_application, m_state);
-            ImGui::EndChild();
-            ImGui::TableSetColumnIndex(1);
-            m_items.Draw();
-            ImGui::EndTable();
+            m_tree.Draw();
+        }
+        else
+        {
+            DrawTwoColumns();
         }
         DrawDeleteConfirmation();
         PopSelectionColors();

@@ -59,6 +59,8 @@ namespace BrightBox3D::Editor
         AssetCreateVariant,
         AssetReimport,
         AssetRefresh,
+        AssetsOneColumnLayout,
+        AssetsTwoColumnLayout,
         Count
     };
 

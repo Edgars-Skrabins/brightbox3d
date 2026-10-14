@@ -18,6 +18,17 @@ namespace BrightBox3D::Editor
     {
         return std::filesystem::path(path).parent_path().generic_string();
     }
+
+    bool FoldersFirst(const Assets::AssetRecord& a, const Assets::AssetRecord& b)
+    {
+        bool aFolder = a.type == Assets::AssetType::Folder;
+        bool bFolder = b.type == Assets::AssetType::Folder;
+        if (aFolder != bFolder)
+        {
+            return aFolder;
+        }
+        return a.name < b.name;
+    }
 }
 
 namespace BrightBox3D::Editor::AssetsFolderTree

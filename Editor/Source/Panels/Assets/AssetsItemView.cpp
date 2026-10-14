@@ -7,15 +7,15 @@
 #include "EditorPreferences.h"
 #include "EditorText.h"
 #include "ImGui/ImGuiRenderer.h"
-#include "Labels.h"
 #include "Panels/Assets/AssetActions.h"
+#include "Panels/Assets/AssetsBottomBar.h"
 #include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/AssetsDropZone.h"
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsFolderTree.h"
+#include "Panels/Assets/AssetsToolbar.h"
 #include "Theme.h"
 #include "Thumbnails.h"
-
-#include <misc/cpp/imgui_stdlib.h>
 
 #include <algorithm>
 
@@ -28,26 +28,9 @@ namespace BrightBox3D::Editor
         constexpr float ThumbnailRounding = 4.0f;
         constexpr float TypeStripeHeight = 3.0f;
         constexpr float LabelLines = 2.0f;
-        constexpr float FilterWidth = 160.0f;
-        constexpr float SizeSliderWidth = 120.0f;
-        constexpr float MinDropZoneHeight = 40.0f;
         constexpr float TileIconScale = 0.55f;
         constexpr float SelectionBarWidth = 2.0f;
-        constexpr int ListSliderGap = 16;
-        constexpr int ListSliderStop = EditorPreferences::MinAssetIconSize - ListSliderGap;
-        constexpr int ListSnapValue = ListSliderStop + ListSliderGap / 2;
         constexpr Assets::AssetType BuiltinTypes[] = { Assets::AssetType::Model, Assets::AssetType::Material };
-
-        bool SortFoldersFirst(const Assets::AssetRecord& a, const Assets::AssetRecord& b)
-        {
-            bool aFolder = a.type == Assets::AssetType::Folder;
-            bool bFolder = b.type == Assets::AssetType::Folder;
-            if (aFolder != bFolder)
-            {
-                return aFolder;
-            }
-            return a.name < b.name;
-        }
     }
 
     AssetsItemView::AssetsItemView(EditorApplication& application, AssetsPanelState& state) : m_application(application), m_state(state)
@@ -103,15 +86,7 @@ namespace BrightBox3D::Editor
 
     void AssetsItemView::DrawToolbar()
     {
-        if (ImGui::Button(Text(EditorText::CreateAssetButton)))
-        {
-            ImGui::OpenPopup("CreateAsset");
-        }
-        if (ImGui::BeginPopup("CreateAsset"))
-        {
-            AssetsContextMenu::DrawCreateMenu(m_application, CurrentFolder());
-            ImGui::EndPopup();
-        }
+        AssetsToolbar::DrawCreateButton(m_application, CurrentFolder());
         ImGui::SameLine();
         if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
         {
@@ -120,47 +95,15 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         DrawBreadcrumbs();
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(std::max(FilterWidth, ImGui::GetContentRegionAvail().x));
-        ImGui::InputTextWithHint("##filter", IconLabel(Icon::Search, EditorText::SearchHint).c_str(), &m_filter);
-    }
-
-    void AssetsItemView::DrawSizeSlider()
-    {
-        EditorPreferences& preferences = EditorPreferences::Get();
-        int value = preferences.IsAssetListMode() ? ListSliderStop : preferences.GetAssetIconSize();
-        ImGui::SetNextItemWidth(SizeSliderWidth);
-        if (ImGui::SliderInt("##iconSize", &value, ListSliderStop, EditorPreferences::MaxAssetIconSize, ""))
-        {
-            preferences.SetAssetIconSize(value < ListSnapValue ? EditorPreferences::AssetListIconSize : value);
-        }
-        if (ImGui::IsItemDeactivatedAfterEdit())
-        {
-            preferences.Save();
-        }
-    }
-
-    void AssetsItemView::DrawBottomBar(bool showSizeSlider)
-    {
-        ImGui::Separator();
-        SelectionService& selection = m_application.GetContext().GetSelectionService();
-        const Assets::AssetRecord* record = selection.GetFocus() == SelectionFocus::Asset ? Assets::AssetDatabase::Get().FindRecord(selection.GetSelectedAsset()) : nullptr;
-        float rowEnd = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("%s", record ? AssetActions::DisplayPath(*record).c_str() : "");
-        if (!showSizeSlider)
-        {
-            return;
-        }
+        AssetsToolbar::DrawSearch(m_state);
         ImGui::SameLine();
-        ImVec2 cursor = ImGui::GetCursorScreenPos();
-        ImGui::SetCursorScreenPos(ImVec2(std::max(cursor.x, rowEnd - SizeSliderWidth), cursor.y));
-        DrawSizeSlider();
+        AssetsToolbar::DrawPanelMenu();
     }
 
     std::vector<Assets::AssetRecord> AssetsItemView::CollectItems() const
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-        std::string filter = Core::ToLower(m_filter);
+        std::string filter = Core::ToLower(m_state.filter);
         std::string folder = CurrentFolder();
         std::vector<Assets::AssetRecord> items;
         for (const Assets::AssetRecord& record : database.GetRecords())
@@ -188,7 +131,7 @@ namespace BrightBox3D::Editor
                 }
             }
         }
-        std::stable_sort(items.begin(), items.end(), SortFoldersFirst);
+        std::stable_sort(items.begin(), items.end(), FoldersFirst);
         return items;
     }
 
@@ -353,38 +296,10 @@ namespace BrightBox3D::Editor
         ImGui::PopStyleVar();
     }
 
-    void AssetsItemView::DrawDropZone()
-    {
-        ImGui::SetCursorPos(ImVec2(0, std::max(ImGui::GetCursorPosY(), 0.0f)));
-        ImGui::InvisibleButton("##dropzone", ImVec2(std::max(1.0f, ImGui::GetContentRegionAvail().x), std::max(MinDropZoneHeight, ImGui::GetContentRegionAvail().y)));
-        if (ImGui::BeginPopupContextItem("BackgroundContext"))
-        {
-            AssetsContextMenu::Draw(m_application, m_state, { {}, CurrentFolder() });
-            ImGui::EndPopup();
-        }
-        if (!ImGui::BeginDragDropTarget())
-        {
-            return;
-        }
-        EditorContext& context = m_application.GetContext();
-        if (std::optional<Core::Guid> id = AcceptPayload(DragDropPayload::Object))
-        {
-            if (Level::Level* level = context.GetLevelService().GetActiveLevel(); level && !context.GetLevelService().IsPlaying())
-            {
-                if (Level::LevelObject* object = level->FindObject(*id))
-                {
-                    context.GetAssetCreationService().CreateVariantAsset(*object, CurrentFolder());
-                }
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
-
     void AssetsItemView::Draw()
     {
         DrawToolbar();
-        float bottomBarHeight = ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y * 2.0f + ImGui::GetStyle().CellPadding.y;
-        ImGui::BeginChild("Items", ImVec2(0, -bottomBarHeight), ImGuiChildFlags_None);
+        ImGui::BeginChild("Items", ImVec2(0, -AssetsBottomBar::Height()), ImGuiChildFlags_None);
         std::vector<Assets::AssetRecord> items = CollectItems();
         if (EditorPreferences::Get().IsAssetListMode())
         {
@@ -394,13 +309,8 @@ namespace BrightBox3D::Editor
         {
             DrawGrid(items);
         }
-        DrawDropZone();
-        if (ImGui::BeginPopupContextWindow("GapContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
-        {
-            AssetsContextMenu::Draw(m_application, m_state, { {}, CurrentFolder() });
-            ImGui::EndPopup();
-        }
+        AssetsDropZone::Draw(m_application, m_state, CurrentFolder());
         ImGui::EndChild();
-        DrawBottomBar(true);
+        AssetsBottomBar::Draw(m_application, true);
     }
 }

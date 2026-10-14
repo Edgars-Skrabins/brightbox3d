@@ -24,6 +24,7 @@ namespace BrightBox3D::Editor
         InlineRename rename;
         Core::Guid pendingDelete;
         std::optional<AssetsTarget> menuTarget;
+        std::string filter;
     };
 
     AssetsTarget TargetForAsset(const Assets::AssetRecord& record);

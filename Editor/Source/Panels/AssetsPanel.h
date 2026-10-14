@@ -2,6 +2,7 @@
 
 #include "Panels/Assets/AssetsItemView.h"
 #include "Panels/Assets/AssetsPanelState.h"
+#include "Panels/Assets/AssetsTreeView.h"
 
 #include <filesystem>
 #include <vector>
@@ -22,9 +23,11 @@ namespace BrightBox3D::Editor
 
     private:
         void DrawDeleteConfirmation();
+        void DrawTwoColumns();
 
         EditorApplication& m_application;
         AssetsPanelState m_state;
         AssetsItemView m_items;
+        AssetsTreeView m_tree;
     };
 }
