@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Core/Guid.h"
-#include "Widgets/InlineRename.h"
+#include "Panels/Assets/AssetsPanelState.h"
 
 #include <imgui.h>
 
@@ -20,14 +19,14 @@ namespace BrightBox3D::Editor
     class AssetsItemView
     {
     public:
-        explicit AssetsItemView(EditorApplication& application);
+        AssetsItemView(EditorApplication& application, AssetsPanelState& state);
 
-        void Draw(Core::Guid& pendingDelete);
+        void Draw();
 
     private:
         void DrawToolbar();
         std::vector<Assets::AssetRecord> CollectItems() const;
-        void DrawItem(const Assets::AssetRecord& record, Core::Guid& pendingDelete);
+        void DrawItem(const Assets::AssetRecord& record);
         void DrawThumbnail(const Assets::AssetRecord& record, const ImVec2& cursor);
         void DrawLabel(const Assets::AssetRecord& record, const ImVec2& cursor);
         void HandleItemDrop(const Assets::AssetRecord& record);
@@ -35,8 +34,8 @@ namespace BrightBox3D::Editor
         std::string CurrentFolder() const;
 
         EditorApplication& m_application;
+        AssetsPanelState& m_state;
         std::string m_filter;
         float m_tileSize = 84.0f;
-        InlineRename m_rename;
     };
 }

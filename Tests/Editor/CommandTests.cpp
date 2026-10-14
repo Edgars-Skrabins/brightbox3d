@@ -60,6 +60,40 @@ TEST_F(CommandTests, DispatchOnlyRunsCommandsOfThatScope)
     EXPECT_EQ(move, 1);
 }
 
+TEST_F(CommandTests, AssetsDeleteWinsOverGlobalDeleteWhileAssetsDispatch)
+{
+    int levelObjects = 0;
+    int assets = 0;
+    RegisterCounter(CommandId::Delete, "Delete", CommandScope::Global, { ImGuiKey_Delete }, levelObjects);
+    RegisterCounter(CommandId::AssetDelete, "AssetDelete", CommandScope::Assets, { ImGuiKey_Delete }, assets);
+    Editor::ShortcutInput input = Pressing({ { ImGuiKey_Delete } });
+
+    CommandRegistry::Get().BeginFrame();
+    CommandRegistry::Get().DispatchShortcuts(CommandScope::Assets, input);
+    CommandRegistry::Get().DispatchShortcuts(CommandScope::Global, input);
+    EXPECT_EQ(assets, 1);
+    EXPECT_EQ(levelObjects, 0);
+
+    CommandRegistry::Get().BeginFrame();
+    CommandRegistry::Get().DispatchShortcuts(CommandScope::Global, input);
+    EXPECT_EQ(levelObjects, 1);
+}
+
+TEST_F(CommandTests, DisabledAssetsCommandStillKeepsTheChordFromGlobal)
+{
+    int levelObjects = 0;
+    int assets = 0;
+    RegisterCounter(CommandId::Delete, "Delete", CommandScope::Global, { ImGuiKey_Delete }, levelObjects);
+    CommandRegistry::Get().Register(CommandId::AssetDelete, { .key = "AssetDelete", .scope = CommandScope::Assets, .defaultShortcut = { ImGuiKey_Delete }, .isEnabled = [] { return false; }, .execute = [&assets] { ++assets; } });
+    Editor::ShortcutInput input = Pressing({ { ImGuiKey_Delete } });
+
+    CommandRegistry::Get().BeginFrame();
+    CommandRegistry::Get().DispatchShortcuts(CommandScope::Assets, input);
+    CommandRegistry::Get().DispatchShortcuts(CommandScope::Global, input);
+    EXPECT_EQ(assets, 0);
+    EXPECT_EQ(levelObjects, 0);
+}
+
 TEST_F(CommandTests, PanelScopeBeatsGlobalForTheSameChord)
 {
     int global = 0;

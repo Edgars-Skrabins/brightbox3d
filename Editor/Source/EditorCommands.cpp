@@ -1,9 +1,12 @@
 #include "EditorCommands.h"
 
+#include "Assets/AssetDatabase.h"
 #include "Commands/CommandRegistry.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "HotReload.h"
+#include "Panels/Assets/AssetActions.h"
+#include "Panels/AssetsPanel.h"
 #include "Panels/LevelContentsPanel.h"
 #include "Panels/LevelViewPanel.h"
 
@@ -11,6 +14,14 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
+#if defined(__APPLE__)
+        constexpr EditorText ShowInFileBrowserLabel = EditorText::ShowInFinder;
+#elif defined(_WIN32)
+        constexpr EditorText ShowInFileBrowserLabel = EditorText::ShowInExplorer;
+#else
+        constexpr EditorText ShowInFileBrowserLabel = EditorText::RevealInFileBrowser;
+#endif
+
         KeyChord Chord(ImGuiKey key, ImGuiKeyChord modifiers = 0)
         {
             return { key, modifiers };
@@ -248,6 +259,99 @@ namespace BrightBox3D::Editor
                 .execute = [&application] { application.GetLevelContents().BeginRenameSelection(); },
             });
         }
+
+        void RegisterAssetsCommands(CommandRegistry& registry, EditorApplication& application)
+        {
+            auto target = [&application] { return application.GetAssets().GetCommandTarget(); };
+            auto editable = [target] { return AssetActions::IsEditable(target()); };
+            registry.Register(CommandId::AssetShowInFileBrowser, {
+                .key = "AssetShowInFileBrowser",
+                .icon = Icon::FolderSearch,
+                .label = ShowInFileBrowserLabel,
+                .scope = CommandScope::Assets,
+                .isEnabled = [target]
+                {
+                    AssetsTarget current = target();
+                    return current.asset.IsValid() ? AssetActions::IsEditable(current) : AssetActions::CanCreateIn(current.folder);
+                },
+                .execute = [&application, target] { AssetActions::ShowInFileBrowser(application, target()); },
+            });
+            registry.Register(CommandId::AssetOpen, {
+                .key = "AssetOpen",
+                .icon = Icon::ExternalLink,
+                .label = EditorText::Open,
+                .scope = CommandScope::Assets,
+                .isEnabled = editable,
+                .execute = [&application, target] { AssetActions::Open(application, target().asset); },
+            });
+            registry.Register(CommandId::AssetRename, {
+                .key = "AssetRename",
+                .icon = Icon::Pencil,
+                .label = EditorText::Rename,
+                .scope = CommandScope::Assets,
+                .defaultShortcut = Chord(ImGuiKey_F2),
+                .isEnabled = editable,
+                .execute = [&application, target] { AssetActions::BeginRename(application.GetAssets().GetState(), target()); },
+            });
+            registry.Register(CommandId::AssetDelete, {
+                .key = "AssetDelete",
+                .icon = Icon::Trash2,
+                .label = EditorText::Delete,
+                .scope = CommandScope::Assets,
+                .defaultShortcut = Chord(ImGuiKey_Delete),
+                .isEnabled = editable,
+                .execute = [&application, target] { application.GetAssets().GetState().pendingDelete = target().asset; },
+            });
+            registry.Register(CommandId::AssetDuplicate, {
+                .key = "AssetDuplicate",
+                .icon = Icon::Copy,
+                .label = EditorText::Duplicate,
+                .scope = CommandScope::Assets,
+                .defaultShortcut = Chord(ImGuiKey_D, ImGuiMod_Ctrl),
+                .isEnabled = editable,
+                .execute = [&application, target] { AssetActions::Duplicate(application, target()); },
+            });
+            registry.Register(CommandId::AssetCopyPath, {
+                .key = "AssetCopyPath",
+                .icon = Icon::ClipboardCopy,
+                .label = EditorText::CopyPath,
+                .scope = CommandScope::Assets,
+                .defaultShortcut = Chord(ImGuiKey_C, ImGuiMod_Ctrl | ImGuiMod_Alt),
+                .execute = [target] { AssetActions::CopyPath(target()); },
+            });
+            registry.Register(CommandId::AssetSetStartupLevel, {
+                .key = "AssetSetStartupLevel",
+                .icon = Icon::Flag,
+                .label = EditorText::SetStartupLevel,
+                .scope = CommandScope::Assets,
+                .isEnabled = [target] { return AssetActions::IsAssetOfType(target(), Assets::AssetType::Level); },
+                .execute = [&application, target] { AssetActions::SetStartupLevel(application, target()); },
+            });
+            registry.Register(CommandId::AssetCreateVariant, {
+                .key = "AssetCreateVariant",
+                .icon = Icon::Package,
+                .label = EditorText::CreateVariant,
+                .scope = CommandScope::Assets,
+                .isEnabled = [target] { return AssetActions::IsAssetOfType(target(), Assets::AssetType::LevelObjectTemplate); },
+                .execute = [&application, target] { AssetActions::CreateVariant(application, target()); },
+            });
+            registry.Register(CommandId::AssetReimport, {
+                .key = "AssetReimport",
+                .icon = Icon::RefreshCcw,
+                .label = EditorText::Reimport,
+                .scope = CommandScope::Assets,
+                .isEnabled = [target, editable] { return editable() && !AssetActions::IsAssetOfType(target(), Assets::AssetType::Folder); },
+                .execute = [target] { AssetActions::Reimport(target()); },
+            });
+            registry.Register(CommandId::AssetRefresh, {
+                .key = "AssetRefresh",
+                .icon = Icon::RefreshCw,
+                .label = EditorText::Refresh,
+                .scope = CommandScope::Assets,
+                .defaultShortcut = Chord(ImGuiKey_R, ImGuiMod_Ctrl),
+                .execute = [] { Assets::AssetDatabase::Get().Refresh(); },
+            });
+        }
     }
 
     void RegisterEditorCommands(EditorApplication& application)
@@ -258,5 +362,6 @@ namespace BrightBox3D::Editor
         RegisterGameCommands(registry, application);
         RegisterLevelViewCommands(registry, application);
         RegisterLevelContentsCommands(registry, application);
+        RegisterAssetsCommands(registry, application);
     }
 }

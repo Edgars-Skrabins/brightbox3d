@@ -1,6 +1,7 @@
 #include "Panels/AssetsPanel.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Commands/CommandRegistry.h"
 #include "EditorApplication.h"
 #include "EditorText.h"
 #include "EditorWindows.h"
@@ -19,8 +20,25 @@ namespace BrightBox3D::Editor
         constexpr const char* DeletePopupId = "DeleteAsset";
     }
 
-    AssetsPanel::AssetsPanel(EditorApplication& application) : m_application(application), m_items(application)
+    AssetsPanel::AssetsPanel(EditorApplication& application) : m_application(application), m_items(application, m_state)
     {
+    }
+
+    AssetsTarget AssetsPanel::GetCommandTarget() const
+    {
+        if (m_state.menuTarget)
+        {
+            return *m_state.menuTarget;
+        }
+        SelectionService& selection = m_application.GetContext().GetSelectionService();
+        if (selection.GetFocus() == SelectionFocus::Asset)
+        {
+            if (const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecord(selection.GetSelectedAsset()))
+            {
+                return TargetForAsset(*record);
+            }
+        }
+        return { {}, m_application.GetContext().GetAssetCreationService().GetAssetsFolder() };
     }
 
     void AssetsPanel::ImportFiles(const std::vector<std::filesystem::path>& files)
@@ -31,7 +49,7 @@ namespace BrightBox3D::Editor
     void AssetsPanel::DrawDeleteConfirmation()
     {
         std::string title = LabelWithId(EditorText::DeleteAssetQuestion, DeletePopupId);
-        if (m_pendingDelete.IsValid())
+        if (m_state.pendingDelete.IsValid())
         {
             ImGui::OpenPopup(title.c_str());
         }
@@ -41,22 +59,22 @@ namespace BrightBox3D::Editor
         }
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         SelectionService& selection = m_application.GetContext().GetSelectionService();
-        const Assets::AssetRecord* record = database.FindRecord(m_pendingDelete);
+        const Assets::AssetRecord* record = database.FindRecord(m_state.pendingDelete);
         ImGui::TextUnformatted(Text(EditorText::DeleteAssetConfirm, record ? record->path : std::string(Text(EditorText::AssetBadgeUnknown))).c_str());
         if (ImGui::Button(Text(EditorText::Delete), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
-            database.DeleteAsset(m_pendingDelete);
-            if (selection.GetSelectedAsset() == m_pendingDelete)
+            database.DeleteAsset(m_state.pendingDelete);
+            if (selection.GetSelectedAsset() == m_state.pendingDelete)
             {
                 selection.SelectAsset({});
             }
-            m_pendingDelete = {};
+            m_state.pendingDelete = {};
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
         if (ImGui::Button(Text(EditorText::Cancel), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
         {
-            m_pendingDelete = {};
+            m_state.pendingDelete = {};
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -75,6 +93,7 @@ namespace BrightBox3D::Editor
             ImGui::End();
             return;
         }
+        m_state.menuTarget.reset();
         PushSelectionColors();
         if (ImGui::BeginTable("AssetsLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
         {
@@ -83,14 +102,18 @@ namespace BrightBox3D::Editor
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::BeginChild("FolderTree");
-            AssetsFolderTree::Draw(m_application.GetContext());
+            AssetsFolderTree::Draw(m_application, m_state);
             ImGui::EndChild();
             ImGui::TableSetColumnIndex(1);
-            m_items.Draw(m_pendingDelete);
+            m_items.Draw();
             ImGui::EndTable();
         }
         DrawDeleteConfirmation();
         PopSelectionColors();
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+        {
+            CommandRegistry::Get().DispatchShortcuts(CommandScope::Assets);
+        }
         ImGui::End();
     }
 }

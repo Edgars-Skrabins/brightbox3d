@@ -2,8 +2,10 @@
 
 #include "Assets/AssetDatabase.h"
 #include "DragDrop.h"
-#include "EditorContext.h"
+#include "EditorApplication.h"
 #include "EditorText.h"
+#include "Panels/Assets/AssetActions.h"
+#include "Panels/Assets/AssetsContextMenu.h"
 
 #include <imgui.h>
 
@@ -51,8 +53,34 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             ImGui::EndDragDropTarget();
         }
 
-        void DrawFolder(EditorContext& context, const std::string& folder, const std::string& label)
+        AssetsTarget FolderTarget(EditorContext& context, const std::string& folder)
         {
+            const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecordByPath(folder);
+            if (!record || context.GetAssetCreationService().GetAssetsFolder() == folder)
+            {
+                return { {}, folder };
+            }
+            return TargetForAsset(*record);
+        }
+
+        bool DrawNode(AssetsPanelState& state, const Assets::AssetRecord* record, const std::string& folder, const std::string& label, ImGuiTreeNodeFlags flags)
+        {
+            if (!record || !state.rename.IsRenaming(record->guid))
+            {
+                return ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", label.c_str());
+            }
+            bool open = ImGui::TreeNodeEx(folder.c_str(), flags, "%s", "");
+            ImGui::SameLine();
+            if (std::optional<std::string> renamed = state.rename.Draw(-FLT_MIN))
+            {
+                AssetActions::CommitRename(*record, *renamed);
+            }
+            return open;
+        }
+
+        void DrawFolder(EditorApplication& application, AssetsPanelState& state, const std::string& folder, const std::string& label)
+        {
+            EditorContext& context = application.GetContext();
             std::vector<Assets::AssetRecord> folders = ChildFolders(folder);
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
             if (folders.empty())
@@ -67,30 +95,42 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             {
                 flags |= ImGuiTreeNodeFlags_Selected;
             }
-            bool open = ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", label.c_str());
+            const Assets::AssetRecord* record = folder.empty() ? nullptr : Assets::AssetDatabase::Get().FindRecordByPath(folder);
+            bool open = DrawNode(state, record, folder, label, flags);
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
             {
                 context.GetAssetCreationService().SetAssetsFolder(folder);
+            }
+            if (ImGui::BeginPopupContextItem("FolderContext"))
+            {
+                AssetsContextMenu::Draw(application, state, FolderTarget(context, folder));
+                ImGui::EndPopup();
             }
             HandleDrop(folder);
             if (open)
             {
                 for (const Assets::AssetRecord& child : folders)
                 {
-                    DrawFolder(context, child.path, child.name);
+                    DrawFolder(application, state, child.path, child.name);
                 }
                 ImGui::TreePop();
             }
         }
     }
 
-    void Draw(EditorContext& context)
+    void Draw(EditorApplication& application, AssetsPanelState& state)
     {
-        DrawFolder(context, "", Text(EditorText::AssetsTitle));
+        EditorContext& context = application.GetContext();
+        DrawFolder(application, state, "", Text(EditorText::AssetsTitle));
         bool showBuiltin = context.GetAssetCreationService().GetAssetsFolder() == BuiltinFolder;
         if (ImGui::Selectable(Text(EditorText::BuiltinAssets), showBuiltin))
         {
             context.GetAssetCreationService().SetAssetsFolder(BuiltinFolder);
+        }
+        if (ImGui::BeginPopupContextItem("BuiltinContext"))
+        {
+            AssetsContextMenu::Draw(application, state, { {}, BuiltinFolder });
+            ImGui::EndPopup();
         }
     }
 }

@@ -57,6 +57,7 @@ namespace BrightBox3D::Editor
         EditorPlaySession* GetPlaySession() { return m_playSession.get(); }
         LevelViewPanel& GetActiveLevelView() { return *m_levelView; }
         LevelContentsPanel& GetLevelContents() { return *m_levelContents; }
+        AssetsPanel& GetAssets() { return *m_assets; }
 
         void RequestRender(const ViewRenderRequest& request) { m_renderRequests.push_back(request); }
         void RequestPlay();

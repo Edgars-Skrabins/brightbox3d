@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Panels/Assets/AssetsPanelState.h"
+
 #include <string>
 
 namespace BrightBox3D::Editor
 {
-    class EditorContext;
+    class EditorApplication;
 
     inline constexpr const char* BuiltinFolder = "Builtin";
 
@@ -13,5 +15,5 @@ namespace BrightBox3D::Editor
 
 namespace BrightBox3D::Editor::AssetsFolderTree
 {
-    void Draw(EditorContext& context);
+    void Draw(EditorApplication& application, AssetsPanelState& state);
 }

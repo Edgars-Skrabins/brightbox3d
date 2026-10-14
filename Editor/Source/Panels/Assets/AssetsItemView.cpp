@@ -1,13 +1,13 @@
 #include "Panels/Assets/AssetsItemView.h"
 
 #include "Assets/AssetDatabase.h"
-#include "Core/Log.h"
 #include "Core/StringUtils.h"
 #include "DragDrop.h"
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
 #include "ImGui/ImGuiRenderer.h"
+#include "Panels/Assets/AssetActions.h"
 #include "Panels/Assets/AssetsContextMenu.h"
 #include "Panels/Assets/AssetsFolderTree.h"
 #include "Thumbnails.h"
@@ -107,7 +107,7 @@ namespace BrightBox3D::Editor
         }
     }
 
-    AssetsItemView::AssetsItemView(EditorApplication& application) : m_application(application)
+    AssetsItemView::AssetsItemView(EditorApplication& application, AssetsPanelState& state) : m_application(application), m_state(state)
     {
     }
 
@@ -216,7 +216,7 @@ namespace BrightBox3D::Editor
 
     void AssetsItemView::DrawLabel(const Assets::AssetRecord& record, const ImVec2& cursor)
     {
-        if (!m_rename.IsRenaming(record.guid))
+        if (!m_state.rename.IsRenaming(record.guid))
         {
             ImVec2 textSize = ImGui::CalcTextSize(record.name.c_str(), nullptr, false, m_tileSize);
             ImVec4 clip(cursor.x, cursor.y + m_tileSize, cursor.x + m_tileSize, cursor.y + m_tileSize + ImGui::GetTextLineHeightWithSpacing() * LabelLines);
@@ -224,19 +224,13 @@ namespace BrightBox3D::Editor
             return;
         }
         ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + m_tileSize));
-        if (std::optional<std::string> renamed = m_rename.Draw(m_tileSize))
+        if (std::optional<std::string> renamed = m_state.rename.Draw(m_tileSize))
         {
-            std::string extension = record.type == Assets::AssetType::Folder ? "" : record.name.substr(std::min(record.name.find('.'), record.name.size()));
-            std::string parent = ParentFolder(record.path);
-            std::string target = (parent.empty() ? "" : parent + "/") + *renamed + extension;
-            if (!Assets::AssetDatabase::Get().MoveAsset(record.guid, target))
-            {
-                Core::Log::Error(Text(EditorText::RenameFailed, target));
-            }
+            AssetActions::CommitRename(record, *renamed);
         }
     }
 
-    void AssetsItemView::DrawItem(const Assets::AssetRecord& record, Core::Guid& pendingDelete)
+    void AssetsItemView::DrawItem(const Assets::AssetRecord& record)
     {
         SelectionService& selection = m_application.GetContext().GetSelectionService();
         ImGui::PushID(record.guid.ToString().c_str());
@@ -248,7 +242,7 @@ namespace BrightBox3D::Editor
             selection.SelectAsset(record.guid);
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
-                AssetsContextMenu::OpenAsset(m_application, record.guid);
+                AssetActions::Open(m_application, record.guid);
             }
         }
         if (ImGui::BeginDragDropSource())
@@ -261,7 +255,7 @@ namespace BrightBox3D::Editor
         if (ImGui::BeginPopupContextItem("ItemContext"))
         {
             selection.SelectAsset(record.guid);
-            AssetsContextMenu::DrawItemMenu(m_application, record.guid, m_rename, pendingDelete);
+            AssetsContextMenu::Draw(m_application, m_state, TargetForAsset(record));
             ImGui::EndPopup();
         }
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
@@ -278,6 +272,11 @@ namespace BrightBox3D::Editor
     {
         ImGui::SetCursorPos(ImVec2(0, std::max(ImGui::GetCursorPosY(), 0.0f)));
         ImGui::InvisibleButton("##dropzone", ImVec2(std::max(1.0f, ImGui::GetContentRegionAvail().x), std::max(MinDropZoneHeight, ImGui::GetContentRegionAvail().y)));
+        if (ImGui::BeginPopupContextItem("BackgroundContext"))
+        {
+            AssetsContextMenu::Draw(m_application, m_state, { {}, CurrentFolder() });
+            ImGui::EndPopup();
+        }
         if (!ImGui::BeginDragDropTarget())
         {
             return;
@@ -296,7 +295,7 @@ namespace BrightBox3D::Editor
         ImGui::EndDragDropTarget();
     }
 
-    void AssetsItemView::Draw(Core::Guid& pendingDelete)
+    void AssetsItemView::Draw()
     {
         DrawToolbar();
         ImGui::BeginChild("Items", ImVec2(0, 0), ImGuiChildFlags_None);
@@ -306,7 +305,7 @@ namespace BrightBox3D::Editor
         int column = 0;
         for (const Assets::AssetRecord& record : items)
         {
-            DrawItem(record, pendingDelete);
+            DrawItem(record);
             if (++column < columns)
             {
                 ImGui::SameLine(0.0f, TileSpacing);
@@ -316,12 +315,12 @@ namespace BrightBox3D::Editor
                 column = 0;
             }
         }
-        if (ImGui::BeginPopupContextWindow("ItemsContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+        DrawDropZone();
+        if (ImGui::BeginPopupContextWindow("GapContext", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
         {
-            AssetsContextMenu::DrawCreateMenu(m_application, CurrentFolder());
+            AssetsContextMenu::Draw(m_application, m_state, { {}, CurrentFolder() });
             ImGui::EndPopup();
         }
-        DrawDropZone();
         ImGui::EndChild();
     }
 }

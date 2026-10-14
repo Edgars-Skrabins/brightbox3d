@@ -49,6 +49,16 @@ namespace BrightBox3D::Editor
         Grid,
         FocusSelection,
         Rename,
+        AssetShowInFileBrowser,
+        AssetOpen,
+        AssetRename,
+        AssetDelete,
+        AssetDuplicate,
+        AssetCopyPath,
+        AssetSetStartupLevel,
+        AssetCreateVariant,
+        AssetReimport,
+        AssetRefresh,
         Count
     };
 
