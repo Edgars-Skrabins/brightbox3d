@@ -1,16 +1,8 @@
 #pragma once
 
-#include "Core/Guid.h"
-#include "ObjectIcons.h"
-#include "Widgets/InlineRename.h"
+#include "Panels/LevelContents/LevelContentsTree.h"
 
 #include <string>
-
-namespace BrightBox3D::Level
-{
-    class LevelCollection;
-    class LevelObject;
-}
 
 namespace BrightBox3D::Editor
 {
@@ -24,18 +16,11 @@ namespace BrightBox3D::Editor
         void BeginRenameSelection();
 
     private:
-        void DrawCollection(Level::LevelCollection& collection);
-        void DrawObject(Level::LevelObject& object);
-        void DrawCreateMenu(Level::LevelObject* parent);
-        void DrawObjectContextMenu(Level::LevelObject& object);
-        bool MatchesFilter(const Level::LevelObject& object) const;
-        void DrawRowBackground(bool selected);
+        void DrawToolbar();
+        void HandleTreeInput();
 
         EditorApplication& m_application;
+        LevelContentsTree m_tree;
         std::string m_filter;
-        InlineRename m_rename;
-        Core::Guid m_scrollTo;
-        int m_rowIndex = 0;
-        ObjectIcons m_icons;
     };
 }

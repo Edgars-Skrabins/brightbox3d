@@ -379,6 +379,8 @@ namespace BrightBox3D::Editor
             { "TextureSummary", "{} x {}, {} mips", 3 },
             { "ModelSummary", "{} meshes, {} nodes, {} triangles", 3 },
             { "AddExistingCollection", "Add Existing...", 0 },
+            { "TypeNameSuffix", "[{}]", 1 },
+            { "DirtyMarker", "{} *", 1 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EditorText::Count));

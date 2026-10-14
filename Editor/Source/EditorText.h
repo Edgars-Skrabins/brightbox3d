@@ -381,6 +381,8 @@ namespace BrightBox3D::Editor
         TextureSummary,
         ModelSummary,
         AddExistingCollection,
+        TypeNameSuffix,
+        DirtyMarker,
         Count
     };
 
