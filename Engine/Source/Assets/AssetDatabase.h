@@ -61,6 +61,7 @@ namespace BrightBox3D::Assets
 
         const AssetRecord* FindRecord(const Core::Guid& guid) const;
         const AssetRecord* FindRecordByPath(const std::string& relativePath) const;
+        Core::Guid ResolveReference(const std::string& reference) const;
         std::vector<AssetRecord> GetRecords(AssetType type = AssetType::Unknown) const;
         std::string MakeRelativePath(const std::filesystem::path& absolutePath) const;
 

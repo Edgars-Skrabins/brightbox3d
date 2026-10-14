@@ -72,6 +72,8 @@ namespace BrightBox3D::UI
         void SetFocused(bool focused) { m_focused = focused; }
         void SetDisabled(bool disabled) { m_disabled = disabled; }
         bool IsInteractive() const;
+        bool ShowsText() const;
+        const std::string& GetDisplayText() const;
 
         ComputedStyle& GetStyle() { return m_style; }
         const ComputedStyle& GetStyle() const { return m_style; }

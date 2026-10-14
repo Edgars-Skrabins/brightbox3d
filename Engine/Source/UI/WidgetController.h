@@ -35,7 +35,7 @@ namespace BrightBox3D::UI
         Reflection::EngineObject* GetBindingRoot(BindingRoot root) const;
 
     private:
-        friend class Document;
+        friend class DocumentBuilder;
 
         Element* m_root = nullptr;
         Document* m_document = nullptr;

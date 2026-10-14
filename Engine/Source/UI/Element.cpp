@@ -74,6 +74,20 @@ namespace BrightBox3D::UI
         return m_type == ElementType::Button || m_type == ElementType::TextField || m_type == ElementType::Slider || m_type == ElementType::Toggle;
     }
 
+    bool Element::ShowsText() const
+    {
+        return m_type == ElementType::Label || m_type == ElementType::Button || m_type == ElementType::TextField;
+    }
+
+    const std::string& Element::GetDisplayText() const
+    {
+        if (m_type == ElementType::TextField && m_text.empty() && !m_focused)
+        {
+            return m_placeholder;
+        }
+        return m_text;
+    }
+
     WidgetController* Element::FindController() const
     {
         for (const Element* element = this; element; element = element->m_parent)

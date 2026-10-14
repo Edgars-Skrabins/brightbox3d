@@ -146,20 +146,7 @@ namespace BrightBox3D::UI
             return it->second ? it->second.get() : GetDefault();
         }
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-        Core::Guid guid = Core::Guid::Parse(family);
-        if (!guid.IsValid())
-        {
-            std::string path = family;
-            if (path.rfind("Assets/", 0) == 0)
-            {
-                path = path.substr(7);
-            }
-            if (const Assets::AssetRecord* record = database.FindRecordByPath(path))
-            {
-                guid = record->guid;
-            }
-        }
-        auto asset = database.Load<FontAsset>(guid);
+        auto asset = database.Load<FontAsset>(database.ResolveReference(family));
         if (!asset)
         {
             Core::Log::Warning(Core::Text(Core::EngineText::FontNotFound, family));

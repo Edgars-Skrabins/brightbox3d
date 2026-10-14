@@ -1,25 +1,16 @@
 #pragma once
 
-#include "Assets/AssetType.h"
 #include "Core/Guid.h"
-#include "Math/Vector2.h"
 #include "UI/Binding.h"
+#include "UI/BindingUpdater.h"
+#include "UI/DocumentInput.h"
 #include "UI/Element.h"
-#include "UI/Style.h"
 #include "UI/StyleSheet.h"
 
-#include <array>
 #include <memory>
-#include <optional>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-namespace pugi
-{
-    class xml_node;
-}
 
 namespace BrightBox3D::RHI
 {
@@ -35,19 +26,6 @@ namespace BrightBox3D::UI
 {
     class DrawList;
     class WidgetController;
-
-    struct UIInput
-    {
-        Math::Vector2 mouse{ -1.0f, -1.0f };
-        bool mouseDown = false;
-        bool mousePressed = false;
-        bool mouseReleased = false;
-        bool pointerEnabled = true;
-        std::u32string text;
-        bool backspace = false;
-        bool enter = false;
-        bool escape = false;
-    };
 
     class Document
     {
@@ -65,38 +43,18 @@ namespace BrightBox3D::UI
 
         Element* GetRoot() const { return m_root.get(); }
         Element* Find(const std::string& name) const { return m_root ? m_root->FindByName(name) : nullptr; }
-        const BindingRoots& GetRoots() const { return m_roots; }
+        const BindingRoots& GetRoots() const { return m_bindings.GetRoots(); }
         const std::unordered_set<Core::Guid>& GetDependencies() const { return m_dependencies; }
-        bool IsPointerOverInteractive() const { return m_hovered != nullptr; }
-        bool HasFocus() const { return m_focused != nullptr; }
+        bool IsPointerOverInteractive() const { return m_input.IsPointerOverInteractive(); }
+        bool HasFocus() const { return m_input.HasFocus(); }
 
     private:
-        using MarkupValues = std::array<std::optional<std::string>, static_cast<size_t>(MarkupAttribute::Count)>;
-
-        std::unique_ptr<Element> BuildElement(const pugi::xml_node& node, int depth, std::string& error);
-        void ApplyAttributes(Element& element, const MarkupValues& values, const pugi::xml_node& source);
-        bool LoadStyleSheet(const std::string& reference);
-        Core::Guid ResolveAsset(const std::string& reference, Assets::AssetType expectedType);
-        void ComputeStyles(Element& element, const ComputedStyle* parent);
-        void SyncLayout(Element& element);
-        void ReadLayout(Element& element, float parentX, float parentY);
-        void UpdateBindings(Element& element);
-        void HandleInput(const UIInput& input);
-        Element* HitTest(Element& element, float x, float y);
-        void DrawElement(const Element& element, DrawList& drawList, RHI::Device& device, Rendering::GpuResourceCache& resources, float opacity) const;
-        void ReportBindingError(const std::string& error);
-        void WriteBinding(Element& element, BindingTarget target);
-        void NotifyValueChanged(Element& element);
-
         std::unique_ptr<Element> m_root;
         StyleSheet m_styles;
         std::vector<std::unique_ptr<WidgetController>> m_controllers;
         std::unordered_set<Core::Guid> m_dependencies;
-        std::unordered_set<std::string> m_reportedErrors;
-        BindingRoots m_roots;
-        Element* m_hovered = nullptr;
-        Element* m_pressed = nullptr;
-        Element* m_focused = nullptr;
+        BindingUpdater m_bindings;
+        DocumentInput m_input;
         bool m_created = false;
     };
 }

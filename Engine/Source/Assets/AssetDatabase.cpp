@@ -354,6 +354,19 @@ namespace BrightBox3D::Assets
         return it == m_pathIndex.end() ? nullptr : FindRecord(it->second);
     }
 
+    Core::Guid AssetDatabase::ResolveReference(const std::string& reference) const
+    {
+        Core::Guid guid = Core::Guid::Parse(reference);
+        if (guid.IsValid())
+        {
+            return guid;
+        }
+        std::string prefix = std::string(AssetsFolder) + '/';
+        std::string path = Core::StartsWith(reference, prefix) ? reference.substr(prefix.size()) : reference;
+        const AssetRecord* record = FindRecordByPath(path);
+        return record ? record->guid : Core::Guid{};
+    }
+
     std::vector<AssetRecord> AssetDatabase::GetRecords(AssetType type) const
     {
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
