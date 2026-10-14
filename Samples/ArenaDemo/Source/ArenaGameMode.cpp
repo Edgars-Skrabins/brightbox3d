@@ -1,10 +1,16 @@
 #include "ArenaGameMode.h"
 
 #include "ArenaGameState.h"
+#include "Core/Debug.h"
 
 ArenaGameMode::ArenaGameMode()
 {
     m_gameStateClass.Set<ArenaGameState>();
+}
+
+void ArenaGameMode::OnGameStart()
+{
+    BrightBox3D::Debug::Log("Arena started");
 }
 
 void ArenaGameMode::OnGameUpdate(float deltaTime)

@@ -10,6 +10,7 @@ class ArenaGameMode : public BrightBox3D::Framework::GameModeBase
 public:
     ArenaGameMode();
 
+    void OnGameStart() override;
     void OnGameUpdate(float deltaTime) override;
 
 private:
