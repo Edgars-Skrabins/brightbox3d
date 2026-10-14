@@ -244,10 +244,8 @@ namespace BrightBox3D::Editor
         ImGui::BeginDisabled(builtin);
         if (ImGui::MenuItem(Text(EditorText::Rename)))
         {
-            m_renaming = guid;
             std::string name = record->name;
-            m_renameBuffer = record->type == Assets::AssetType::Folder ? name : name.substr(0, name.find('.'));
-            m_focusRename = true;
+            m_rename.Begin(guid, record->type == Assets::AssetType::Folder ? name : name.substr(0, name.find('.')));
         }
         if (ImGui::MenuItem(Text(EditorText::Delete)))
         {
@@ -502,28 +500,17 @@ namespace BrightBox3D::Editor
                 drawList->AddRectFilled(ImVec2(imageMin.x, imageMax.y - 3.0f), ImVec2(imageMax.x, imageMax.y), TypeColor(record.type));
 
                 std::string label = record.name;
-                if (m_renaming == record.guid)
+                if (m_rename.IsRenaming(record.guid))
                 {
                     ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + m_tileSize));
-                    ImGui::SetNextItemWidth(m_tileSize);
-                    if (m_focusRename)
-                    {
-                        ImGui::SetKeyboardFocusHere();
-                        m_focusRename = false;
-                    }
-                    if (ImGui::InputText("##rename", &m_renameBuffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+                    if (std::optional<std::string> renamed = m_rename.Draw(m_tileSize))
                     {
                         std::string extension = record.type == Assets::AssetType::Folder ? "" : record.name.substr(std::min(record.name.find('.'), record.name.size()));
-                        std::string target = (Parent(record.path).empty() ? "" : Parent(record.path) + "/") + m_renameBuffer + extension;
+                        std::string target = (Parent(record.path).empty() ? "" : Parent(record.path) + "/") + *renamed + extension;
                         if (!database.MoveAsset(record.guid, target))
                         {
                             Core::Log::Error(Text(EditorText::RenameFailed, target));
                         }
-                        m_renaming = {};
-                    }
-                    else if (!ImGui::IsItemActive() && !m_focusRename && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                    {
-                        m_renaming = {};
                     }
                 }
                 else

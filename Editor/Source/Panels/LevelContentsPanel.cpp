@@ -196,9 +196,7 @@ namespace BrightBox3D::Editor
     {
         if (Level::LevelObject* primary = m_application.GetContext().GetSelectionService().GetPrimarySelection())
         {
-            m_renaming = primary->GetId();
-            m_renameBuffer = primary->GetName();
-            m_focusRename = true;
+            m_rename.Begin(primary->GetId(), primary->GetName());
         }
     }
 
@@ -338,28 +336,17 @@ namespace BrightBox3D::Editor
         ImVec2 rowPosition = ImGui::GetCursorScreenPos();
         ImVec2 labelPosition(rowPosition.x + ImGui::GetTreeNodeToLabelSpacing(), rowPosition.y + ImGui::GetStyle().FramePadding.y);
         bool open;
-        if (m_renaming == object.GetId())
+        if (m_rename.IsRenaming(object.GetId()))
         {
             open = ImGui::TreeNodeEx("##node", flags, "%s", "");
             ImGui::SameLine();
             ImGui::SetCursorScreenPos(ImVec2(labelPosition.x, rowPosition.y));
-            if (m_focusRename)
-            {
-                ImGui::SetKeyboardFocusHere();
-                m_focusRename = false;
-            }
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            if (ImGui::InputText("##rename", &m_renameBuffer, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+            if (std::optional<std::string> renamed = m_rename.Draw(-FLT_MIN))
             {
                 Serialization::JsonDocument before;
                 ObjectEditService::Snapshot(object, before);
-                object.SetName(m_renameBuffer);
+                object.SetName(*renamed);
                 context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::Rename));
-                m_renaming = {};
-            }
-            else if (!ImGui::IsItemActive() && !m_focusRename && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsKeyPressed(ImGuiKey_Escape)))
-            {
-                m_renaming = {};
             }
         }
         else

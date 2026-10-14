@@ -2,6 +2,7 @@
 
 #include "Core/Guid.h"
 #include "ObjectIcons.h"
+#include "Widgets/InlineRename.h"
 
 #include <string>
 
@@ -32,9 +33,7 @@ namespace BrightBox3D::Editor
 
         EditorApplication& m_application;
         std::string m_filter;
-        Core::Guid m_renaming;
-        std::string m_renameBuffer;
-        bool m_focusRename = false;
+        InlineRename m_rename;
         Core::Guid m_scrollTo;
         int m_rowIndex = 0;
         ObjectIcons m_icons;
