@@ -76,6 +76,36 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 - **Icons:** use `Icon::` (every Lucide icon is generated into `Core/Icon.h`) and draw it with `IconGlyph(Icon::X)` or `IconLabel`. Classes declare theirs with `BrightClass(.icon = ...)`.
 - **Selection highlight:** wrap list and tree panels in `PushSelectionColors()` / `PopSelectionColors()`.
 
+## Code quality
+
+- **One responsibility per file.**
+  - Split a class that does several jobs.
+  - Stateful pieces become classes owned by their parent. Stateless helpers become namespaces of free functions.
+  - A large class may spread its member definitions over files named by responsibility (`Level.cpp`, `LevelObjects.cpp`, `LevelPlay.cpp`).
+  - A long function is broken into named steps.
+- **No duplication.** Before writing a helper, check the shared utilities below.
+- **No hard-coded strings.**
+  - User-visible engine text (logs, errors) goes in `Engine/Source/Core/EngineText.h/.cpp` and is read with `Core::Text(Core::EngineText::X, args...)`.
+  - Editor UI text goes in `EditorText`.
+  - File format keys live in each module's schema header (`LevelFileSchema`, `AssetFileSchema`).
+  - Fixed sets of options are enums, never strings.
+- **No magic numbers.** Name constants. Editor sizes are `EditorMetric` entries in `Editor/Source/Theme.h`, read with `ScaledMetric(EditorMetric::X)`.
+- **Shared utilities:**
+
+| Utility | Where | Use for |
+|---|---|---|
+| `Core::StringUtils` | `Engine/Source/Core/StringUtils.h` | Split, trim, case, prefix and suffix checks, `PrettifyName`, `Widen` (Windows) |
+| `ColorSpace` | `Engine/Source/Math/ColorSpace.h` | sRGB to linear conversions |
+| `MipGenerator` | `Engine/Source/Rendering/MipGenerator.h` | Box-filter mip chains for 8-bit and float pixels |
+| `AssetDatabase::IsIgnoredPath`, `ResolveReference` | `Engine/Source/Assets/AssetDatabase.h` | Which files are assets, and resolving asset references |
+| Reflected import settings | `TextureImportSettings`, `ModelImportSettings` | Importer options, drawn by the Inspector like any object |
+| `JoltConversions`, `MetalConversions`, `DX11Conversions` | `Physics/`, `RHI/Metal/`, `RHI/DX11/` | Engine types to backend types |
+| `DragDrop` | `Editor/Source/DragDrop.h` | Typed drag and drop payloads (`DragDropPayload`) |
+| `InlineRename` | `Editor/Source/Widgets/InlineRename.h` | Rename in place in lists and trees |
+| `CreateMenuRegistry` | `Editor/Source/CreateMenuRegistry.h` | Create menu entries. Built-ins go in `EditorCreateMenu.cpp`; reflected classes appear automatically |
+| `ValueDrawers` | `Editor/Source/ValueDrawers.h` | Drawing one property value per `PropertyKind` |
+| `TestUtilities` | `Tests/Common/TestUtilities.h` | `MakeTempDirectory`, `TestOutputPath` (reads `BRIGHT_TEST_OUTPUT`), `CreateTestRenderContext` |
+
 ## Workflow rules
 
 - Follow the owner's global rules. Ask instead of assuming when a design decision isn't specified.
