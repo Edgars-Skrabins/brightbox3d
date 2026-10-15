@@ -34,7 +34,7 @@ namespace BrightBox3D::Assets
         }
         AssetRecord record;
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             if (auto loaded = m_loaded.find(guid); loaded != m_loaded.end())
             {
                 return loaded->second;
@@ -71,27 +71,27 @@ namespace BrightBox3D::Assets
             return nullptr;
         }
         asset->SetIdentity(guid, AssetStem(std::filesystem::path(record.path).filename().string()), record.path, record.type);
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_loaded[guid] = asset;
         return asset;
     }
 
     std::shared_ptr<Asset> AssetDatabase::FindLoaded(const Core::Guid& guid) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_loaded.find(guid);
         return it == m_loaded.end() ? nullptr : it->second;
     }
 
     void AssetDatabase::Unload(const Core::Guid& guid)
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_loaded.erase(guid);
     }
 
     void AssetDatabase::UnloadAll()
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         for (auto it = m_loaded.begin(); it != m_loaded.end();)
         {
             it = m_builtins.count(it->first) ? std::next(it) : m_loaded.erase(it);

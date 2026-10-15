@@ -124,6 +124,8 @@ namespace BrightBox3D::Assets
         uint64_t ComputeSourceHash(const AssetRecord& record) const;
         std::unique_ptr<Reflection::EngineObject> CreateImportSettings(AssetType type) const;
         void RegisterRecord(AssetRecord record);
+        AssetImporter* ImporterFor(AssetType type) const;
+        const AssetRecord* FindRecordUnlocked(const Core::Guid& guid) const;
         AssetRecord DescribeAsset(const std::filesystem::path& path, AssetType type, const Core::Guid& guid) const;
         bool RegisterScanned(AssetRecord record);
         std::vector<Core::Guid> ScanAssets(std::unordered_set<Core::Guid>& seen);
@@ -135,7 +137,7 @@ namespace BrightBox3D::Assets
         void SaveCookedManifest() const;
         void RegisterDefaultImporters();
 
-        mutable std::recursive_mutex m_mutex;
+        mutable std::mutex m_mutex;
         bool m_isOpen = false;
         AssetDatabaseMode m_mode = AssetDatabaseMode::Editor;
         std::filesystem::path m_projectRoot;

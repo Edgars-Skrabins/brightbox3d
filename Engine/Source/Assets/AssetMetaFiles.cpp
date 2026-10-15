@@ -60,7 +60,7 @@ namespace BrightBox3D::Assets
 
     std::unique_ptr<Reflection::EngineObject> AssetDatabase::CreateImportSettings(AssetType type) const
     {
-        AssetImporter* importer = GetImporter(type);
+        AssetImporter* importer = ImporterFor(type);
         const Reflection::TypeInfo* settingsType = importer ? importer->GetSettingsType() : nullptr;
         return settingsType ? std::unique_ptr<Reflection::EngineObject>(settingsType->CreateInstance()) : nullptr;
     }
@@ -109,7 +109,7 @@ namespace BrightBox3D::Assets
             return false;
         }
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             m_records[guid].sourceHash = 0;
             m_loaded.erase(guid);
         }

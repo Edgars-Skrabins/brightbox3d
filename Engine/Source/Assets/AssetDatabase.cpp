@@ -36,7 +36,7 @@ namespace BrightBox3D::Assets
 
     void AssetDatabase::RegisterBuiltin(const Core::Guid& guid, const std::string& path, AssetType type, BuiltinFactory factory)
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         AssetRecord record;
         record.guid = guid;
         record.path = path;
@@ -47,19 +47,24 @@ namespace BrightBox3D::Assets
 
     bool AssetDatabase::IsBuiltin(const Core::Guid& guid) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_builtins.count(guid) > 0;
     }
 
     void AssetDatabase::RegisterImporter(AssetType type, std::shared_ptr<AssetImporter> importer)
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_importers[static_cast<int>(type)] = std::move(importer);
     }
 
     AssetImporter* AssetDatabase::GetImporter(AssetType type) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return ImporterFor(type);
+    }
+
+    AssetImporter* AssetDatabase::ImporterFor(AssetType type) const
+    {
         auto it = m_importers.find(static_cast<int>(type));
         return it == m_importers.end() ? nullptr : it->second.get();
     }
@@ -67,31 +72,31 @@ namespace BrightBox3D::Assets
     bool AssetDatabase::Open(const std::filesystem::path& projectRoot, AssetDatabaseMode mode)
     {
         Close();
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
-        std::error_code error;
-        m_projectRoot = std::filesystem::weakly_canonical(projectRoot, error);
-        if (error)
         {
-            m_projectRoot = projectRoot;
+            std::lock_guard<std::mutex> lock(m_mutex);
+            std::error_code error;
+            m_projectRoot = std::filesystem::weakly_canonical(projectRoot, error);
+            if (error)
+            {
+                m_projectRoot = projectRoot;
+            }
+            m_mode = mode;
+            m_isOpen = true;
+            if (mode == AssetDatabaseMode::Cooked)
+            {
+                LoadCookedManifest();
+                return true;
+            }
         }
-        m_mode = mode;
-        m_isOpen = true;
-        if (mode == AssetDatabaseMode::Cooked)
-        {
-            LoadCookedManifest();
-        }
-        else
-        {
-            Core::FileSystem::EnsureDirectory(GetAssetsDirectory());
-            Core::FileSystem::EnsureDirectory(GetCookedDirectory());
-            Refresh();
-        }
+        Core::FileSystem::EnsureDirectory(GetAssetsDirectory());
+        Core::FileSystem::EnsureDirectory(GetCookedDirectory());
+        Refresh();
         return true;
     }
 
     void AssetDatabase::Close()
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         for (auto it = m_loaded.begin(); it != m_loaded.end();)
         {
             it = m_builtins.count(it->first) ? std::next(it) : m_loaded.erase(it);
@@ -240,7 +245,7 @@ namespace BrightBox3D::Assets
         std::vector<Core::Guid> changed;
         std::vector<Core::Guid> removed;
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             if (!m_isOpen || m_mode != AssetDatabaseMode::Editor)
             {
                 return;
@@ -283,7 +288,12 @@ namespace BrightBox3D::Assets
 
     const AssetRecord* AssetDatabase::FindRecord(const Core::Guid& guid) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return FindRecordUnlocked(guid);
+    }
+
+    const AssetRecord* AssetDatabase::FindRecordUnlocked(const Core::Guid& guid) const
+    {
         auto it = m_records.find(guid);
         if (it != m_records.end())
         {
@@ -295,9 +305,9 @@ namespace BrightBox3D::Assets
 
     const AssetRecord* AssetDatabase::FindRecordByPath(const std::string& relativePath) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_pathIndex.find(std::filesystem::path(relativePath).generic_string());
-        return it == m_pathIndex.end() ? nullptr : FindRecord(it->second);
+        return it == m_pathIndex.end() ? nullptr : FindRecordUnlocked(it->second);
     }
 
     Core::Guid AssetDatabase::ResolveReference(const std::string& reference) const
@@ -315,7 +325,7 @@ namespace BrightBox3D::Assets
 
     std::vector<AssetRecord> AssetDatabase::GetRecords(AssetType type) const
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<AssetRecord> result;
         for (const auto& [guid, record] : m_records)
         {

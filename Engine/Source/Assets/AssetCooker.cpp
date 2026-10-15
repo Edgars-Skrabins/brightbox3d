@@ -67,7 +67,7 @@ namespace BrightBox3D::Assets
 
         uint64_t hash = ComputeSourceHash(record);
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             auto it = m_records.find(record.guid);
             if (it != m_records.end())
             {
@@ -110,7 +110,7 @@ namespace BrightBox3D::Assets
             if (hash == 0)
             {
                 hash = ComputeSourceHash(record);
-                std::lock_guard<std::recursive_mutex> lock(m_mutex);
+                std::lock_guard<std::mutex> lock(m_mutex);
                 m_records[record.guid].sourceHash = hash;
             }
             valid = header.sourceHash == hash;

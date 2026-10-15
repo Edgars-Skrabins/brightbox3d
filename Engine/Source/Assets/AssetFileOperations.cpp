@@ -98,7 +98,7 @@ namespace BrightBox3D::Assets
             return false;
         }
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             AssetRecord& stored = m_records[guid];
             stored.sourceTime = Core::FileSystem::LastWriteTime(GetAbsolutePath(record));
             std::error_code error;
@@ -186,7 +186,7 @@ namespace BrightBox3D::Assets
         }
         std::filesystem::remove(MetaPathFor(path), error);
         {
-            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lock(m_mutex);
             RemoveRecord(guid);
         }
         Refresh();
