@@ -27,6 +27,12 @@ namespace BrightBox3D::Level::LevelFileSchema
     inline constexpr char Collections[] = "collections";
     inline constexpr char Settings[] = "settings";
 
+    inline constexpr char GameMode[] = "gameMode";
+    inline constexpr char LevelBehavior[] = "levelBehavior";
+    inline constexpr char GameplayClass[] = "class";
+    inline constexpr char GameplaySettings[] = "settings";
+    inline constexpr char LegacyOverrideGameMode[] = "overrideGameMode";
+
     inline constexpr char TransformComponentKey[] = "transform";
     inline constexpr char PseudoName[] = "$name";
     inline constexpr char PseudoActive[] = "$active";

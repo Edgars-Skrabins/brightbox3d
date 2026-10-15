@@ -1,8 +1,11 @@
 #include "Runtime/LevelObjectAssetMigration.h"
 
+#include "Assets/AssetDatabase.h"
+#include "Assets/AssetFileSchema.h"
 #include "Assets/AssetType.h"
 #include "Core/EngineText.h"
 #include "Core/Log.h"
+#include "Level/LevelFileSchema.h"
 #include "Runtime/Project.h"
 #include "Serialization/Json.h"
 
@@ -12,11 +15,6 @@ namespace BrightBox3D::Runtime
 {
     namespace
     {
-        constexpr const char* LegacyExtension = ".levelobject";
-        constexpr const char* MetaExtension = ".meta";
-        constexpr const char* AssetKindKey = "$asset";
-        constexpr const char* MetaTypeKey = "type";
-
         void SetString(const std::filesystem::path& path, const char* key, const char* value)
         {
             Serialization::JsonDocument document;
@@ -34,7 +32,7 @@ namespace BrightBox3D::Runtime
         std::vector<std::filesystem::path> legacy;
         for (auto it = std::filesystem::recursive_directory_iterator(project.GetAssetsDirectory(), error); !error && it != std::filesystem::recursive_directory_iterator(); it.increment(error))
         {
-            if (it->is_regular_file() && it->path().extension() == LegacyExtension)
+            if (it->is_regular_file() && it->path().extension() == Assets::AssetFileSchema::LegacyLevelObjectExtension)
             {
                 legacy.push_back(it->path());
             }
@@ -50,14 +48,14 @@ namespace BrightBox3D::Runtime
                 Core::Log::Error(Core::Text(Core::EngineText::VariantMigrationFailed, path.generic_string(), Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), error.message()));
                 continue;
             }
-            std::filesystem::path meta = path.string() + MetaExtension;
-            std::filesystem::path renamedMeta = renamed.string() + MetaExtension;
+            std::filesystem::path meta = path.string() + Assets::AssetDatabase::MetaExtension;
+            std::filesystem::path renamedMeta = renamed.string() + Assets::AssetDatabase::MetaExtension;
             if (std::filesystem::exists(meta))
             {
                 std::filesystem::rename(meta, renamedMeta, error);
-                SetString(renamedMeta, MetaTypeKey, variantName);
+                SetString(renamedMeta, Assets::AssetFileSchema::Type, variantName);
             }
-            SetString(renamed, AssetKindKey, variantName);
+            SetString(renamed, Level::LevelFileSchema::AssetKind, variantName);
             Core::Log::Info(Core::Text(Core::EngineText::VariantMigrated, path.filename().string(), Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), renamed.filename().string()));
         }
         return static_cast<int>(legacy.size());

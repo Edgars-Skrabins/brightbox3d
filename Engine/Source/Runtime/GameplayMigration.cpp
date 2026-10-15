@@ -4,15 +4,11 @@
 #include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "Framework/LevelGameplaySettings.h"
+#include "Level/LevelFileSchema.h"
 #include "Runtime/Project.h"
 
 namespace BrightBox3D::Runtime
 {
-    namespace
-    {
-        constexpr const char* LevelSettingsKey = "settings";
-    }
-
     bool MigrateLegacyGameplaySettings(Project& project)
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
@@ -25,11 +21,11 @@ namespace BrightBox3D::Runtime
                 continue;
             }
             auto& allocator = document.GetAllocator();
-            if (!document.HasMember(LevelSettingsKey) || !document[LevelSettingsKey].IsObject())
+            if (!document.HasMember(Level::LevelFileSchema::Settings) || !document[Level::LevelFileSchema::Settings].IsObject())
             {
-                Serialization::SetMember(document, LevelSettingsKey, Serialization::JsonValue(rapidjson::kObjectType), allocator);
+                Serialization::SetMember(document, Level::LevelFileSchema::Settings, Serialization::JsonValue(rapidjson::kObjectType), allocator);
             }
-            if (Framework::LevelGameplaySettings::MigrateLegacySettings(document[LevelSettingsKey], project.GetLegacyGameMode(), allocator))
+            if (Framework::LevelGameplaySettings::MigrateLegacySettings(document[Level::LevelFileSchema::Settings], project.GetLegacyGameMode(), allocator))
             {
                 database.SaveJsonAsset(record.guid, document);
                 Core::Log::Info(Core::Text(Core::EngineText::GameModeMigrated, record.name));
