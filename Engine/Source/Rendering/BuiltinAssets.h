@@ -5,9 +5,25 @@
 
 namespace BrightBox3D::Rendering
 {
+    enum class BuiltinPrimitive
+    {
+        Cube,
+        Sphere,
+        Plane,
+        Quad,
+        Cylinder,
+        Capsule,
+        Count
+    };
+
     class BuiltinAssets
     {
     public:
+        static constexpr const char* DefaultMaterialName = "Default";
+
+        static const char* PrimitiveName(BuiltinPrimitive primitive);
+        static Core::Guid PrimitiveGuid(BuiltinPrimitive primitive);
+
         static Core::Guid Cube() { return { 0xb0000000b0000000ull, 0x1ull }; }
         static Core::Guid Sphere() { return { 0xb0000000b0000000ull, 0x2ull }; }
         static Core::Guid Plane() { return { 0xb0000000b0000000ull, 0x3ull }; }

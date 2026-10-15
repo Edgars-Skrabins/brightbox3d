@@ -20,16 +20,16 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         constexpr const char* DefaultWidgetMarkup = "<Widget>\n    <Panel class=\"widget\">\n        <Label text=\"Widget\" />\n    </Panel>\n</Widget>\n";
         constexpr const char* DefaultStyleSheet = ".root {\n    width: 100%;\n    height: 100%;\n    padding: 16px;\n}\n";
 
-        std::string NewAssetPath(const std::string& folder, EditorText name, Assets::AssetType type)
+        std::string NewAssetPath(const std::string& folder, Assets::AssetType type)
         {
             std::string prefix = folder.empty() ? "" : folder + "/";
-            return prefix + Text(name) + Assets::AssetTypeExtension(type);
+            return prefix + Assets::NewAssetName(type) + Assets::AssetTypeExtension(type);
         }
 
-        void CreateTextAsset(const std::string& folder, EditorText name, Assets::AssetType type, const char* content)
+        void CreateTextAsset(const std::string& folder, Assets::AssetType type, const char* content)
         {
             Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-            std::string path = database.MakeUniquePath(NewAssetPath(folder, name, type));
+            std::string path = database.MakeUniquePath(NewAssetPath(folder, type));
             Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, content);
             database.Refresh();
         }
@@ -37,7 +37,7 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         void CreateFolder(const std::string& folder)
         {
             Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-            std::string path = database.MakeUniquePath(NewAssetPath(folder, EditorText::NewFolderName, Assets::AssetType::Folder));
+            std::string path = database.MakeUniquePath(NewAssetPath(folder, Assets::AssetType::Folder));
             Core::FileSystem::EnsureDirectory(database.GetAssetsDirectory() / path);
             database.Refresh();
         }
@@ -46,8 +46,8 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         {
             Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
             Serialization::JsonDocument document;
-            Level::LevelSerializer::WriteEmptyCollection(Text(EditorText::NewCollectionName), document, document.GetAllocator());
-            return database.CreateJsonAsset(database.MakeUniquePath(NewAssetPath(folder, EditorText::NewCollectionName, Assets::AssetType::LevelCollection)), document);
+            Level::LevelSerializer::WriteEmptyCollection(Assets::NewAssetName(Assets::AssetType::LevelCollection), document, document.GetAllocator());
+            return database.CreateJsonAsset(database.MakeUniquePath(NewAssetPath(folder, Assets::AssetType::LevelCollection)), document);
         }
 
         Core::Guid CreateMaterial(const std::string& folder)
@@ -56,7 +56,7 @@ namespace BrightBox3D::Editor::AssetsContextMenu
             Rendering::MaterialAsset material;
             Serialization::JsonDocument document;
             Serialization::SerializeProperties(material, document, document.GetAllocator());
-            return database.CreateJsonAsset(database.MakeUniquePath(NewAssetPath(folder, EditorText::NewMaterialName, Assets::AssetType::Material)), document);
+            return database.CreateJsonAsset(database.MakeUniquePath(NewAssetPath(folder, Assets::AssetType::Material)), document);
         }
     }
 
@@ -70,7 +70,7 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         ImGui::Separator();
         if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Level)))
         {
-            context.GetSelectionService().SelectAsset(Level::LevelSerializer::CreateLevelAsset(NewAssetPath(folder, EditorText::NewLevelName, Assets::AssetType::Level)));
+            context.GetSelectionService().SelectAsset(Level::LevelSerializer::CreateLevelAsset(NewAssetPath(folder, Assets::AssetType::Level)));
         }
         if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::LevelCollection)))
         {
@@ -87,15 +87,15 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         ImGui::Separator();
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Screen)).c_str()))
         {
-            CreateTextAsset(folder, EditorText::NewScreenName, Assets::AssetType::Screen, DefaultScreenMarkup);
+            CreateTextAsset(folder, Assets::AssetType::Screen, DefaultScreenMarkup);
         }
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Widget)).c_str()))
         {
-            CreateTextAsset(folder, EditorText::NewWidgetName, Assets::AssetType::Widget, DefaultWidgetMarkup);
+            CreateTextAsset(folder, Assets::AssetType::Widget, DefaultWidgetMarkup);
         }
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::StyleSheet)).c_str()))
         {
-            CreateTextAsset(folder, EditorText::NewStyleSheetName, Assets::AssetType::StyleSheet, DefaultStyleSheet);
+            CreateTextAsset(folder, Assets::AssetType::StyleSheet, DefaultStyleSheet);
         }
     }
 

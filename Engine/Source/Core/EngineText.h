@@ -147,6 +147,14 @@ namespace BrightBox3D::Core
         NotAComponent,
         ProcessStartFailed,
         TextFileNotObject,
+        NewFolderName,
+        NewLevelName,
+        NewCollectionName,
+        NewTemplateName,
+        NewMaterialName,
+        NewScreenName,
+        NewWidgetName,
+        NewStyleSheetName,
         Count
     };
 

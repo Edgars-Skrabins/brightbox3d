@@ -144,6 +144,14 @@ namespace BrightBox3D::Core
             { "NotAComponent", "'{}' cannot be added as a component", 1 },
             { "ProcessStartFailed", "Failed to start process: {}", 1 },
             { "TextFileNotObject", "the text file is not a JSON object", 0 },
+            { "NewFolderName", "New Folder", 0 },
+            { "NewLevelName", "New Level", 0 },
+            { "NewCollectionName", "New Collection", 0 },
+            { "NewTemplateName", "New Template", 0 },
+            { "NewMaterialName", "New Material", 0 },
+            { "NewScreenName", "New Screen", 0 },
+            { "NewWidgetName", "New Widget", 0 },
+            { "NewStyleSheetName", "New Style", 0 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EngineText::Count));

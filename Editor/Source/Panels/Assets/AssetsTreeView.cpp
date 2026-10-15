@@ -125,7 +125,7 @@ namespace BrightBox3D::Editor
     {
         ImGui::PushID(record.guid.ToString().c_str());
         DrawNode(&record, "##asset", record.name, record.type, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth);
-        HandleNodeInput(&record, Assets::AssetDatabase::Get().IsBuiltin(record.guid) ? BuiltinFolder : ParentFolder(record.path));
+        HandleNodeInput(&record, Assets::AssetDatabase::Get().IsBuiltin(record.guid) ? Assets::AssetDatabase::BuiltinFolder : ParentFolder(record.path));
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
         {
             ImGui::SetTooltip("%s\n%s", record.path.c_str(), Assets::AssetTypeName(record.type));
@@ -170,11 +170,11 @@ namespace BrightBox3D::Editor
         bool open = DrawNode(nullptr, "##builtin", Text(EditorText::BuiltinAssets), Assets::AssetType::Folder, ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth);
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
-            m_state.folder = BuiltinFolder;
+            m_state.folder = Assets::AssetDatabase::BuiltinFolder;
         }
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
         {
-            AssetsContextMenu::Draw(m_application, m_state, { {}, BuiltinFolder });
+            AssetsContextMenu::Draw(m_application, m_state, { {}, Assets::AssetDatabase::BuiltinFolder });
             ImGui::EndPopup();
         }
         if (!open)

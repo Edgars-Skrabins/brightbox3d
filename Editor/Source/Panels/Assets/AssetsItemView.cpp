@@ -63,7 +63,7 @@ namespace BrightBox3D::Editor
     {
         std::string folder = CurrentFolder();
         ImGui::AlignTextToFramePadding();
-        if (folder == BuiltinFolder)
+        if (folder == Assets::AssetDatabase::BuiltinFolder)
         {
             ImGui::TextUnformatted(Text(EditorText::BuiltinAssets));
             return;
@@ -90,7 +90,7 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
         {
-            m_state.folder = CurrentFolder() == BuiltinFolder ? "" : ParentFolder(CurrentFolder());
+            m_state.folder = CurrentFolder() == Assets::AssetDatabase::BuiltinFolder ? "" : ParentFolder(CurrentFolder());
         }
         ImGui::SameLine();
         DrawBreadcrumbs();
@@ -118,7 +118,7 @@ namespace BrightBox3D::Editor
                 items.push_back(record);
             }
         }
-        if (folder == BuiltinFolder)
+        if (folder == Assets::AssetDatabase::BuiltinFolder)
         {
             for (Assets::AssetType type : BuiltinTypes)
             {

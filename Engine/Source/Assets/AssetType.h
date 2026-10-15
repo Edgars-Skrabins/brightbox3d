@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace BrightBox3D::Assets
 {
@@ -30,4 +31,7 @@ namespace BrightBox3D::Assets
     AssetType AssetTypeFromName(const std::string& name);
     const char* AssetTypeExtension(AssetType type);
     std::span<const char* const> AssetTypeExtensions(AssetType type);
+    bool IsCreatableAssetType(AssetType type);
+    std::string NewAssetName(AssetType type);
+    std::string_view MatchedExtension(AssetType type, std::string_view fileName);
 }

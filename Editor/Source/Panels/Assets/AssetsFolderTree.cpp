@@ -119,16 +119,16 @@ namespace BrightBox3D::Editor::AssetsFolderTree
     void Draw(EditorApplication& application, AssetsPanelState& state)
     {
         DrawFolder(application, state, "", Text(EditorText::AssetsTitle));
-        bool showBuiltin = state.folder == BuiltinFolder;
+        bool showBuiltin = state.folder == Assets::AssetDatabase::BuiltinFolder;
         ImVec2 builtinPosition = ImGui::GetCursorScreenPos();
         if (ImGui::Selectable("##builtin", showBuiltin))
         {
-            state.folder = BuiltinFolder;
+            state.folder = Assets::AssetDatabase::BuiltinFolder;
         }
         DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), false);
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
         {
-            AssetsContextMenu::Draw(application, state, { {}, BuiltinFolder });
+            AssetsContextMenu::Draw(application, state, { {}, Assets::AssetDatabase::BuiltinFolder });
             ImGui::EndPopup();
         }
     }

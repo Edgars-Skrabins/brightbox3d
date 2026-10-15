@@ -43,3 +43,24 @@ TEST(AssetTypeTests, NamesRoundTrip)
     }
     EXPECT_STREQ(AssetTypeExtension(AssetType::Texture), ".png");
 }
+
+TEST(AssetTypeTests, MatchedExtensionKeepsTheFileCaseAndCompoundExtensions)
+{
+    EXPECT_EQ(MatchedExtension(AssetType::Screen, "Hud.screen.xml"), ".screen.xml");
+    EXPECT_EQ(MatchedExtension(AssetType::Texture, "Photo.JPEG"), ".JPEG");
+    EXPECT_EQ(MatchedExtension(AssetType::Material, "Crate.v2.material"), ".material");
+    EXPECT_EQ(MatchedExtension(AssetType::Material, "Crate.png"), "");
+    EXPECT_EQ(MatchedExtension(AssetType::Folder, "Folder.With.Dots"), "");
+}
+
+TEST(AssetTypeTests, OnlyCreatableTypesHaveNewAssetNames)
+{
+    EXPECT_TRUE(IsCreatableAssetType(AssetType::Folder));
+    EXPECT_TRUE(IsCreatableAssetType(AssetType::Material));
+    EXPECT_TRUE(IsCreatableAssetType(AssetType::StyleSheet));
+    EXPECT_FALSE(IsCreatableAssetType(AssetType::Model));
+    EXPECT_FALSE(IsCreatableAssetType(AssetType::Texture));
+    EXPECT_FALSE(IsCreatableAssetType(AssetType::LevelObjectVariant));
+    EXPECT_EQ(NewAssetName(AssetType::Material), "New Material");
+    EXPECT_EQ(NewAssetName(AssetType::Model), AssetTypeName(AssetType::Model));
+}

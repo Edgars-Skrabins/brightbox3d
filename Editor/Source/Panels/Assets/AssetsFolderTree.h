@@ -13,8 +13,6 @@ namespace BrightBox3D::Editor
 {
     class EditorApplication;
 
-    inline constexpr const char* BuiltinFolder = "Builtin";
-
     std::string ParentFolder(const std::string& path);
     bool FoldersFirst(const Assets::AssetRecord& a, const Assets::AssetRecord& b);
 }

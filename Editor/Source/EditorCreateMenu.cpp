@@ -10,17 +10,32 @@
 #include "Rendering/Light.h"
 #include "Rendering/MeshRenderer.h"
 
+#include <iterator>
+
 namespace BrightBox3D::Editor
 {
     namespace
     {
         constexpr float CameraSpawnHeight = 1.5f;
 
-        struct Primitive
+        template <Rendering::BuiltinPrimitive Primitive>
+        const char* PrimitiveName()
         {
-            EditorText name;
-            Core::Guid (*model)();
+            return Rendering::BuiltinAssets::PrimitiveName(Primitive);
+        }
+
+        constexpr const char* (*PrimitiveNames[])() = {
+            &PrimitiveName<Rendering::BuiltinPrimitive::Cube>,
+            &PrimitiveName<Rendering::BuiltinPrimitive::Sphere>,
+            &PrimitiveName<Rendering::BuiltinPrimitive::Plane>,
+            &PrimitiveName<Rendering::BuiltinPrimitive::Quad>,
+            &PrimitiveName<Rendering::BuiltinPrimitive::Cylinder>,
+            &PrimitiveName<Rendering::BuiltinPrimitive::Capsule>
         };
+
+        static_assert(std::size(PrimitiveNames) == static_cast<size_t>(Rendering::BuiltinPrimitive::Count));
+
+        constexpr Rendering::BuiltinPrimitive MenuPrimitives[] = { Rendering::BuiltinPrimitive::Cube, Rendering::BuiltinPrimitive::Sphere, Rendering::BuiltinPrimitive::Capsule, Rendering::BuiltinPrimitive::Cylinder, Rendering::BuiltinPrimitive::Plane, Rendering::BuiltinPrimitive::Quad };
 
         struct LightEntry
         {
@@ -43,23 +58,16 @@ namespace BrightBox3D::Editor
 
         void RegisterPrimitives(CreateMenuRegistry& registry)
         {
-            const Primitive primitives[] = {
-                { EditorText::PrimitiveCube, &Rendering::BuiltinAssets::Cube },
-                { EditorText::PrimitiveSphere, &Rendering::BuiltinAssets::Sphere },
-                { EditorText::PrimitiveCapsule, &Rendering::BuiltinAssets::Capsule },
-                { EditorText::PrimitiveCylinder, &Rendering::BuiltinAssets::Cylinder },
-                { EditorText::PrimitivePlane, &Rendering::BuiltinAssets::Plane },
-                { EditorText::PrimitiveQuad, &Rendering::BuiltinAssets::Quad }
-            };
-            for (const Primitive& primitive : primitives)
+            for (Rendering::BuiltinPrimitive primitive : MenuPrimitives)
             {
                 registry.Register({
                     .submenu = EditorText::CreateMenu3DObject,
-                    .label = primitive.name,
+                    .label = EditorText::PrimitiveLabel,
+                    .labelSubject = PrimitiveNames[static_cast<size_t>(primitive)],
                     .icon = ObjectIcons::TypeIcon(Rendering::MeshRenderer::StaticType()),
                     .create = [primitive](const CreateMenuContext& context)
                     {
-                        context.editor.GetObjectEditService().CreateModelObject(primitive.model(), Text(primitive.name), context.spawn, context.parent);
+                        context.editor.GetObjectEditService().CreateModelObject(Rendering::BuiltinAssets::PrimitiveGuid(primitive), Rendering::BuiltinAssets::PrimitiveName(primitive), context.spawn, context.parent);
                     },
                 });
             }

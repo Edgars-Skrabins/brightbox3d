@@ -124,7 +124,7 @@ namespace BrightBox3D::Editor
             return;
         }
         m_state.menuTarget.reset();
-        if (!m_state.folder.empty() && m_state.folder != BuiltinFolder && !Assets::AssetDatabase::Get().FindRecordByPath(m_state.folder))
+        if (!m_state.folder.empty() && m_state.folder != Assets::AssetDatabase::BuiltinFolder && !Assets::AssetDatabase::Get().FindRecordByPath(m_state.folder))
         {
             m_state.folder.clear();
         }

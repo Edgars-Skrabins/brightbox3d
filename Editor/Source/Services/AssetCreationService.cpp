@@ -65,7 +65,7 @@ namespace BrightBox3D::Editor
         if (!source)
         {
             source = scratch.CreateObject(LevelObject::StaticType());
-            source->SetName(Text(EditorText::NewTemplateName));
+            source->SetName(Assets::NewAssetName(Assets::AssetType::LevelObjectTemplate));
         }
         LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectTemplate);
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();

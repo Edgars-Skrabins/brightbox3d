@@ -17,7 +17,7 @@ namespace BrightBox3D::Editor
     {
         if (Assets::AssetDatabase::Get().IsBuiltin(record.guid))
         {
-            return { record.guid, BuiltinFolder };
+            return { record.guid, Assets::AssetDatabase::BuiltinFolder };
         }
         return { record.guid, record.type == Assets::AssetType::Folder ? record.path : ParentFolder(record.path) };
     }
@@ -34,7 +34,7 @@ namespace BrightBox3D::Editor::AssetActions
 
         std::string RenameStem(const Assets::AssetRecord& record)
         {
-            return record.type == Assets::AssetType::Folder ? record.name : record.name.substr(0, record.name.find('.'));
+            return record.name.substr(0, record.name.size() - Assets::MatchedExtension(record.type, record.name).size());
         }
 
         std::string ProjectPath(const std::string& relativePath)
@@ -89,7 +89,7 @@ namespace BrightBox3D::Editor::AssetActions
 
     bool CanCreateIn(const std::string& folder)
     {
-        return folder != BuiltinFolder;
+        return folder != Assets::AssetDatabase::BuiltinFolder;
     }
 
     void BeginRename(AssetsPanelState& state, const AssetsTarget& target)
@@ -102,7 +102,7 @@ namespace BrightBox3D::Editor::AssetActions
 
     void CommitRename(const Assets::AssetRecord& record, const std::string& name)
     {
-        std::string extension = record.type == Assets::AssetType::Folder ? "" : record.name.substr(std::min(record.name.find('.'), record.name.size()));
+        std::string extension(Assets::MatchedExtension(record.type, record.name));
         std::string parent = ParentFolder(record.path);
         std::string target = (parent.empty() ? "" : parent + "/") + name + extension;
         if (!Assets::AssetDatabase::Get().MoveAsset(record.guid, target))

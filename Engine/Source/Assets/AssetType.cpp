@@ -1,5 +1,6 @@
 #include "Assets/AssetType.h"
 
+#include "Core/EngineText.h"
 #include "Core/StringUtils.h"
 
 #include <iterator>
@@ -27,21 +28,22 @@ namespace BrightBox3D::Assets
         {
             const char* name;
             std::span<const char* const> extensions;
+            Core::EngineText newName = Core::EngineText::Count;
         };
 
         constexpr AssetTypeInfo TypeInfos[] = {
             { "Unknown", NoExtensions },
-            { "Folder", NoExtensions },
-            { "Level", LevelExtensions },
-            { "LevelCollection", CollectionExtensions },
+            { "Folder", NoExtensions, Core::EngineText::NewFolderName },
+            { "Level", LevelExtensions, Core::EngineText::NewLevelName },
+            { "LevelCollection", CollectionExtensions, Core::EngineText::NewCollectionName },
             { "LevelObjectVariant", VariantExtensions },
-            { "LevelObjectTemplate", TemplateExtensions },
-            { "Material", MaterialExtensions },
+            { "LevelObjectTemplate", TemplateExtensions, Core::EngineText::NewTemplateName },
+            { "Material", MaterialExtensions, Core::EngineText::NewMaterialName },
             { "Model", ModelExtensions },
             { "Texture", TextureExtensions },
-            { "Screen", ScreenExtensions },
-            { "Widget", WidgetExtensions },
-            { "StyleSheet", StyleSheetExtensions },
+            { "Screen", ScreenExtensions, Core::EngineText::NewScreenName },
+            { "Widget", WidgetExtensions, Core::EngineText::NewWidgetName },
+            { "StyleSheet", StyleSheetExtensions, Core::EngineText::NewStyleSheetName },
             { "Font", FontExtensions },
         };
 
@@ -97,5 +99,29 @@ namespace BrightBox3D::Assets
     std::span<const char* const> AssetTypeExtensions(AssetType type)
     {
         return Info(type).extensions;
+    }
+
+    bool IsCreatableAssetType(AssetType type)
+    {
+        return Info(type).newName != Core::EngineText::Count;
+    }
+
+    std::string NewAssetName(AssetType type)
+    {
+        return IsCreatableAssetType(type) ? std::string(Core::Text(Info(type).newName)) : std::string(AssetTypeName(type));
+    }
+
+    std::string_view MatchedExtension(AssetType type, std::string_view fileName)
+    {
+        std::string lower = Core::ToLower(fileName);
+        std::string_view match;
+        for (std::string_view extension : Info(type).extensions)
+        {
+            if (extension.size() > match.size() && Core::EndsWith(lower, extension))
+            {
+                match = fileName.substr(fileName.size() - extension.size());
+            }
+        }
+        return match;
     }
 }

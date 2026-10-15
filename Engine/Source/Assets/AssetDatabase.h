@@ -46,6 +46,7 @@ namespace BrightBox3D::Assets
         static constexpr const char* MetaExtension = ".meta";
         static constexpr const char* TempExtension = ".tmp";
         static constexpr const char* CookedExtension = ".bin";
+        static constexpr const char* BuiltinFolder = "Builtin";
 
         static AssetDatabase& Get();
         static bool IsIgnoredPath(const std::filesystem::path& path);

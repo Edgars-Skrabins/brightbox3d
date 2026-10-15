@@ -4,6 +4,9 @@
 #include "Geometry/ModelAsset.h"
 #include "Rendering/MaterialAsset.h"
 
+#include <iterator>
+#include <string>
+
 namespace BrightBox3D::Rendering
 {
     namespace
@@ -62,11 +65,34 @@ namespace BrightBox3D::Rendering
             node.mesh = 0;
             model->GetNodes().push_back(node);
             Geometry::EmbeddedMaterial material;
-            material.name = "Default";
+            material.name = BuiltinAssets::DefaultMaterialName;
             model->GetMaterials().push_back(material);
             model->GetMeshes().push_back(std::move(mesh));
             return model;
         }
+
+        std::string BuiltinPath(const char* name)
+        {
+            return std::string(Assets::AssetDatabase::BuiltinFolder) + "/" + name;
+        }
+
+        struct PrimitiveInfo
+        {
+            const char* name;
+            Core::Guid (*guid)();
+            Geometry::MeshData (*create)();
+        };
+
+        const PrimitiveInfo Primitives[] = {
+            { "Cube", &BuiltinAssets::Cube, [] { return BuiltinAssets::CreateCube(); } },
+            { "Sphere", &BuiltinAssets::Sphere, [] { return BuiltinAssets::CreateSphere(); } },
+            { "Plane", &BuiltinAssets::Plane, [] { return BuiltinAssets::CreatePlane(); } },
+            { "Quad", &BuiltinAssets::Quad, [] { return BuiltinAssets::CreateQuad(); } },
+            { "Cylinder", &BuiltinAssets::Cylinder, [] { return BuiltinAssets::CreateCylinder(); } },
+            { "Capsule", &BuiltinAssets::Capsule, [] { return BuiltinAssets::CreateCapsule(); } },
+        };
+
+        static_assert(std::size(Primitives) == static_cast<size_t>(BuiltinPrimitive::Count));
     }
 
     Geometry::MeshData BuiltinAssets::CreateCube()
@@ -78,7 +104,7 @@ namespace BrightBox3D::Rendering
         AddFace(mesh, { 0.5f, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, 0.5f, 0.5f);
         AddFace(mesh, { 0, 0.5f, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, 0.5f, 0.5f);
         AddFace(mesh, { 0, -0.5f, 0 }, { 0, -1, 0 }, { 0, 0, -1 }, 0.5f, 0.5f);
-        Finish(mesh, "Cube");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Cube));
         return mesh;
     }
 
@@ -118,7 +144,7 @@ namespace BrightBox3D::Rendering
                 }
             }
         }
-        Finish(mesh, "Sphere");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Sphere));
         return mesh;
     }
 
@@ -149,7 +175,7 @@ namespace BrightBox3D::Rendering
                 AddTriangle(mesh, a, b + 1, b, { 0, 1, 0 });
             }
         }
-        Finish(mesh, "Plane");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Plane));
         return mesh;
     }
 
@@ -157,7 +183,7 @@ namespace BrightBox3D::Rendering
     {
         Geometry::MeshData mesh;
         AddFace(mesh, { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 }, 0.5f, 0.5f);
-        Finish(mesh, "Quad");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Quad));
         return mesh;
     }
 
@@ -211,7 +237,7 @@ namespace BrightBox3D::Rendering
                 AddTriangle(mesh, center, center + 1 + static_cast<uint32_t>(side), center + 2 + static_cast<uint32_t>(side), normal);
             }
         }
-        Finish(mesh, "Cylinder");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Cylinder));
         return mesh;
     }
 
@@ -264,20 +290,28 @@ namespace BrightBox3D::Rendering
                 }
             }
         }
-        Finish(mesh, "Capsule");
+        Finish(mesh, PrimitiveName(BuiltinPrimitive::Capsule));
         return mesh;
+    }
+
+    const char* BuiltinAssets::PrimitiveName(BuiltinPrimitive primitive)
+    {
+        return Primitives[static_cast<size_t>(primitive)].name;
+    }
+
+    Core::Guid BuiltinAssets::PrimitiveGuid(BuiltinPrimitive primitive)
+    {
+        return Primitives[static_cast<size_t>(primitive)].guid();
     }
 
     void BuiltinAssets::Register()
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-        database.RegisterBuiltin(Cube(), "Builtin/Cube.model", Assets::AssetType::Model, [] { return MakeModel(CreateCube()); });
-        database.RegisterBuiltin(Sphere(), "Builtin/Sphere.model", Assets::AssetType::Model, [] { return MakeModel(CreateSphere()); });
-        database.RegisterBuiltin(Plane(), "Builtin/Plane.model", Assets::AssetType::Model, [] { return MakeModel(CreatePlane()); });
-        database.RegisterBuiltin(Quad(), "Builtin/Quad.model", Assets::AssetType::Model, [] { return MakeModel(CreateQuad()); });
-        database.RegisterBuiltin(Cylinder(), "Builtin/Cylinder.model", Assets::AssetType::Model, [] { return MakeModel(CreateCylinder()); });
-        database.RegisterBuiltin(Capsule(), "Builtin/Capsule.model", Assets::AssetType::Model, [] { return MakeModel(CreateCapsule()); });
-        database.RegisterBuiltin(DefaultMaterial(), "Builtin/Default.material", Assets::AssetType::Material, []
+        for (const PrimitiveInfo& primitive : Primitives)
+        {
+            database.RegisterBuiltin(primitive.guid(), BuiltinPath(primitive.name), Assets::AssetType::Model, [create = primitive.create] { return MakeModel(create()); });
+        }
+        database.RegisterBuiltin(DefaultMaterial(), BuiltinPath(DefaultMaterialName), Assets::AssetType::Material, []
         {
             auto material = std::make_shared<MaterialAsset>();
             material->m_baseColor = { 0.8f, 0.8f, 0.8f, 1.0f };
