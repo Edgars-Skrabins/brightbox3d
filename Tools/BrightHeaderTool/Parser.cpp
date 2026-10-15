@@ -1,5 +1,7 @@
 #include "Parser.h"
 
+#include "MacroNames.h"
+
 namespace BrightBox3D::HeaderTool
 {
     namespace
@@ -148,28 +150,28 @@ namespace BrightBox3D::HeaderTool
                 const Token& token = Current();
                 if (token.type == TokenType::Identifier)
                 {
-                    if (token.Is("BrightClass"))
+                    if (token.Is(MacroNames::Class))
                     {
                         int line = token.line;
                         ++m_index;
                         m_pendingClass.active = true;
                         m_pendingClass.line = line;
-                        m_pendingClass.arguments = ReadMetadataArguments("BrightClass");
+                        m_pendingClass.arguments = ReadMetadataArguments(MacroNames::Class);
                         return;
                     }
-                    if (token.Is("BrightEnum"))
+                    if (token.Is(MacroNames::Enum))
                     {
                         int line = token.line;
                         ++m_index;
                         m_pendingEnum.active = true;
                         m_pendingEnum.line = line;
-                        m_pendingEnum.arguments = ReadMetadataArguments("BrightEnum");
+                        m_pendingEnum.arguments = ReadMetadataArguments(MacroNames::Enum);
                         return;
                     }
-                    if (token.Is("BrightBody"))
+                    if (token.Is(MacroNames::Body))
                     {
                         ++m_index;
-                        ReadMetadataArguments("BrightBody");
+                        ReadMetadataArguments(MacroNames::Body);
                         if (Scope* scope = CurrentReflectedClass())
                         {
                             m_result.classes[static_cast<size_t>(scope->classIndex)].hasBody = true;
@@ -180,7 +182,7 @@ namespace BrightBox3D::HeaderTool
                         }
                         return;
                     }
-                    if (token.Is("BrightProperty") || token.Is("BrightUIProperty"))
+                    if (token.Is(MacroNames::Property) || token.Is(MacroNames::UIProperty))
                     {
                         ParseProperty();
                         return;
@@ -423,11 +425,11 @@ namespace BrightBox3D::HeaderTool
                 property.line = Current().line;
                 bool insideClass = CurrentReflectedClass() != nullptr;
 
-                while (m_index < m_tokens.size() && (Peek(0, "BrightProperty") || Peek(0, "BrightUIProperty")))
+                while (m_index < m_tokens.size() && (Peek(0, MacroNames::Property) || Peek(0, MacroNames::UIProperty)))
                 {
-                    bool ui = Current().Is("BrightUIProperty");
+                    bool ui = Current().Is(MacroNames::UIProperty);
                     ++m_index;
-                    std::string arguments = ReadMetadataArguments(ui ? "BrightUIProperty" : "BrightProperty");
+                    std::string arguments = ReadMetadataArguments(ui ? MacroNames::UIProperty : MacroNames::Property);
                     if (ui)
                     {
                         if (property.hasUIProperty)

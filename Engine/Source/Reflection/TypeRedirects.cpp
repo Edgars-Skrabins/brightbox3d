@@ -34,9 +34,4 @@ namespace BrightBox3D::Reflection
         auto it = state.redirects.find(oldName);
         return it == state.redirects.end() ? nullptr : &it->second;
     }
-
-    TypeRedirectRegistration::TypeRedirectRegistration(const char* oldName, const char* newName)
-    {
-        TypeRedirects::Add(oldName, newName);
-    }
 }

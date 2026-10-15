@@ -12,7 +12,7 @@ namespace BrightBox3D::Level
 {
     namespace
     {
-        Reflection::TypeRedirectRegistration s_levelObjectRedirect("LevelObjectInstance", "LevelObject");
+        Reflection::TypeRedirectRegistration<LevelObject> s_levelObjectRedirect("LevelObjectInstance");
     }
 
     LevelObject::LevelObject()

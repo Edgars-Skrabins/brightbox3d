@@ -36,8 +36,14 @@ namespace BrightBox3D::Level
     public:
         using Factory = std::function<std::unique_ptr<LevelSubsystem>(Level&)>;
 
-        static void Register(const std::string& name, Factory factory);
-        static void Unregister(const std::string& name);
+        template <typename T>
+        static void Register()
+        {
+            Register(T::StaticType(), [](Level& level) { return std::make_unique<T>(level); });
+        }
+
+        static void Register(const Reflection::TypeInfo& type, Factory factory);
+        static void Unregister(const Reflection::TypeInfo& type);
         static std::vector<std::pair<std::string, Factory>> GetAll();
     };
 }

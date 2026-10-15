@@ -4,9 +4,14 @@
 
 namespace BrightBox3D::Reflection
 {
+    namespace
+    {
+        constexpr const char* EngineObjectTypeName = "EngineObject";
+    }
+
     const TypeInfo& EngineObject::StaticType()
     {
-        static TypeInfo type("EngineObject", BRIGHT_MODULE_NAME, nullptr, sizeof(EngineObject), TypeFlagAbstract, nullptr, nullptr);
+        static TypeInfo type(EngineObjectTypeName, BRIGHT_MODULE_NAME, nullptr, sizeof(EngineObject), TypeFlagAbstract, nullptr, nullptr);
         return type;
     }
 

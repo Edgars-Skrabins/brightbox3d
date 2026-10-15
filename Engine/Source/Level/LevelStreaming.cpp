@@ -190,7 +190,7 @@ namespace BrightBox3D::Level
         {
             Registration()
             {
-                LevelSubsystemRegistry::Register("Streaming", [](Level& level) { return std::make_unique<LevelStreaming>(level); });
+                LevelSubsystemRegistry::Register<LevelStreaming>();
             }
         };
 

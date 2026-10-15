@@ -53,9 +53,13 @@ namespace
         return result;
     }
 
+    constexpr const char* HeaderFlag = "--header";
+    constexpr const char* OutputFlag = "--output";
+    constexpr const char* IncludeFlag = "--include";
+
     void PrintUsage()
     {
-        std::fprintf(stderr, "Usage: BrightHeaderTool --header <file.h> --include <include path> --output <file.gen.cpp>\n");
+        std::fprintf(stderr, "Usage: BrightHeaderTool %s <file.h> %s <include path> %s <file.gen.cpp>\n", HeaderFlag, IncludeFlag, OutputFlag);
     }
 }
 
@@ -68,15 +72,15 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i)
     {
         std::string argument = argv[i];
-        if (argument == "--header" && i + 1 < argc)
+        if (argument == HeaderFlag && i + 1 < argc)
         {
             header = argv[++i];
         }
-        else if (argument == "--output" && i + 1 < argc)
+        else if (argument == OutputFlag && i + 1 < argc)
         {
             output = argv[++i];
         }
-        else if (argument == "--include" && i + 1 < argc)
+        else if (argument == IncludeFlag && i + 1 < argc)
         {
             include = argv[++i];
         }

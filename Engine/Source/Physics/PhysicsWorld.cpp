@@ -141,7 +141,7 @@ namespace BrightBox3D::Physics
         {
             Registration()
             {
-                Level::LevelSubsystemRegistry::Register("Physics", [](Level::Level& level) { return std::make_unique<PhysicsWorld>(level); });
+                Level::LevelSubsystemRegistry::Register<PhysicsWorld>();
             }
         };
 

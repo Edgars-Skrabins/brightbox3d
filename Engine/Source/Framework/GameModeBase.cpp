@@ -12,7 +12,7 @@ namespace BrightBox3D::Framework
 {
     namespace
     {
-        Reflection::TypeRedirectRegistration s_gameModeRedirect("GameMode", "GameModeBase");
+        Reflection::TypeRedirectRegistration<GameModeBase> s_gameModeRedirect("GameMode");
 
     }
 

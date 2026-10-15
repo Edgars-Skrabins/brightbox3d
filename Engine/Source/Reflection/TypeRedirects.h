@@ -11,9 +11,13 @@ namespace BrightBox3D::Reflection
         static const std::string* Resolve(const std::string& oldName);
     };
 
+    template <typename NewType>
     class TypeRedirectRegistration
     {
     public:
-        TypeRedirectRegistration(const char* oldName, const char* newName);
+        explicit TypeRedirectRegistration(const char* oldName)
+        {
+            TypeRedirects::Add(oldName, NewType::StaticType().GetName());
+        }
     };
 }

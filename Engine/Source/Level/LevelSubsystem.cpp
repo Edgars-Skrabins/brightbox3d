@@ -20,8 +20,9 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelSubsystemRegistry::Register(const std::string& name, Factory factory)
+    void LevelSubsystemRegistry::Register(const Reflection::TypeInfo& type, Factory factory)
     {
+        const std::string& name = type.GetName();
         RegistryState& state = State();
         std::lock_guard<std::mutex> lock(state.mutex);
         for (auto& entry : state.factories)
@@ -35,8 +36,9 @@ namespace BrightBox3D::Level
         state.factories.emplace_back(name, std::move(factory));
     }
 
-    void LevelSubsystemRegistry::Unregister(const std::string& name)
+    void LevelSubsystemRegistry::Unregister(const Reflection::TypeInfo& type)
     {
+        const std::string& name = type.GetName();
         RegistryState& state = State();
         std::lock_guard<std::mutex> lock(state.mutex);
         state.factories.erase(std::remove_if(state.factories.begin(), state.factories.end(), [&](const auto& entry) { return entry.first == name; }), state.factories.end());
