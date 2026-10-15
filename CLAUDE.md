@@ -49,7 +49,8 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 - **Assets:** `LevelObjectTemplate` (`.template`) can't be placed; `LevelObjectVariant` (`.variant`) is placed or spawned (`Level::Spawn`) and may be based on a Template.
 - **Hot reload:** engine-owned state lives in `EngineObjectState`, `LevelObjectState` and `ComponentState`, moved whole by `ObjectReplacer`. Raw pointers between objects survive a reload only through `CarryReferences`.
 - **Module boundaries:** `cmake/ModuleDependencies.cmake` is the single source of truth; the build fails on a forbidden `#include`. Add a module there before using it.
-- **Renamed classes:** add a `Reflection::TypeRedirectRegistration` so saved files with the old name still load.
+- **Renamed classes:** add a `Reflection::TypeRedirectRegistration<NewType> s_redirect("OldName");` so saved files with the old name still load.
+- **Level subsystems** register by type: `Level::LevelSubsystemRegistry::Register<MySubsystem>()`.
 
 ## Code conventions
 
@@ -67,7 +68,7 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 - **Singletons** use `static T& Get()`, backed by `static T* x = new T();`.
 - **Reflection:**
   - Typed designated initializers, fields in declaration order: `BrightClass(.category = Categories::Gameplay, .icon = Icon::Flag, .abstract = true)`, `BrightProperty(.edit = Edit::Anywhere, .category = Categories::Physics)`, `BrightUIProperty(.access = UIAccess::Read)`, `BrightEnum()`, plus `BrightBody()` in the class.
-  - Never pass strings as metadata. Categories are `constexpr Reflection::Category` values in each module's `Categories.h`.
+  - Never pass strings as metadata. Categories are `constexpr Reflection::Category` values and display names are `constexpr Reflection::DisplayName` values (`.displayName = DisplayNames::Position`), both in each module's `Categories.h`. Without a display name, the member name is prettified.
   - CMake generates `.gen.cpp` files; never edit them.
 - **No strings in typed APIs:** use enums and types so the IDE lists what's possible.
 - **Editor text:** no user-visible string literal in editor code. Add an entry to `Editor/Source/EditorText.h/.cpp` and use `Text(EditorText::X)` or `Text(EditorText::X, args...)` (`std::format` placeholders). ImGui `##` IDs and persistence keys are the only other strings. Window titles come from `EditorWindow` (`WindowTitle`).
@@ -87,8 +88,13 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
   - A long function is broken into named steps.
 - **No duplication.** Before writing a helper, check the shared utilities below.
 - **No hard-coded strings.**
-  - User-visible engine text (logs, errors) goes in `Engine/Source/Core/EngineText.h/.cpp` and is read with `Core::Text(Core::EngineText::X, args...)`.
+  - User-visible engine text (logs, errors, default names) goes in `Engine/Source/Core/EngineText.h/.cpp` and is read with `Core::Text(Core::EngineText::X, args...)`.
   - Editor UI text goes in `EditorText`.
+  - Text that names an engine type uses a `{}` placeholder filled with the type's name: `TypeName<T>()` / `AssetTypeLabel<Type>()` (`Editor/Source/Labels.h`) or `Assets::AssetTypeName(type)`.
+  - Paths and file names live in layouts: `Core::EngineLayout` (engine content), `Editor::EditorLayout` (editor content, user settings files, build tools), `Runtime::ProjectLayout` and `Runtime::BuildLayout`.
+  - Per-asset-type data lives in the `AssetType` table (`AssetTypeName`, extensions, `NewAssetName`, `IsCreatableAssetType`, `MatchedExtension`); editor-only per-type data in `AssetTypeStyle`.
+  - Starter content for new assets lives in `Editor/Content/AssetTemplates/`.
+  - Identifiers used in more than one place are one named constant (popup IDs) or an enum (`Core::LogCategory`, `RHI::VertexSemantic`).
   - File format keys live in each module's schema header (`LevelFileSchema`, `AssetFileSchema`).
   - Fixed sets of options are enums, never strings.
 - **No magic numbers.** Name constants. Editor sizes are `EditorMetric` entries in `Editor/Source/Theme.h`, read with `ScaledMetric(EditorMetric::X)`.
