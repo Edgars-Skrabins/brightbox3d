@@ -9,7 +9,7 @@
 
 namespace BrightBox3D::Editor
 {
-    InspectorPanel::InspectorPanel(EditorApplication& application) : m_application(application), m_object(application), m_asset(application)
+    InspectorPanel::InspectorPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Inspector, instanceIndex), m_application(application), m_object(application), m_asset(application)
     {
     }
 
@@ -32,7 +32,7 @@ namespace BrightBox3D::Editor
 
     void InspectorPanel::Draw()
     {
-        if (!ImGui::Begin(WindowTitle(EditorWindow::Inspector).c_str()))
+        if (!BeginWindow())
         {
             ImGui::End();
             return;

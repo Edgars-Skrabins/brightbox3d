@@ -3,6 +3,7 @@
 #include "Panels/Assets/AssetsItemView.h"
 #include "Panels/Assets/AssetsPanelState.h"
 #include "Panels/Assets/AssetsTreeView.h"
+#include "Panels/EditorPanel.h"
 
 #include <filesystem>
 #include <vector>
@@ -11,11 +12,11 @@ namespace BrightBox3D::Editor
 {
     class EditorApplication;
 
-    class AssetsPanel
+    class AssetsPanel : public EditorPanel
     {
     public:
-        explicit AssetsPanel(EditorApplication& application);
-        void Draw();
+        AssetsPanel(EditorApplication& application, int instanceIndex);
+        void Draw() override;
         void ImportFiles(const std::vector<std::filesystem::path>& files);
 
         AssetsPanelState& GetState() { return m_state; }

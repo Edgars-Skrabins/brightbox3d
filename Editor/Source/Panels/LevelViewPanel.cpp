@@ -101,7 +101,7 @@ namespace BrightBox3D::Editor
         }
     }
 
-    LevelViewPanel::LevelViewPanel(EditorApplication& application) : m_application(application)
+    LevelViewPanel::LevelViewPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::LevelView, instanceIndex), m_application(application)
     {
     }
 
@@ -373,10 +373,10 @@ namespace BrightBox3D::Editor
         m_application.RequestRender(request);
     }
 
-    void LevelViewPanel::Draw(float deltaTime)
+    void LevelViewPanel::Draw()
     {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        bool open = ImGui::Begin(WindowTitle(EditorWindow::LevelView).c_str(), nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        bool open = BeginWindow(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::PopStyleVar();
         if (!open)
         {
@@ -400,7 +400,7 @@ namespace BrightBox3D::Editor
         EnsureTarget(width, height);
 
         bool hovered = ImGui::IsWindowHovered();
-        UpdateCamera(deltaTime, hovered);
+        UpdateCamera(ImGui::GetIO().DeltaTime, hovered);
         Math::Matrix4 view = m_camera.GetViewMatrix();
         Math::Matrix4 projection = m_camera.GetProjectionMatrix(size.x / size.y);
 

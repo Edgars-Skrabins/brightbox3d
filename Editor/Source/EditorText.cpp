@@ -235,6 +235,7 @@ namespace BrightBox3D::Editor
             { "LogEngineCount", "Engine {}", 1 },
             { "LogEngineTooltip", "Engine messages ({} warnings, {} errors)", 2 },
             { "LogEngineTag", "Engine", 0 },
+            { "PanelInstanceTitle", "{} {}", 2 },
             { "OpenLogSourceTooltip", "Double-click to open {}:{}", 2 },
             { "Copy", "Copy", 0 },
             { "ProjectName", "Project: {}", 1 },

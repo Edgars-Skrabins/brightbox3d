@@ -23,7 +23,7 @@ namespace BrightBox3D::Editor
         static_assert(std::size(LevelFilters) == static_cast<size_t>(Core::LogLevel::Count));
     }
 
-    TerminalPanel::TerminalPanel(EditorApplication& application) : m_application(application)
+    TerminalPanel::TerminalPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Terminal, instanceIndex), m_application(application)
     {
     }
 
@@ -81,7 +81,7 @@ namespace BrightBox3D::Editor
 
     void TerminalPanel::Draw()
     {
-        if (!ImGui::Begin(WindowTitle(EditorWindow::Terminal).c_str()))
+        if (!BeginWindow())
         {
             ImGui::End();
             return;

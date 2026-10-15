@@ -237,6 +237,7 @@ namespace BrightBox3D::Editor
         LogEngineCount,
         LogEngineTooltip,
         LogEngineTag,
+        PanelInstanceTitle,
         OpenLogSourceTooltip,
         Copy,
         ProjectName,

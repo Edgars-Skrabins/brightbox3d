@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Panels/EditorPanel.h"
 #include "Panels/Inspector/AssetInspector.h"
 #include "Panels/Inspector/ObjectInspector.h"
 
@@ -7,13 +8,13 @@ namespace BrightBox3D::Editor
 {
     class EditorApplication;
 
-    class InspectorPanel
+    class InspectorPanel : public EditorPanel
     {
     public:
-        explicit InspectorPanel(EditorApplication& application);
+        InspectorPanel(EditorApplication& application, int instanceIndex);
         ~InspectorPanel();
 
-        void Draw();
+        void Draw() override;
 
     private:
         void DrawSelectedObjects();

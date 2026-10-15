@@ -2,6 +2,7 @@
 
 #include "Core/Log.h"
 #include "EditorPreferences.h"
+#include "Panels/EditorPanel.h"
 
 #include <imgui.h>
 
@@ -12,11 +13,11 @@ namespace BrightBox3D::Editor
 {
     class EditorApplication;
 
-    class TerminalPanel
+    class TerminalPanel : public EditorPanel
     {
     public:
-        explicit TerminalPanel(EditorApplication& application);
-        void Draw();
+        TerminalPanel(EditorApplication& application, int instanceIndex);
+        void Draw() override;
 
     private:
         void DrawToolbar();

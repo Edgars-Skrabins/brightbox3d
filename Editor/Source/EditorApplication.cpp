@@ -62,6 +62,7 @@ namespace BrightBox3D::Editor
         const ToolbarItem EditMenu[] = { CommandId::Undo, CommandId::Redo, ToolbarSeparator, CommandId::Duplicate, CommandId::Delete, ToolbarSeparator, CommandId::Preferences };
         const ToolbarItem GameMenu[] = { CommandId::Play, CommandId::Compile };
         const ToolbarItem WindowMenu[] = { CommandId::ResetLayout };
+        constexpr EditorWindow DefaultPanels[] = { EditorWindow::LevelView, EditorWindow::LevelContents, EditorWindow::Inspector, EditorWindow::Assets, EditorWindow::Terminal };
 
         void DrawMenuItems(std::span<const ToolbarItem> items)
         {
@@ -164,11 +165,10 @@ namespace BrightBox3D::Editor
     void EditorApplication::CreatePanels()
     {
         m_thumbnails = std::make_unique<ThumbnailCache>(GetDevice(), GetRenderer());
-        m_levelView = std::make_unique<LevelViewPanel>(*this);
-        m_levelContents = std::make_unique<LevelContentsPanel>(*this);
-        m_inspector = std::make_unique<InspectorPanel>(*this);
-        m_assets = std::make_unique<AssetsPanel>(*this);
-        m_terminal = std::make_unique<TerminalPanel>(*this);
+        for (EditorWindow type : DefaultPanels)
+        {
+            CreatePanel(type);
+        }
         m_projectSettings = std::make_unique<ProjectSettingsPanel>(*this);
         m_preferences = std::make_unique<PreferencesPanel>();
         m_playSession = std::make_unique<EditorPlaySession>(m_context, *this);
@@ -185,13 +185,62 @@ namespace BrightBox3D::Editor
         m_hotReload->OnReloaded = [this] { m_context.GetLevelService().BumpLevelRevision(); };
     }
 
+    LevelViewPanel& EditorApplication::GetActiveLevelView()
+    {
+        return *FindPanel<LevelViewPanel>(EditorWindow::LevelView);
+    }
+
+    LevelContentsPanel& EditorApplication::GetLevelContents()
+    {
+        return *FindPanel<LevelContentsPanel>(EditorWindow::LevelContents);
+    }
+
+    AssetsPanel& EditorApplication::GetAssets()
+    {
+        return *FindPanel<AssetsPanel>(EditorWindow::Assets);
+    }
+
+    int EditorApplication::NextInstanceIndex(EditorWindow type) const
+    {
+        int index = 1;
+        while (std::ranges::any_of(m_panels, [&](const std::unique_ptr<EditorPanel>& panel) { return panel->GetWindowType() == type && panel->GetInstanceIndex() == index; }))
+        {
+            ++index;
+        }
+        return index;
+    }
+
+    EditorPanel& EditorApplication::CreatePanel(EditorWindow type)
+    {
+        int index = NextInstanceIndex(type);
+        switch (type)
+        {
+        case EditorWindow::LevelView:
+            m_panels.push_back(std::make_unique<LevelViewPanel>(*this, index));
+            break;
+        case EditorWindow::LevelContents:
+            m_panels.push_back(std::make_unique<LevelContentsPanel>(*this, index));
+            break;
+        case EditorWindow::Inspector:
+            m_panels.push_back(std::make_unique<InspectorPanel>(*this, index));
+            break;
+        case EditorWindow::Assets:
+            m_panels.push_back(std::make_unique<AssetsPanel>(*this, index));
+            break;
+        default:
+            m_panels.push_back(std::make_unique<TerminalPanel>(*this, index));
+            break;
+        }
+        return *m_panels.back();
+    }
+
     void EditorApplication::SubscribeWindowEvents()
     {
         m_window->OnFileDrop.Subscribe([this](const std::vector<std::filesystem::path>& files)
         {
             if (m_context.GetProjectService().HasProject())
             {
-                m_assets->ImportFiles(files);
+                GetAssets().ImportFiles(files);
             }
         });
         m_window->OnCloseRequested.Subscribe([this]
@@ -264,11 +313,7 @@ namespace BrightBox3D::Editor
         m_hotReload.reset();
         m_playSession.reset();
         m_projectSettings.reset();
-        m_terminal.reset();
-        m_assets.reset();
-        m_inspector.reset();
-        m_levelContents.reset();
-        m_levelView.reset();
+        m_panels.clear();
         m_thumbnails.reset();
         m_imguiRenderer.reset();
         m_imguiPlatform.reset();
@@ -506,7 +551,7 @@ namespace BrightBox3D::Editor
         }
         else
         {
-            DrawEditor(deltaTime);
+            DrawEditor();
         }
         ImGui::Render();
         RenderFrame();
@@ -544,15 +589,14 @@ namespace BrightBox3D::Editor
         }
     }
 
-    void EditorApplication::DrawEditor(float deltaTime)
+    void EditorApplication::DrawEditor()
     {
         DrawMainMenu();
         DrawDockSpace();
-        m_levelView->Draw(deltaTime);
-        m_levelContents->Draw();
-        m_inspector->Draw();
-        m_assets->Draw();
-        m_terminal->Draw();
+        for (size_t index = 0; index < m_panels.size(); ++index)
+        {
+            m_panels[index]->Draw();
+        }
         m_projectSettings->Draw();
         m_preferences->Draw();
         m_newLevelDialog.Draw(m_context.GetLevelService());

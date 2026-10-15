@@ -14,7 +14,7 @@
 
 namespace BrightBox3D::Editor
 {
-    LevelContentsPanel::LevelContentsPanel(EditorApplication& application) : m_application(application), m_tree(application)
+    LevelContentsPanel::LevelContentsPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::LevelContents, instanceIndex), m_application(application), m_tree(application)
     {
     }
 
@@ -61,7 +61,7 @@ namespace BrightBox3D::Editor
 
     void LevelContentsPanel::Draw()
     {
-        if (!ImGui::Begin(WindowTitle(EditorWindow::LevelContents).c_str()))
+        if (!BeginWindow())
         {
             ImGui::End();
             return;

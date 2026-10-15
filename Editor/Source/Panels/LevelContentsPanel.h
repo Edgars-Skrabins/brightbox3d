@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Panels/EditorPanel.h"
 #include "Panels/LevelContents/LevelContentsTree.h"
 
 #include <string>
@@ -8,11 +9,11 @@ namespace BrightBox3D::Editor
 {
     class EditorApplication;
 
-    class LevelContentsPanel
+    class LevelContentsPanel : public EditorPanel
     {
     public:
-        explicit LevelContentsPanel(EditorApplication& application);
-        void Draw();
+        LevelContentsPanel(EditorApplication& application, int instanceIndex);
+        void Draw() override;
         void BeginRenameSelection();
 
     private:

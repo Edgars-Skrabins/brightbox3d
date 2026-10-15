@@ -21,7 +21,7 @@ namespace BrightBox3D::Editor
         constexpr const char* DeletePopupId = "DeleteAsset";
     }
 
-    AssetsPanel::AssetsPanel(EditorApplication& application) : m_application(application), m_items(application, m_state), m_tree(application, m_state)
+    AssetsPanel::AssetsPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Assets, instanceIndex), m_application(application), m_items(application, m_state), m_tree(application, m_state)
     {
     }
 
@@ -101,7 +101,7 @@ namespace BrightBox3D::Editor
 
     void AssetsPanel::Draw()
     {
-        if (!ImGui::Begin(WindowTitle(EditorWindow::Assets).c_str()))
+        if (!BeginWindow())
         {
             ImGui::End();
             return;

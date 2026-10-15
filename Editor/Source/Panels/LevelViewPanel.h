@@ -3,6 +3,7 @@
 #include "Core/Guid.h"
 #include "EditorCamera.h"
 #include "Math/Geometry.h"
+#include "Panels/EditorPanel.h"
 #include "Rendering/RenderView.h"
 #include "RHI/Resources.h"
 #include "Serialization/Json.h"
@@ -22,13 +23,13 @@ namespace BrightBox3D::Editor
         Scale
     };
 
-    class LevelViewPanel
+    class LevelViewPanel : public EditorPanel
     {
     public:
-        explicit LevelViewPanel(EditorApplication& application);
+        LevelViewPanel(EditorApplication& application, int instanceIndex);
         ~LevelViewPanel();
 
-        void Draw(float deltaTime);
+        void Draw() override;
         EditorCamera& GetCamera() { return m_camera; }
         void FocusSelection();
         Math::Vector3 GetSpawnPoint() const;

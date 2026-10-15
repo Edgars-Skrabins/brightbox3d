@@ -4,6 +4,7 @@
 #include "EditorContext.h"
 #include "FileChangeRouter.h"
 #include "NewLevelDialog.h"
+#include "Panels/EditorPanel.h"
 #include "Platform/Window.h"
 #include "ProjectLauncher.h"
 #include "RecentProjects.h"
@@ -55,9 +56,10 @@ namespace BrightBox3D::Editor
         Platform::Window& GetWindow() { return *m_window; }
         HotReload* GetHotReload() { return m_hotReload.get(); }
         EditorPlaySession* GetPlaySession() { return m_playSession.get(); }
-        LevelViewPanel& GetActiveLevelView() { return *m_levelView; }
-        LevelContentsPanel& GetLevelContents() { return *m_levelContents; }
-        AssetsPanel& GetAssets() { return *m_assets; }
+        LevelViewPanel& GetActiveLevelView();
+        LevelContentsPanel& GetLevelContents();
+        AssetsPanel& GetAssets();
+        EditorPanel& CreatePanel(EditorWindow type);
 
         void RequestRender(const ViewRenderRequest& request) { m_renderRequests.push_back(request); }
         void RequestPlay();
@@ -76,13 +78,27 @@ namespace BrightBox3D::Editor
         bool CreateWindowAndDevice();
         void InitializeImGui();
         void CreatePanels();
+        int NextInstanceIndex(EditorWindow type) const;
+
+        template <typename T>
+        T* FindPanel(EditorWindow type) const
+        {
+            for (const std::unique_ptr<EditorPanel>& panel : m_panels)
+            {
+                if (panel->GetWindowType() == type && panel->IsOpen())
+                {
+                    return static_cast<T*>(panel.get());
+                }
+            }
+            return nullptr;
+        }
         void SubscribeWindowEvents();
         void ApplyCommandLine();
         void Frame(float deltaTime);
         void DrawMainMenu();
         void DrawToolbar();
         void DrawDockSpace();
-        void DrawEditor(float deltaTime);
+        void DrawEditor();
         void UpdatePlayMode(float deltaTime);
         void RenderFrame();
         bool OpenProject(const std::filesystem::path& path);
@@ -96,11 +112,7 @@ namespace BrightBox3D::Editor
         std::unique_ptr<ImGuiPlatform> m_imguiPlatform;
         std::unique_ptr<ImGuiRenderer> m_imguiRenderer;
         std::unique_ptr<ThumbnailCache> m_thumbnails;
-        std::unique_ptr<LevelViewPanel> m_levelView;
-        std::unique_ptr<LevelContentsPanel> m_levelContents;
-        std::unique_ptr<InspectorPanel> m_inspector;
-        std::unique_ptr<AssetsPanel> m_assets;
-        std::unique_ptr<TerminalPanel> m_terminal;
+        std::vector<std::unique_ptr<EditorPanel>> m_panels;
         std::unique_ptr<ProjectSettingsPanel> m_projectSettings;
         std::unique_ptr<PreferencesPanel> m_preferences;
         std::unique_ptr<EditorPlaySession> m_playSession;
