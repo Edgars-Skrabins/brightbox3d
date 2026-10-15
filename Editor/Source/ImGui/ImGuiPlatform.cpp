@@ -1,5 +1,7 @@
 #include "ImGui/ImGuiPlatform.h"
 
+#include "Core/EngineInfo.h"
+
 #include <imgui.h>
 
 #include <string>
@@ -8,6 +10,8 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
+        constexpr const char* BackendNameSuffix = " Window";
+
         ImGuiKey ToImGuiKey(Platform::Key key)
         {
             using Platform::Key;
@@ -108,7 +112,8 @@ namespace BrightBox3D::Editor
     ImGuiPlatform::ImGuiPlatform(Platform::Window& window) : m_window(window)
     {
         ImGuiIO& io = ImGui::GetIO();
-        io.BackendPlatformName = "BrightBox3D Window";
+        static const std::string backendName = std::string(Core::EngineName) + BackendNameSuffix;
+        io.BackendPlatformName = backendName.c_str();
         io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 
         ImGuiPlatformIO& platform = ImGui::GetPlatformIO();

@@ -21,6 +21,9 @@ namespace BrightBox3D::RHI
 {
     namespace
     {
+        constexpr const char* VertexShaderTarget = "vs_5_0";
+        constexpr const char* PixelShaderTarget = "ps_5_0";
+
         class DX11Device : public Device
         {
         public:
@@ -215,7 +218,7 @@ namespace BrightBox3D::RHI
                 macros.push_back({ nullptr, nullptr });
 
                 UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR | D3DCOMPILE_OPTIMIZATION_LEVEL3;
-                const char* target = desc.stage == ShaderStage::Vertex ? "vs_5_0" : "ps_5_0";
+                const char* target = desc.stage == ShaderStage::Vertex ? VertexShaderTarget : PixelShaderTarget;
                 ComPtr<ID3DBlob> bytecode;
                 ComPtr<ID3DBlob> errors;
                 HRESULT result = D3DCompile(desc.source.data(), desc.source.size(), desc.debugName.c_str(), macros.data(), nullptr, desc.entryPoint.c_str(), target, flags, 0, &bytecode, &errors);

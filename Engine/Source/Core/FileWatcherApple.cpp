@@ -1,7 +1,11 @@
 #include "Core/FileWatcher.h"
 
+#include "Core/EngineInfo.h"
+
 #include <CoreServices/CoreServices.h>
 #include <dispatch/dispatch.h>
+
+#include <string>
 
 namespace BrightBox3D::Core
 {
@@ -13,6 +17,8 @@ namespace BrightBox3D::Core
 
     namespace
     {
+        constexpr const char* FileWatcherQueueSuffix = ".FileWatcher";
+
         void StreamCallback(ConstFSEventStreamRef, void* context, size_t count, void* paths, const FSEventStreamEventFlags* flags, const FSEventStreamEventId*)
         {
             auto* watcher = static_cast<FileWatcher*>(context);
@@ -74,7 +80,8 @@ namespace BrightBox3D::Core
             return false;
         }
 
-        m_implementation->queue = dispatch_queue_create("BrightBox3D.FileWatcher", DISPATCH_QUEUE_SERIAL);
+        static const std::string queueName = std::string(EngineName) + FileWatcherQueueSuffix;
+        m_implementation->queue = dispatch_queue_create(queueName.c_str(), DISPATCH_QUEUE_SERIAL);
         FSEventStreamSetDispatchQueue(m_implementation->stream, m_implementation->queue);
         if (!FSEventStreamStart(m_implementation->stream))
         {

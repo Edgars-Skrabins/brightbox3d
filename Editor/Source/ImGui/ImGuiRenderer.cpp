@@ -1,10 +1,18 @@
 #include "ImGui/ImGuiRenderer.h"
 
+#include "Core/EngineInfo.h"
 #include "Math/Matrix4.h"
 #include "Shaders/ShaderBindings.h"
 
+#include <string>
+
 namespace BrightBox3D::Editor
 {
+    namespace
+    {
+        constexpr const char* BackendNameSuffix = " RHI";
+    }
+
     ImGuiRenderer::ImGuiRenderer(RHI::Device& device, Rendering::ShaderLibrary& shaders) : m_device(device), m_shaders(shaders)
     {
         RHI::SamplerDesc desc;
@@ -13,7 +21,8 @@ namespace BrightBox3D::Editor
         desc.addressU = desc.addressV = desc.addressW = RHI::AddressMode::Clamp;
         m_sampler = m_device.CreateSampler(desc);
         ImGuiIO& io = ImGui::GetIO();
-        io.BackendRendererName = "BrightBox3D RHI";
+        static const std::string backendName = std::string(Core::EngineName) + BackendNameSuffix;
+        io.BackendRendererName = backendName.c_str();
         io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
     }
 

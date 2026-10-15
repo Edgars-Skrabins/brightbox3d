@@ -1,12 +1,14 @@
 #pragma once
 
+#include "Core/EngineInfo.h"
+
 #include <filesystem>
 #include <string>
 
 namespace BrightBox3D::Runtime::BuildLayout
 {
     inline constexpr const char* PlayerExecutableName = "BrightPlayer";
-    inline constexpr const char* EngineLibraryName = "BrightBox3D";
+    inline constexpr const char* EngineLibraryName = Core::EngineModuleName;
 
     const char* PlatformFolderName();
     std::string PlayerExecutableFileName(const std::string& baseName = PlayerExecutableName);
