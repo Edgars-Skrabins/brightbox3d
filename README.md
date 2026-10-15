@@ -63,6 +63,8 @@ Or start the editor without arguments to get the project launcher, where you can
 
 Run these commands from the repository root, since the paths are relative.
 
+The editor keeps per-user settings in `~/.brightbox3d/`: the dock layout (`EditorLayout.ini`), the open panels (`EditorPanels.json`), preferences (`Preferences.json`) and recent projects (`RecentProjects.json`). Delete `EditorLayout.ini` and `EditorPanels.json` to get the default layout back.
+
 ## Running tests
 
 ```

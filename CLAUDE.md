@@ -36,7 +36,7 @@ cmake --build build -j
 
 To regenerate the sample's authored assets (Level, Player Variant) after changing the system test: `BRIGHT_EXPORT_SAMPLE=1 ./build/bin/BrightTests --gtest_filter='SystemTests.*'`.
 
-Editor automation flags, useful for visual checks: `--select <name>`, `--play`, `--build`, `--frames N`, `--screenshot <png>`, `--play-screenshot <png>`, `--create-project`. To check UI work, take a screenshot and look at it:
+Editor automation flags, useful for visual checks: `--select <name>`, `--play`, `--build`, `--frames N`, `--screenshot <png>`, `--play-screenshot <png>`, `--create-project`, `--add-panel <EditorWindow id>` (for example `--add-panel Terminal`). To check UI work, take a screenshot and look at it:
 
 ```bash
 ./build/bin/BrightEditor Samples/ArenaDemo --select Crate --frames 60 --screenshot /tmp/shot.png
@@ -73,8 +73,10 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 - **Editor text:** no user-visible string literal in editor code. Add an entry to `Editor/Source/EditorText.h/.cpp` and use `Text(EditorText::X)` or `Text(EditorText::X, args...)` (`std::format` placeholders). ImGui `##` IDs and persistence keys are the only other strings. Window titles come from `EditorWindow` (`WindowTitle`).
 - **Commands:** every toolbar button, menu item and shortcut is a command. Add a `CommandId`, register it in `Editor/Source/EditorCommands.cpp`, and draw it with `CommandButton`, `CommandMenuItem` or `DrawToolbar`. Panels dispatch their own scope with `CommandRegistry::Get().DispatchShortcuts(scope)`.
 - **Editor colors:** never hard-code a color. Add an entry to `EditorColor` / `ColorInfos` in `Editor/Source/EditorPreferences.*` and read it with `EditorColorVec4` / `EditorColorU32`. Theme-wide ImGui colors are derived in `Editor/Source/Theme.cpp`.
-- **Icons:** use `Icon::` (every Lucide icon is generated into `Core/Icon.h`) and draw it with `IconGlyph(Icon::X)` or `IconLabel`. Classes declare theirs with `BrightClass(.icon = ...)`.
+- **Icons:** use `Icon::` (every Lucide icon is generated into `Core/Icon.h`) and draw it with `IconGlyph(Icon::X)` or `IconLabel`. Icon-only buttons use `IconButton(Icon::X, EditorText::Tooltip)`, or `CommandButton(id, 0, CommandButtonStyle::IconOnly)` for commands, so the glyph is centered. Classes declare theirs with `BrightClass(.icon = ...)`.
 - **Selection highlight:** wrap list and tree panels in `PushSelectionColors()` / `PopSelectionColors()`.
+- **Panels:** dockable panels derive from `EditorPanel` (`Editor/Source/Panels/EditorPanel.h`) and open their window with `BeginWindow()`. Any panel can exist more than once, so per-instance state lives in the panel, never in a service. Look panels up through `EditorApplication` (`GetActiveLevelView()`, `GetAssets()`, ...), which returns `nullptr` when none is open. Panels save their own state with `SaveState` / `LoadState` into `EditorPanels.json`.
+- **Logging:** engine and editor code log through `Core::Log` (tagged `LogSource::Engine`). Game code logs through `BrightBox3D::Debug::Log` / `LogWarning` / `LogError` (`Core/Debug.h`, tagged `LogSource::Game` with the caller's file and line).
 
 ## Code quality
 
@@ -104,6 +106,9 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 | `InlineRename` | `Editor/Source/Widgets/InlineRename.h` | Rename in place in lists and trees |
 | `CreateMenuRegistry` | `Editor/Source/CreateMenuRegistry.h` | Create menu entries. Built-ins go in `EditorCreateMenu.cpp`; reflected classes appear automatically |
 | `ValueDrawers` | `Editor/Source/ValueDrawers.h` | Drawing one property value per `PropertyKind` |
+| `AssetTypeStyle` | `Editor/Source/Panels/Assets/AssetTypeStyle.h` | Icon and color per `Assets::AssetType`, and the icon-plus-name row label |
+| `AssetActions` | `Editor/Source/Panels/Assets/AssetActions.h` | Asset operations shared by the Assets layouts and commands (open, rename, move by drop, copy path) |
+| `IconButton`, `DrawCenteredIcon` | `Editor/Source/Theme.h` | Square icon buttons and centered glyphs at any size |
 | `TestUtilities` | `Tests/Common/TestUtilities.h` | `MakeTempDirectory`, `TestOutputPath` (reads `BRIGHT_TEST_OUTPUT`), `CreateTestRenderContext` |
 
 ## Workflow rules
