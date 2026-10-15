@@ -12,17 +12,6 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
-        const char* PlatformName()
-        {
-#if defined(_WIN32)
-            return "Windows";
-#elif defined(__APPLE__)
-            return "macOS";
-#else
-            return "Linux";
-#endif
-        }
-
         bool CopyPath(const std::filesystem::path& from, const std::filesystem::path& to, std::string& error)
         {
             std::error_code code;
@@ -47,7 +36,7 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path GameBuilder::DefaultOutput(EditorContext& context)
     {
-        return context.GetProjectService().GetProject().GetBuildDirectory() / PlatformName();
+        return context.GetProjectService().GetProject().GetBuildDirectory() / Runtime::BuildLayout::PlatformFolderName();
     }
 
     bool GameBuilder::Build(EditorContext& context, const std::filesystem::path& output, std::string& error)

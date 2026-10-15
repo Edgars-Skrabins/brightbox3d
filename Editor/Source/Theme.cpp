@@ -2,6 +2,7 @@
 
 #include "Core/FileSystem.h"
 #include "Core/Utf8.h"
+#include "EditorLayout.h"
 #include "EditorPreferences.h"
 #include "IconGlyphs.h"
 
@@ -60,20 +61,7 @@ namespace BrightBox3D::Editor
 
         std::filesystem::path EditorContentDirectory()
         {
-            std::filesystem::path directory = Core::FileSystem::ExecutableDirectory();
-            for (int i = 0; i < 6 && !directory.empty(); ++i)
-            {
-                if (std::filesystem::exists(directory / "EditorContent"))
-                {
-                    return directory / "EditorContent";
-                }
-                if (std::filesystem::exists(directory / "Editor" / "Content"))
-                {
-                    return directory / "Editor" / "Content";
-                }
-                directory = directory.parent_path();
-            }
-            return {};
+            return Core::FileSystem::FindContentDirectory(EditorLayout::ContentFolder, std::filesystem::path(EditorLayout::SourceTreeEditorFolder) / EditorLayout::SourceTreeContentFolder).value_or(std::filesystem::path());
         }
     }
 
@@ -247,16 +235,9 @@ namespace BrightBox3D::Editor
     {
         ImGuiIO& io = ImGui::GetIO();
         io.Fonts->Clear();
-        const char* candidates[] = {
-            "/System/Library/Fonts/SFNS.ttf",
-            "/System/Library/Fonts/Supplemental/Arial.ttf",
-            "/System/Library/Fonts/Helvetica.ttc",
-            "C:/Windows/Fonts/segoeui.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-        };
         static const ImWchar iconRanges[] = { IconRangeMin, IconRangeMax, 0 };
         bool loaded = false;
-        for (const char* candidate : candidates)
+        for (const char* candidate : EditorLayout::FallbackUIFonts)
         {
             if (std::filesystem::exists(candidate))
             {
@@ -274,7 +255,7 @@ namespace BrightBox3D::Editor
         {
             io.Fonts->AddFontDefault();
         }
-        std::filesystem::path iconFont = EditorContentDirectory() / "Fonts" / "ThirdParty" / "Lucide" / "lucide.ttf";
+        std::filesystem::path iconFont = EditorContentDirectory() / EditorLayout::FontsFolder / EditorLayout::ThirdPartyFolder / EditorLayout::IconFontFolder / EditorLayout::IconFontFileName;
         if (std::filesystem::exists(iconFont))
         {
             ImFontConfig config;

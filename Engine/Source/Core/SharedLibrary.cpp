@@ -10,6 +10,20 @@
 
 namespace BrightBox3D::Core
 {
+    namespace
+    {
+#if defined(_WIN32)
+        constexpr const char* LibraryPrefix = "";
+        constexpr const char* LibraryExtension = ".dll";
+#elif defined(__APPLE__)
+        constexpr const char* LibraryPrefix = "lib";
+        constexpr const char* LibraryExtension = ".dylib";
+#else
+        constexpr const char* LibraryPrefix = "lib";
+        constexpr const char* LibraryExtension = ".so";
+#endif
+    }
+
     SharedLibrary::~SharedLibrary()
     {
         Unload();
@@ -64,12 +78,6 @@ namespace BrightBox3D::Core
 
     std::string SharedLibrary::PlatformFileName(const std::string& baseName)
     {
-#if defined(_WIN32)
-        return baseName + ".dll";
-#elif defined(__APPLE__)
-        return "lib" + baseName + ".dylib";
-#else
-        return "lib" + baseName + ".so";
-#endif
+        return std::string(LibraryPrefix) + baseName + LibraryExtension;
     }
 }

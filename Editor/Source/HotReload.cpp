@@ -5,6 +5,7 @@
 #include "Core/Log.h"
 #include "Core/StringUtils.h"
 #include "EditorContext.h"
+#include "EditorLayout.h"
 #include "EditorText.h"
 #include "Runtime/ProjectLayout.h"
 #include "Runtime/ProjectTemplates.h"
@@ -70,27 +71,17 @@ namespace BrightBox3D::Editor
     std::filesystem::path HotReload::FindCMake()
     {
         std::vector<std::filesystem::path> candidates;
-        if (const char* path = std::getenv("PATH"))
+        if (const char* path = std::getenv(EditorLayout::PathVariable))
         {
-#if defined(_WIN32)
-            char separator = ';';
-            const char* executable = "cmake.exe";
-#else
-            char separator = ':';
-            const char* executable = "cmake";
-#endif
-            for (const std::string& entry : Core::Split(path, separator))
+            for (const std::string& entry : Core::Split(path, EditorLayout::PathListSeparator))
             {
                 if (!entry.empty())
                 {
-                    candidates.push_back(std::filesystem::path(entry) / executable);
+                    candidates.push_back(std::filesystem::path(entry) / EditorLayout::CMakeExecutable);
                 }
             }
         }
-        candidates.push_back("/opt/homebrew/bin/cmake");
-        candidates.push_back("/usr/local/bin/cmake");
-        candidates.push_back("/Applications/CMake.app/Contents/bin/cmake");
-        candidates.push_back("C:/Program Files/CMake/bin/cmake.exe");
+        candidates.insert(candidates.end(), EditorLayout::CMakeInstallLocations.begin(), EditorLayout::CMakeInstallLocations.end());
         for (const std::filesystem::path& candidate : candidates)
         {
             std::error_code error;
@@ -104,11 +95,7 @@ namespace BrightBox3D::Editor
 
     std::filesystem::path HotReload::FindNinja()
     {
-#if defined(_WIN32)
-        std::filesystem::path ninja = Core::FileSystem::ExecutableDirectory() / "ninja.exe";
-#else
-        std::filesystem::path ninja = Core::FileSystem::ExecutableDirectory() / "ninja";
-#endif
+        std::filesystem::path ninja = Core::FileSystem::ExecutableDirectory() / EditorLayout::NinjaExecutable;
         std::error_code error;
         return std::filesystem::is_regular_file(ninja, error) ? ninja : std::filesystem::path();
     }
@@ -311,7 +298,7 @@ namespace BrightBox3D::Editor
         std::vector<std::vector<std::string>> commands;
         if (!std::filesystem::exists(buildDirectory / CMakeCacheFileName))
         {
-            std::vector<std::string> configure = { cmake.string(), "-S", project.GetRoot().string(), "-B", buildDirectory.string(), "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DBRIGHT_SDK=" + Core::FileSystem::ToGenericString(SdkPath()) };
+            std::vector<std::string> configure = { cmake.string(), "-S", project.GetRoot().string(), "-B", buildDirectory.string(), std::string("-DCMAKE_BUILD_TYPE=") + EditorLayout::GameBuildConfiguration, "-DBRIGHT_SDK=" + Core::FileSystem::ToGenericString(SdkPath()) };
             if (!ninja.empty())
             {
                 configure.insert(configure.end(), { "-G", NinjaGenerator, "-DCMAKE_MAKE_PROGRAM=" + Core::FileSystem::ToGenericString(ninja) });
@@ -319,7 +306,7 @@ namespace BrightBox3D::Editor
             commands.push_back(configure);
         }
         unsigned int jobs = std::max(1u, std::thread::hardware_concurrency());
-        commands.push_back({ cmake.string(), "--build", buildDirectory.string(), "--target", project.GetGameModuleName(), "--config", "RelWithDebInfo", "-j", std::to_string(jobs) });
+        commands.push_back({ cmake.string(), "--build", buildDirectory.string(), "--target", project.GetGameModuleName(), "--config", EditorLayout::GameBuildConfiguration, "-j", std::to_string(jobs) });
         m_process.Start(commands, project.GetRoot());
         m_state = CompileState::Compiling;
         m_statusText = Text(EditorText::Compiling);

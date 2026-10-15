@@ -2,6 +2,7 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Core/EngineInfo.h"
+#include "Core/EngineLayout.h"
 #include "Core/EngineText.h"
 #include "Core/FileSystem.h"
 #include "Core/Hash.h"
@@ -102,7 +103,7 @@ namespace BrightBox3D::UI
         {
             return m_default.get();
         }
-        std::filesystem::path source = Core::FileSystem::EngineContentDirectory() / "Fonts" / "Roboto-Medium.ttf";
+        std::filesystem::path source = Core::FileSystem::EngineContentDirectory() / Core::EngineLayout::FontsFolder / Core::EngineLayout::DefaultFontFileName;
         auto bytes = Core::FileSystem::ReadBinary(source);
         if (!bytes)
         {

@@ -8,6 +8,7 @@ namespace BrightBox3D::Runtime::BuildLayout
     inline constexpr const char* PlayerExecutableName = "BrightPlayer";
     inline constexpr const char* EngineLibraryName = "BrightBox3D";
 
+    const char* PlatformFolderName();
     std::string PlayerExecutableFileName(const std::string& baseName = PlayerExecutableName);
     std::string EngineLibraryFileName();
     std::filesystem::path GetCookedDirectory(const std::filesystem::path& buildRoot);

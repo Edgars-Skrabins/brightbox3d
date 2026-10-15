@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorLayout.h"
 #include "Reflection/EngineObject.h"
 
 #include <filesystem>
@@ -14,7 +15,7 @@ namespace BrightBox3D::Editor
         BrightBody()
     public:
         static constexpr size_t MaxCount = 12;
-        static constexpr const char* FileName = "RecentProjects.json";
+        static constexpr const char* FileName = EditorLayout::RecentProjectsFileName;
 
         void Load(const std::filesystem::path& path);
         void Save(const std::filesystem::path& path) const;

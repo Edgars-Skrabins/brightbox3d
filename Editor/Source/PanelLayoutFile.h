@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorLayout.h"
 #include "EditorWindows.h"
 #include "Panels/EditorPanel.h"
 #include "Serialization/Json.h"
@@ -10,7 +11,7 @@
 
 namespace BrightBox3D::Editor::PanelLayoutFile
 {
-    inline constexpr const char* FileName = "EditorPanels.json";
+    inline constexpr const char* FileName = EditorLayout::PanelsFileName;
 
     struct PanelEntry
     {

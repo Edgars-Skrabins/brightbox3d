@@ -1,5 +1,6 @@
 #include "Runtime/RenderContext.h"
 
+#include "Core/EngineLayout.h"
 #include "Core/FileSystem.h"
 #include "UI/ScreenRenderer.h"
 
@@ -32,7 +33,7 @@ namespace BrightBox3D::Runtime
 
     std::filesystem::path RenderContext::DefaultShaderDirectory()
     {
-        return Core::FileSystem::EngineContentDirectory() / "Shaders";
+        return Core::FileSystem::EngineContentDirectory() / Core::EngineLayout::ShadersFolder;
     }
 
     RenderContext::~RenderContext()

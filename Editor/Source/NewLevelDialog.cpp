@@ -2,6 +2,7 @@
 
 #include "EditorText.h"
 #include "Labels.h"
+#include "Runtime/ProjectLayout.h"
 #include "Services/LevelService.h"
 #include "Theme.h"
 
@@ -14,8 +15,6 @@ namespace BrightBox3D::Editor
     {
         constexpr const char* PopupId = "NewLevel";
         constexpr const char* DefaultLevelName = "NewLevel";
-        constexpr const char* LevelsFolder = "Levels/";
-        constexpr const char* LevelExtension = ".level";
     }
 
     void NewLevelDialog::Open()
@@ -43,7 +42,7 @@ namespace BrightBox3D::Editor
             {
                 levels.SaveLevel();
             }
-            levels.NewLevel(LevelsFolder + m_name + LevelExtension);
+            levels.NewLevel(Runtime::ProjectLayout::LevelAssetPath(m_name));
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();

@@ -1,5 +1,7 @@
 #include "Core/FileSystem.h"
 
+#include "Core/EngineLayout.h"
+
 #include <fstream>
 #include <system_error>
 
@@ -13,6 +15,16 @@
 
 namespace BrightBox3D::Core
 {
+    namespace
+    {
+        constexpr int MaxContentSearchDepth = 6;
+
+        std::optional<std::filesystem::path> EngineContentSearch()
+        {
+            return FileSystem::FindContentDirectory(EngineLayout::ContentFolder, std::filesystem::path(EngineLayout::SourceTreeEngineFolder) / EngineLayout::SourceTreeContentFolder);
+        }
+    }
+
     std::optional<std::string> FileSystem::ReadText(const std::filesystem::path& path)
     {
         std::ifstream stream(path, std::ios::binary);
@@ -53,7 +65,7 @@ namespace BrightBox3D::Core
             return false;
         }
         std::filesystem::path temporary = path;
-        temporary += ".tmp";
+        temporary += TempExtension;
         {
             std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
             if (!stream)
@@ -114,18 +126,18 @@ namespace BrightBox3D::Core
 #endif
     }
 
-    std::filesystem::path FileSystem::EngineDirectory()
+    std::optional<std::filesystem::path> FileSystem::FindContentDirectory(const std::filesystem::path& installedFolder, const std::filesystem::path& sourceTreeFolder)
     {
         std::filesystem::path directory = ExecutableDirectory();
-        for (int i = 0; i < 6 && !directory.empty(); ++i)
+        for (int i = 0; i < MaxContentSearchDepth && !directory.empty(); ++i)
         {
-            if (std::filesystem::exists(directory / EngineContentFolder))
+            if (std::filesystem::exists(directory / installedFolder))
             {
-                return directory;
+                return directory / installedFolder;
             }
-            if (std::filesystem::exists(directory / SourceTreeEngineFolder / SourceTreeContentFolder))
+            if (std::filesystem::exists(directory / sourceTreeFolder))
             {
-                return directory / SourceTreeEngineFolder;
+                return directory / sourceTreeFolder;
             }
             if (!directory.has_parent_path() || directory.parent_path() == directory)
             {
@@ -133,29 +145,18 @@ namespace BrightBox3D::Core
             }
             directory = directory.parent_path();
         }
-        return ExecutableDirectory();
+        return std::nullopt;
+    }
+
+    std::filesystem::path FileSystem::EngineDirectory()
+    {
+        std::optional<std::filesystem::path> content = EngineContentSearch();
+        return content ? content->parent_path() : ExecutableDirectory();
     }
 
     std::filesystem::path FileSystem::EngineContentDirectory()
     {
-        std::filesystem::path directory = ExecutableDirectory();
-        for (int i = 0; i < 6 && !directory.empty(); ++i)
-        {
-            if (std::filesystem::exists(directory / EngineContentFolder))
-            {
-                return directory / EngineContentFolder;
-            }
-            if (std::filesystem::exists(directory / SourceTreeEngineFolder / SourceTreeContentFolder))
-            {
-                return directory / SourceTreeEngineFolder / SourceTreeContentFolder;
-            }
-            if (!directory.has_parent_path() || directory.parent_path() == directory)
-            {
-                break;
-            }
-            directory = directory.parent_path();
-        }
-        return ExecutableDirectory() / EngineContentFolder;
+        return EngineContentSearch().value_or(ExecutableDirectory() / EngineLayout::ContentFolder);
     }
 
     std::string FileSystem::ToGenericString(const std::filesystem::path& path)

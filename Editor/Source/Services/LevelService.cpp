@@ -7,12 +7,13 @@
 #include "Level/LevelSerializer.h"
 #include "PlaySession.h"
 #include "Rendering/BuiltinAssets.h"
+#include "Runtime/ProjectLayout.h"
 
 namespace BrightBox3D::Editor
 {
     namespace
     {
-        constexpr const char* DefaultLevelPath = "Levels/Main.level";
+        constexpr const char* DefaultLevelName = "Main";
     }
 
     Level::Level* LevelService::GetActiveLevel() const
@@ -82,7 +83,7 @@ namespace BrightBox3D::Editor
             OpenLevel(levels.front().guid);
             return;
         }
-        NewLevel(DefaultLevelPath);
+        NewLevel(Runtime::ProjectLayout::LevelAssetPath(DefaultLevelName));
         project.SetStartupLevel(m_level ? m_level->GetAsset() : Core::Guid{});
         project.Save();
     }

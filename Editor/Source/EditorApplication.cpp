@@ -12,6 +12,7 @@
 #include "DockTabButtons.h"
 #include "EditorCommandLine.h"
 #include "EditorCommands.h"
+#include "EditorLayout.h"
 #include "EditorCreateMenu.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -52,10 +53,6 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
-        constexpr const char* UserSettingsFolder = ".brightbox3d";
-        constexpr const char* PortableSettingsFolder = "UserSettings";
-        constexpr const char* LayoutFileName = "EditorLayout.ini";
-        constexpr const char* PreferencesFileName = "Preferences.json";
         constexpr int DefaultWindowWidth = 1600;
         constexpr int DefaultWindowHeight = 960;
         constexpr float PlayButtonWidth = 84.0f;
@@ -92,7 +89,7 @@ namespace BrightBox3D::Editor
     std::filesystem::path EditorApplication::GetUserDirectory() const
     {
         std::filesystem::path home = Platform::Shell::UserDirectory();
-        std::filesystem::path directory = home.empty() ? Core::FileSystem::ExecutableDirectory() / PortableSettingsFolder : home / UserSettingsFolder;
+        std::filesystem::path directory = home.empty() ? Core::FileSystem::ExecutableDirectory() / EditorLayout::PortableSettingsFolder : home / EditorLayout::UserSettingsFolder;
         Core::FileSystem::EnsureDirectory(directory);
         return directory;
     }
@@ -151,14 +148,14 @@ namespace BrightBox3D::Editor
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
-        m_iniPath = (GetUserDirectory() / LayoutFileName).string();
+        m_iniPath = (GetUserDirectory() / EditorLayout::LayoutFileName).string();
         MigrateEditorLayout(m_iniPath);
         io.IniFilename = m_iniPath.c_str();
         m_resetLayout = !std::filesystem::exists(m_iniPath);
         float contentScale = m_window->GetContentScale().x;
         RegisterEditorCommands(*this);
         RegisterEditorCreateMenu();
-        EditorPreferences::Get().Load(GetUserDirectory() / PreferencesFileName);
+        EditorPreferences::Get().Load(GetUserDirectory() / EditorLayout::PreferencesFileName);
         ApplyEditorTheme(1.0f);
         m_themeRevision = EditorPreferences::Get().GetRevision();
         LoadEditorFonts(contentScale);

@@ -4,6 +4,7 @@
 #include "Assets/AssetImporter.h"
 #include "Assets/AssetType.h"
 #include "Core/Event.h"
+#include "Core/FileSystem.h"
 #include "Core/Guid.h"
 #include "Serialization/Json.h"
 
@@ -44,7 +45,7 @@ namespace BrightBox3D::Assets
         static constexpr const char* CookedFolder = "Cooked";
         static constexpr const char* CookedManifestFileName = "Manifest.json";
         static constexpr const char* MetaExtension = ".meta";
-        static constexpr const char* TempExtension = ".tmp";
+        static constexpr const char* TempExtension = Core::FileSystem::TempExtension;
         static constexpr const char* CookedExtension = ".bin";
         static constexpr const char* BuiltinFolder = "Builtin";
 
