@@ -143,9 +143,21 @@ namespace BrightBox3D::RHI
         std::string debugName;
     };
 
+    enum class VertexSemantic
+    {
+        Position,
+        Normal,
+        Tangent,
+        TexCoord,
+        Color,
+        Count
+    };
+
+    const char* VertexSemanticName(VertexSemantic semantic);
+
     struct VertexAttribute
     {
-        std::string semantic;
+        VertexSemantic semantic = VertexSemantic::Position;
         uint32_t semanticIndex = 0;
         Format format = Format::RGB32Float;
         uint32_t offset = 0;

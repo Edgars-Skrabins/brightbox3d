@@ -20,10 +20,10 @@ namespace BrightBox3D::Rendering
         {
             RHI::VertexLayout layout;
             layout.attributes = {
-                { "POSITION", 0, RHI::Format::RGB32Float, 0, 0 },
-                { "NORMAL", 0, RHI::Format::RGB32Float, 12, 0 },
-                { "TANGENT", 0, RHI::Format::RGBA32Float, 24, 0 },
-                { "TEXCOORD", 0, RHI::Format::RG32Float, 40, 0 }
+                { RHI::VertexSemantic::Position, 0, RHI::Format::RGB32Float, 0, 0 },
+                { RHI::VertexSemantic::Normal, 0, RHI::Format::RGB32Float, 12, 0 },
+                { RHI::VertexSemantic::Tangent, 0, RHI::Format::RGBA32Float, 24, 0 },
+                { RHI::VertexSemantic::TexCoord, 0, RHI::Format::RG32Float, 40, 0 }
             };
             layout.strides[0] = sizeof(Geometry::MeshVertex);
             return layout;

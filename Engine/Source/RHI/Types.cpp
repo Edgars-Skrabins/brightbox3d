@@ -1,7 +1,21 @@
 #include "RHI/Types.h"
 
+#include <iterator>
+
 namespace BrightBox3D::RHI
 {
+    namespace
+    {
+        constexpr const char* VertexSemanticNames[] = { "POSITION", "NORMAL", "TANGENT", "TEXCOORD", "COLOR" };
+
+        static_assert(std::size(VertexSemanticNames) == static_cast<size_t>(VertexSemantic::Count));
+    }
+
+    const char* VertexSemanticName(VertexSemantic semantic)
+    {
+        return VertexSemanticNames[static_cast<size_t>(semantic)];
+    }
+
     bool IsDepthFormat(Format format)
     {
         return format == Format::Depth32Float || format == Format::Depth24Stencil8;

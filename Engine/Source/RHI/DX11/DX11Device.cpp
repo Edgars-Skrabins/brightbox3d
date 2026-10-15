@@ -246,7 +246,7 @@ namespace BrightBox3D::RHI
                     for (const VertexAttribute& attribute : desc.vertexLayout.attributes)
                     {
                         D3D11_INPUT_ELEMENT_DESC element{};
-                        element.SemanticName = attribute.semantic.c_str();
+                        element.SemanticName = VertexSemanticName(attribute.semantic);
                         element.SemanticIndex = attribute.semanticIndex;
                         element.Format = ToDXGI(attribute.format);
                         element.InputSlot = attribute.bufferSlot;

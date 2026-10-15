@@ -153,12 +153,12 @@ namespace BrightBox3D::UI
         desc.vertexShader = m_shaders->Get(Rendering::ShaderProgram::UI, RHI::ShaderStage::Vertex);
         desc.pixelShader = m_shaders->Get(Rendering::ShaderProgram::UI, RHI::ShaderStage::Pixel);
         desc.vertexLayout.attributes = {
-            { "POSITION", 0, RHI::Format::RG32Float, offsetof(UIVertex, position), 0 },
-            { "TEXCOORD", 0, RHI::Format::RG32Float, offsetof(UIVertex, uv), 0 },
-            { "TEXCOORD", 1, RHI::Format::RG32Float, offsetof(UIVertex, local), 0 },
-            { "TEXCOORD", 2, RHI::Format::RG32Float, offsetof(UIVertex, halfSize), 0 },
-            { "TEXCOORD", 3, RHI::Format::RGBA32Float, offsetof(UIVertex, params), 0 },
-            { "COLOR", 0, RHI::Format::RGBA8Unorm, offsetof(UIVertex, color), 0 }
+            { RHI::VertexSemantic::Position, 0, RHI::Format::RG32Float, offsetof(UIVertex, position), 0 },
+            { RHI::VertexSemantic::TexCoord, 0, RHI::Format::RG32Float, offsetof(UIVertex, uv), 0 },
+            { RHI::VertexSemantic::TexCoord, 1, RHI::Format::RG32Float, offsetof(UIVertex, local), 0 },
+            { RHI::VertexSemantic::TexCoord, 2, RHI::Format::RG32Float, offsetof(UIVertex, halfSize), 0 },
+            { RHI::VertexSemantic::TexCoord, 3, RHI::Format::RGBA32Float, offsetof(UIVertex, params), 0 },
+            { RHI::VertexSemantic::Color, 0, RHI::Format::RGBA8Unorm, offsetof(UIVertex, color), 0 }
         };
         desc.vertexLayout.strides[0] = sizeof(UIVertex);
         desc.rasterizer.cullMode = RHI::CullMode::None;

@@ -69,9 +69,9 @@ float4 PSTextured(VSOutput input) : SV_Target0
     {
         VertexLayout layout;
         layout.attributes = {
-            { "POSITION", 0, Format::RGB32Float, 0, 0 },
-            { "COLOR", 0, Format::RGBA32Float, 12, 0 },
-            { "TEXCOORD", 0, Format::RG32Float, 28, 0 }
+            { VertexSemantic::Position, 0, Format::RGB32Float, 0, 0 },
+            { VertexSemantic::Color, 0, Format::RGBA32Float, 12, 0 },
+            { VertexSemantic::TexCoord, 0, Format::RG32Float, 28, 0 }
         };
         layout.strides[0] = sizeof(Vertex);
         return layout;

@@ -23,8 +23,8 @@ namespace BrightBox3D::Rendering
         {
             RHI::VertexLayout layout;
             layout.attributes = {
-                { "POSITION", 0, RHI::Format::RGB32Float, 0, 0 },
-                { "COLOR", 0, RHI::Format::RGBA8Unorm, 12, 0 }
+                { RHI::VertexSemantic::Position, 0, RHI::Format::RGB32Float, 0, 0 },
+                { RHI::VertexSemantic::Color, 0, RHI::Format::RGBA8Unorm, 12, 0 }
             };
             layout.strides[0] = sizeof(LineVertex);
             return layout;

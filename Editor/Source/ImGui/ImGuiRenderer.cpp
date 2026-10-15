@@ -84,9 +84,9 @@ namespace BrightBox3D::Editor
         desc.vertexShader = m_shaders.Get(Rendering::ShaderProgram::ImGui, RHI::ShaderStage::Vertex);
         desc.pixelShader = m_shaders.Get(Rendering::ShaderProgram::ImGui, RHI::ShaderStage::Pixel);
         desc.vertexLayout.attributes = {
-            { "POSITION", 0, RHI::Format::RG32Float, offsetof(ImDrawVert, pos), 0 },
-            { "TEXCOORD", 0, RHI::Format::RG32Float, offsetof(ImDrawVert, uv), 0 },
-            { "COLOR", 0, RHI::Format::RGBA8Unorm, offsetof(ImDrawVert, col), 0 }
+            { RHI::VertexSemantic::Position, 0, RHI::Format::RG32Float, offsetof(ImDrawVert, pos), 0 },
+            { RHI::VertexSemantic::TexCoord, 0, RHI::Format::RG32Float, offsetof(ImDrawVert, uv), 0 },
+            { RHI::VertexSemantic::Color, 0, RHI::Format::RGBA8Unorm, offsetof(ImDrawVert, col), 0 }
         };
         desc.vertexLayout.strides[0] = sizeof(ImDrawVert);
         desc.rasterizer.cullMode = RHI::CullMode::None;
