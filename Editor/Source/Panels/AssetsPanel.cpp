@@ -19,10 +19,21 @@ namespace BrightBox3D::Editor
     {
         constexpr float FolderColumnWidth = 180.0f;
         constexpr const char* DeletePopupId = "DeleteAsset";
+        constexpr const char* FolderKey = "folder";
     }
 
     AssetsPanel::AssetsPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Assets, instanceIndex), m_application(application), m_items(application, m_state), m_tree(application, m_state)
     {
+    }
+
+    void AssetsPanel::SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const
+    {
+        Serialization::SetMember(state, FolderKey, Serialization::MakeString(m_state.folder, allocator), allocator);
+    }
+
+    void AssetsPanel::LoadState(const Serialization::JsonValue& state)
+    {
+        m_state.folder = Serialization::GetString(state, FolderKey);
     }
 
     AssetsTarget AssetsPanel::GetCommandTarget() const
@@ -113,6 +124,10 @@ namespace BrightBox3D::Editor
             return;
         }
         m_state.menuTarget.reset();
+        if (!m_state.folder.empty() && m_state.folder != BuiltinFolder && !Assets::AssetDatabase::Get().FindRecordByPath(m_state.folder))
+        {
+            m_state.folder.clear();
+        }
         PushSelectionColors();
         if (EditorPreferences::Get().GetAssetsLayout() == AssetsLayout::OneColumn)
         {

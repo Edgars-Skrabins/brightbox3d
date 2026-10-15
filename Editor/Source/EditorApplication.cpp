@@ -23,6 +23,7 @@
 #include "ImGui/ImGuiRenderer.h"
 #include "Labels.h"
 #include "Level/LevelSerializer.h"
+#include "PanelLayoutFile.h"
 #include "Panels/Assets/AssetFileImport.h"
 #include "Panels/AssetsPanel.h"
 #include "Panels/InspectorPanel.h"
@@ -168,10 +169,7 @@ namespace BrightBox3D::Editor
     void EditorApplication::CreatePanels()
     {
         m_thumbnails = std::make_unique<ThumbnailCache>(GetDevice(), GetRenderer());
-        for (EditorWindow type : DefaultPanels)
-        {
-            CreatePanel(type);
-        }
+        LoadPanels();
         m_projectSettings = std::make_unique<ProjectSettingsPanel>(*this);
         m_preferences = std::make_unique<PreferencesPanel>();
         m_playSession = std::make_unique<EditorPlaySession>(m_context, *this);
@@ -233,7 +231,44 @@ namespace BrightBox3D::Editor
 
     EditorPanel& EditorApplication::CreatePanel(EditorWindow type)
     {
-        int index = NextInstanceIndex(type);
+        return CreatePanelWithIndex(type, NextInstanceIndex(type));
+    }
+
+    void EditorApplication::LoadPanels()
+    {
+        Serialization::JsonDocument document;
+        std::optional<std::vector<PanelLayoutFile::PanelEntry>> entries;
+        if (Serialization::LoadJsonFile(GetUserDirectory() / PanelLayoutFile::FileName, document))
+        {
+            entries = PanelLayoutFile::Read(document);
+        }
+        if (!entries)
+        {
+            for (EditorWindow type : DefaultPanels)
+            {
+                CreatePanel(type);
+            }
+            return;
+        }
+        for (const PanelLayoutFile::PanelEntry& entry : *entries)
+        {
+            EditorPanel& panel = CreatePanelWithIndex(entry.type, entry.index);
+            if (entry.state)
+            {
+                panel.LoadState(*entry.state);
+            }
+        }
+    }
+
+    void EditorApplication::SavePanels() const
+    {
+        Serialization::JsonDocument document;
+        PanelLayoutFile::Write(m_panels, document);
+        Serialization::SaveJsonFile(GetUserDirectory() / PanelLayoutFile::FileName, document);
+    }
+
+    EditorPanel& EditorApplication::CreatePanelWithIndex(EditorWindow type, int index)
+    {
         switch (type)
         {
         case EditorWindow::LevelView:
@@ -371,6 +406,7 @@ namespace BrightBox3D::Editor
         m_hotReload.reset();
         m_playSession.reset();
         m_projectSettings.reset();
+        SavePanels();
         m_panels.clear();
         m_thumbnails.reset();
         m_imguiRenderer.reset();

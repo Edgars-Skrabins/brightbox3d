@@ -30,6 +30,8 @@ namespace BrightBox3D::Editor
         ~LevelViewPanel();
 
         void Draw() override;
+        void SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const override;
+        void LoadState(const Serialization::JsonValue& state) override;
         EditorCamera& GetCamera() { return m_camera; }
         void FocusSelection();
         Math::Vector3 GetSpawnPoint() const;
@@ -44,6 +46,7 @@ namespace BrightBox3D::Editor
         void SetGridVisible(bool visible) { m_showGrid = visible; }
 
     private:
+        uint64_t ViewId() const;
         void DrawToolbar();
         void DrawLevelObjectEditorBar();
         void EnsureTarget(uint32_t width, uint32_t height);

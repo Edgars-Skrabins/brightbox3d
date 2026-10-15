@@ -35,6 +35,12 @@ namespace BrightBox3D::Editor
         constexpr float MinCameraSpeed = 0.5f;
         constexpr float MaxCameraSpeed = 500.0f;
         constexpr const char* SpeedValueFormat = " %.1f";
+        constexpr const char* CameraPositionKey = "cameraPosition";
+        constexpr const char* CameraPitchKey = "cameraPitch";
+        constexpr const char* CameraYawKey = "cameraYaw";
+        constexpr const char* CameraSpeedKey = "cameraSpeed";
+        constexpr const char* DebugModeKey = "debugMode";
+        constexpr const char* GridKey = "grid";
         constexpr float IconRadius = 12.0f;
         constexpr float IconMinClipW = 0.1f;
         constexpr float IconOutline = 1.5f;
@@ -108,7 +114,7 @@ namespace BrightBox3D::Editor
     LevelViewPanel::~LevelViewPanel()
     {
         m_application.GetDevice().WaitIdle();
-        m_application.GetRenderer().ReleaseView(LevelViewId);
+        m_application.GetRenderer().ReleaseView(ViewId());
     }
 
     Math::Vector3 LevelViewPanel::GetSpawnPoint() const
@@ -352,7 +358,7 @@ namespace BrightBox3D::Editor
         ViewRenderRequest request;
         request.level = m_application.GetContext().GetLevelService().GetActiveLevel();
         request.target = m_target.get();
-        request.view.id = LevelViewId;
+        request.view.id = ViewId();
         request.view.width = width;
         request.view.height = height;
         request.view.view = view;
@@ -371,6 +377,43 @@ namespace BrightBox3D::Editor
         request.view.post.antiAliasing = Rendering::AntiAliasing::FXAA;
         request.view.post.autoExposure = false;
         m_application.RequestRender(request);
+    }
+
+    uint64_t LevelViewPanel::ViewId() const
+    {
+        return LevelViewId + static_cast<uint64_t>(GetInstanceIndex());
+    }
+
+    void LevelViewPanel::SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const
+    {
+        const Math::Vector3& position = m_camera.GetPosition();
+        Serialization::JsonValue positionValue(rapidjson::kArrayType);
+        positionValue.PushBack(Serialization::FloatToJsonNumber(position.x), allocator);
+        positionValue.PushBack(Serialization::FloatToJsonNumber(position.y), allocator);
+        positionValue.PushBack(Serialization::FloatToJsonNumber(position.z), allocator);
+        Serialization::SetMember(state, CameraPositionKey, std::move(positionValue), allocator);
+        Serialization::SetMember(state, CameraPitchKey, Serialization::JsonValue(Serialization::FloatToJsonNumber(m_camera.GetPitch())), allocator);
+        Serialization::SetMember(state, CameraYawKey, Serialization::JsonValue(Serialization::FloatToJsonNumber(m_camera.GetYaw())), allocator);
+        Serialization::SetMember(state, CameraSpeedKey, Serialization::JsonValue(Serialization::FloatToJsonNumber(m_camera.GetSpeed())), allocator);
+        Serialization::SetMember(state, DebugModeKey, Serialization::JsonValue(static_cast<int>(m_debugMode)), allocator);
+        Serialization::SetMember(state, GridKey, Serialization::JsonValue(m_showGrid), allocator);
+    }
+
+    void LevelViewPanel::LoadState(const Serialization::JsonValue& state)
+    {
+        const Serialization::JsonValue* position = Serialization::FindMember(state, CameraPositionKey);
+        if (position && position->IsArray() && position->Size() == 3 && (*position)[0].IsNumber() && (*position)[1].IsNumber() && (*position)[2].IsNumber())
+        {
+            m_camera.SetPosition(Math::Vector3((*position)[0].GetFloat(), (*position)[1].GetFloat(), (*position)[2].GetFloat()));
+        }
+        m_camera.SetAngles(static_cast<float>(Serialization::GetNumber(state, CameraPitchKey, m_camera.GetPitch())), static_cast<float>(Serialization::GetNumber(state, CameraYawKey, m_camera.GetYaw())));
+        m_camera.SetSpeed(static_cast<float>(Serialization::GetNumber(state, CameraSpeedKey, m_camera.GetSpeed())));
+        int debugMode = static_cast<int>(Serialization::GetNumber(state, DebugModeKey, static_cast<int>(m_debugMode)));
+        if (debugMode >= 0 && debugMode <= static_cast<int>(Rendering::RenderDebugMode::AmbientOcclusion))
+        {
+            m_debugMode = static_cast<Rendering::RenderDebugMode>(debugMode);
+        }
+        m_showGrid = Serialization::GetBool(state, GridKey, m_showGrid);
     }
 
     void LevelViewPanel::Draw()

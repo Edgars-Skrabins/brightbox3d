@@ -21,6 +21,8 @@ namespace BrightBox3D::Editor
 
         AssetsPanelState& GetState() { return m_state; }
         AssetsTarget GetCommandTarget() const;
+        void SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const override;
+        void LoadState(const Serialization::JsonValue& state) override;
 
     private:
         void DrawDeleteConfirmation();

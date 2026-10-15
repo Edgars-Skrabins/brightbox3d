@@ -13,6 +13,11 @@
 
 namespace BrightBox3D::Editor
 {
+    namespace
+    {
+        constexpr const char* LockedKey = "locked";
+    }
+
     InspectorPanel::InspectorPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Inspector, instanceIndex), m_application(application), m_object(application), m_asset(application)
     {
     }
@@ -22,6 +27,16 @@ namespace BrightBox3D::Editor
     void InspectorPanel::SetLocked(bool locked)
     {
         m_locked = locked ? std::optional<InspectorTarget>(SelectedTarget()) : std::nullopt;
+    }
+
+    void InspectorPanel::SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const
+    {
+        Serialization::SetMember(state, LockedKey, Serialization::JsonValue(m_locked.has_value() || m_lockPending), allocator);
+    }
+
+    void InspectorPanel::LoadState(const Serialization::JsonValue& state)
+    {
+        m_lockPending = Serialization::GetBool(state, LockedKey);
     }
 
     InspectorTarget InspectorPanel::SelectedTarget() const
@@ -129,6 +144,11 @@ namespace BrightBox3D::Editor
         {
             ImGui::End();
             return;
+        }
+        if (m_lockPending)
+        {
+            m_lockPending = false;
+            SetLocked(true);
         }
         DrawLockButton();
         if (m_locked && !TargetExists(*m_locked))

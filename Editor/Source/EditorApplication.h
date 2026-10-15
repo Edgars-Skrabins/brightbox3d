@@ -83,6 +83,9 @@ namespace BrightBox3D::Editor
         void InitializeImGui();
         void CreatePanels();
         void AddCommandLinePanel();
+        void LoadPanels();
+        void SavePanels() const;
+        EditorPanel& CreatePanelWithIndex(EditorWindow type, int index);
         int NextInstanceIndex(EditorWindow type) const;
 
         template <typename T>

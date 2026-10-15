@@ -29,6 +29,8 @@ namespace BrightBox3D::Editor
         void Draw() override;
         bool IsLocked() const { return m_locked.has_value(); }
         void SetLocked(bool locked);
+        void SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const override;
+        void LoadState(const Serialization::JsonValue& state) override;
 
     private:
         InspectorTarget SelectedTarget() const;
@@ -42,5 +44,6 @@ namespace BrightBox3D::Editor
         ObjectInspector m_object;
         AssetInspector m_asset;
         std::optional<InspectorTarget> m_locked;
+        bool m_lockPending = false;
     };
 }
