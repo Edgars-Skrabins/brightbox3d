@@ -73,7 +73,7 @@ namespace BrightBox3D::Core
         Write(LogLevel::Error, message);
     }
 
-    void Log::Write(LogLevel level, const std::string& message, LogSource source, const std::string& category, const std::string& file, int line)
+    void Log::Write(LogLevel level, const std::string& message, LogSource source, LogCategory category, const std::string& file, int line)
     {
         std::lock_guard<std::mutex> lock(Mutex());
         LogState& state = State();

@@ -9,7 +9,7 @@ namespace BrightBox3D::Core
 {
     void AssertionFailed(const char* expression, const std::string& message, const char* file, int line)
     {
-        Log::Write(LogLevel::Error, Text(EngineText::AssertionFailed, expression, message), LogSource::Engine, "Assert", file, line);
+        Log::Write(LogLevel::Error, Text(EngineText::AssertionFailed, expression, message), LogSource::Engine, LogCategory::Assert, file, line);
         std::abort();
     }
 }

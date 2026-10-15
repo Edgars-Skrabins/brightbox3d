@@ -43,13 +43,13 @@ TEST_F(LogTests, ShortcutsAndDefaultWriteAreTaggedEngine)
 
 TEST_F(LogTests, GameEntriesKeepCategoryFileAndLine)
 {
-    Log::Write(LogLevel::Warning, "careful", LogSource::Game, "Game", "Player.cpp", 42);
+    Log::Write(LogLevel::Warning, "careful", LogSource::Game, LogCategory::Game, "Player.cpp", 42);
     LogEntry found;
     Log::ForEach([&](const LogEntry& entry) { found = entry; });
     EXPECT_EQ(found.source, LogSource::Game);
     EXPECT_EQ(found.level, LogLevel::Warning);
     EXPECT_EQ(found.message, "careful");
-    EXPECT_EQ(found.category, "Game");
+    EXPECT_EQ(found.category, LogCategory::Game);
     EXPECT_EQ(found.file, "Player.cpp");
     EXPECT_EQ(found.line, 42);
 }

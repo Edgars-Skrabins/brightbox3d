@@ -6,11 +6,9 @@ namespace BrightBox3D
 {
     namespace
     {
-        constexpr const char* GameCategory = "Game";
-
         void WriteGame(Core::LogLevel level, const std::string& message, const std::source_location& location)
         {
-            Core::Log::Write(level, message, Core::LogSource::Game, GameCategory, location.file_name(), static_cast<int>(location.line()));
+            Core::Log::Write(level, message, Core::LogSource::Game, Core::LogCategory::Game, location.file_name(), static_cast<int>(location.line()));
         }
     }
 

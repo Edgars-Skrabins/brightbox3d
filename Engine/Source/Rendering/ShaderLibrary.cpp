@@ -63,7 +63,7 @@ namespace BrightBox3D::Rendering
         std::unique_ptr<RHI::Shader> shader = m_device.CreateShader(desc, error);
         if (!shader)
         {
-            Core::Log::Write(Core::LogLevel::Error, Core::Text(Core::EngineText::ShaderCompileFailed, desc.debugName, error), Core::LogSource::Engine, "Shader", (m_directory / file).generic_string(), 0);
+            Core::Log::Write(Core::LogLevel::Error, Core::Text(Core::EngineText::ShaderCompileFailed, desc.debugName, error), Core::LogSource::Engine, Core::LogCategory::Shader, (m_directory / file).generic_string(), 0);
         }
         RHI::Shader* raw = shader.get();
         m_shaders[key] = std::move(shader);

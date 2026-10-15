@@ -235,7 +235,7 @@ namespace BrightBox3D::Editor
         }
         m_state = CompileState::Idle;
         m_statusText = Text(EditorText::CompileCancelled);
-        Core::Log::Write(Core::LogLevel::Info, Text(EditorText::CompileCancelled), Core::LogSource::Engine, "Compiler");
+        Core::Log::Write(Core::LogLevel::Info, Text(EditorText::CompileCancelled), Core::LogSource::Engine, Core::LogCategory::Compiler);
     }
 
     void HotReload::Update()
@@ -311,7 +311,7 @@ namespace BrightBox3D::Editor
         m_state = CompileState::Compiling;
         m_statusText = Text(EditorText::Compiling);
         m_compileStart = std::chrono::steady_clock::now();
-        Core::Log::Write(Core::LogLevel::Info, Text(EditorText::CompilingGameCode), Core::LogSource::Engine, "Compiler");
+        Core::Log::Write(Core::LogLevel::Info, Text(EditorText::CompilingGameCode), Core::LogSource::Engine, Core::LogCategory::Compiler);
     }
 
     void HotReload::ReportCompilerOutput(const std::string& output)
@@ -332,18 +332,18 @@ namespace BrightBox3D::Editor
             {
                 bool isError = match[4].str() != WarningSeverity;
                 errors += isError ? 1 : 0;
-                Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[5].str(), Core::LogSource::Game, "Compiler", match[1].str(), std::stoi(match[2].str()));
+                Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[5].str(), Core::LogSource::Game, Core::LogCategory::Compiler, match[1].str(), std::stoi(match[2].str()));
             }
             else if (std::regex_match(line, match, msvcPattern))
             {
                 bool isError = match[3].str() != WarningSeverity;
                 errors += isError ? 1 : 0;
-                Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[4].str() + ": " + match[5].str(), Core::LogSource::Game, "Compiler", match[1].str(), std::stoi(match[2].str()));
+                Core::Log::Write(isError ? Core::LogLevel::Error : Core::LogLevel::Warning, match[4].str() + ": " + match[5].str(), Core::LogSource::Game, Core::LogCategory::Compiler, match[1].str(), std::stoi(match[2].str()));
             }
         }
         if (errors == 0 && m_state == CompileState::Failed)
         {
-            Core::Log::Write(Core::LogLevel::Error, output, Core::LogSource::Game, "Compiler");
+            Core::Log::Write(Core::LogLevel::Error, output, Core::LogSource::Game, Core::LogCategory::Compiler);
         }
     }
 
@@ -362,7 +362,7 @@ namespace BrightBox3D::Editor
             m_state = CompileState::Failed;
             m_statusText = Text(EditorText::CompileFailed);
             ReportCompilerOutput(result.output);
-            Core::Log::Write(Core::LogLevel::Error, Text(EditorText::GameCodeCompileFailed), Core::LogSource::Game, "Compiler");
+            Core::Log::Write(Core::LogLevel::Error, Text(EditorText::GameCodeCompileFailed), Core::LogSource::Game, Core::LogCategory::Compiler);
             if (OnCompileFailed)
             {
                 OnCompileFailed();

@@ -38,7 +38,7 @@ TEST(DebugTests, GameLogsCaptureCallerFileLineAndLevel)
         EXPECT_EQ(entries[i].source, Core::LogSource::Game);
         EXPECT_EQ(entries[i].level, levels[i]);
         EXPECT_EQ(entries[i].message, messages[i]);
-        EXPECT_EQ(entries[i].category, "Game");
+        EXPECT_EQ(entries[i].category, Core::LogCategory::Game);
         EXPECT_NE(entries[i].file.find("DebugTests.cpp"), std::string::npos) << entries[i].file;
         EXPECT_EQ(entries[i].line, line + static_cast<int>(i));
     }
