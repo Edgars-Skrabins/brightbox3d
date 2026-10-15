@@ -77,6 +77,15 @@ namespace
     };
 }
 
+TEST(LevelTests, TransformPropertiesUseTheirDisplayNames)
+{
+    const Reflection::TypeInfo& type = Level::Transform::StaticType();
+    EXPECT_EQ(type.FindProperty("m_localPosition")->displayName, "Position");
+    EXPECT_EQ(type.FindProperty("m_localRotation")->displayName, "Rotation");
+    EXPECT_EQ(type.FindProperty("m_localScale")->displayName, "Scale");
+    EXPECT_EQ(TestPlayer::StaticType().FindProperty("m_lives")->displayName, "Lives");
+}
+
 TEST(LevelTests, TransformHierarchyComposesAndKeepsWorld)
 {
     RuntimeLevel level;

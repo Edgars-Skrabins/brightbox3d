@@ -17,6 +17,16 @@ namespace BrightBox3D::Reflection
         std::string_view name;
     };
 
+    struct DisplayName
+    {
+        constexpr DisplayName() = default;
+        constexpr explicit DisplayName(std::string_view displayText) : text(displayText) {}
+
+        constexpr bool IsSet() const { return !text.empty(); }
+
+        std::string_view text;
+    };
+
     enum class Edit : uint8_t
     {
         None,
@@ -45,6 +55,7 @@ namespace BrightBox3D::Reflection
     {
         Edit edit = Edit::None;
         Category category{};
+        DisplayName displayName{};
     };
 
     struct UIPropertyMetadata
@@ -63,7 +74,7 @@ namespace BrightBox3D::Reflection
 
     constexpr bool Validate(const PropertyMetadata& metadata)
     {
-        return metadata.category.name.data() == nullptr || metadata.category.IsSet();
+        return (metadata.category.name.data() == nullptr || metadata.category.IsSet()) && (metadata.displayName.text.data() == nullptr || metadata.displayName.IsSet());
     }
 
     constexpr bool Validate(const UIPropertyMetadata& metadata)
@@ -80,11 +91,16 @@ namespace BrightBox3D::Reflection
     {
     }
 
+    namespace DisplayNames
+    {
+    }
+
     namespace Specifiers
     {
         using Core::Icon;
         using Reflection::Edit;
         using Reflection::UIAccess;
         namespace Categories = ::BrightBox3D::Reflection::Categories;
+        namespace DisplayNames = ::BrightBox3D::Reflection::DisplayNames;
     }
 }

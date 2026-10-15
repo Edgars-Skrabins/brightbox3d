@@ -2,6 +2,7 @@
 
 #include "Commands/CommandRegistry.h"
 #include "Commands/CommandWidgets.h"
+#include "Core/StringUtils.h"
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
@@ -17,10 +18,14 @@
 #include "Panels/LevelView/PlayModeOverlay.h"
 #include "Panels/LevelView/SelectionOverlay.h"
 #include "Picking.h"
+#include "Reflection/PropertyTraits.h"
 #include "Rendering/Light.h"
 #include "Rendering/MeshRenderer.h"
 
 #include <ImGuizmo.h>
+
+#include <string>
+#include <vector>
 
 namespace BrightBox3D::Editor
 {
@@ -29,7 +34,7 @@ namespace BrightBox3D::Editor
         constexpr uint64_t LevelViewId = 0x4C455645;
         constexpr float SpawnDistance = 6.0f;
         constexpr float DefaultFocusRadius = 1.0f;
-        constexpr float DebugModeComboWidth = 110.0f;
+        constexpr float DebugModeComboWidth = 150.0f;
         constexpr float SpeedFieldWidth = 90.0f;
         constexpr float SpeedDragStep = 0.1f;
         constexpr float MinCameraSpeed = 0.5f;
@@ -41,6 +46,16 @@ namespace BrightBox3D::Editor
         constexpr const char* CameraSpeedKey = "cameraSpeed";
         constexpr const char* DebugModeKey = "debugMode";
         constexpr const char* GridKey = "grid";
+
+        std::vector<std::string> DebugModeNames()
+        {
+            std::vector<std::string> names;
+            for (const Reflection::EnumEntry& entry : Reflection::StaticEnum<Rendering::RenderDebugMode>().entries)
+            {
+                names.push_back(Core::PrettifyName(entry.name));
+            }
+            return names;
+        }
         constexpr float IconRadius = 12.0f;
         constexpr float IconMinClipW = 0.1f;
         constexpr float IconOutline = 1.5f;
@@ -155,10 +170,10 @@ namespace BrightBox3D::Editor
     {
         Editor::DrawToolbar(LevelViewToolbar);
         ImGui::SameLine();
-        static const char* modes[] = { Text(EditorText::DebugModeLit), Text(EditorText::DebugModeAlbedo), Text(EditorText::DebugModeNormals), Text(EditorText::DebugModeMetallicRoughness), Text(EditorText::DebugModeShadows), Text(EditorText::DebugModeAmbientOcclusion) };
+        static const std::vector<std::string> modeNames = DebugModeNames();
         ImGui::SetNextItemWidth(DebugModeComboWidth);
         int mode = static_cast<int>(m_debugMode);
-        if (ImGui::Combo("##debugmode", &mode, modes, IM_ARRAYSIZE(modes)))
+        if (ImGui::Combo("##debugmode", &mode, [](void* data, int index) { return (*static_cast<const std::vector<std::string>*>(data))[index].c_str(); }, const_cast<std::vector<std::string>*>(&modeNames), static_cast<int>(modeNames.size())))
         {
             m_debugMode = static_cast<Rendering::RenderDebugMode>(mode);
         }

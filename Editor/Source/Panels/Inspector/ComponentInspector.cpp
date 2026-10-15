@@ -28,39 +28,13 @@ namespace BrightBox3D::Editor
 
     namespace
     {
-
-        struct TransformLabel
-        {
-            const char* property;
-            EditorText label;
-        };
-
-        constexpr TransformLabel TransformLabels[] = {
-            { "m_localPosition", EditorText::Position },
-            { "m_localRotation", EditorText::Rotation },
-            { "m_localScale", EditorText::Scale }
-        };
-
-        Reflection::PropertyInfo TransformDisplay(const Reflection::PropertyInfo& property)
-        {
-            Reflection::PropertyInfo display = property;
-            for (const TransformLabel& entry : TransformLabels)
-            {
-                if (display.name == entry.property)
-                {
-                    display.displayName = Text(entry.label);
-                }
-            }
-            return display;
-        }
-
         bool DrawTransformProperties(Level::Transform& transform, PropertyDrawOptions& options)
         {
             bool changed = false;
             options.filter = [](const Reflection::PropertyInfo&) { return true; };
             for (const Reflection::PropertyInfo* property : transform.GetType().GetAllProperties())
             {
-                changed |= PropertyDrawer::DrawProperty(TransformDisplay(*property), transform, options);
+                changed |= PropertyDrawer::DrawProperty(*property, transform, options);
             }
             return changed;
         }

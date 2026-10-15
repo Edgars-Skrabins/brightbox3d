@@ -54,13 +54,13 @@ namespace BrightBox3D::Level
     private:
         const Transform* GetParentTransform() const;
 
-        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform, .displayName = DisplayNames::Position)
         Math::Vector3 m_localPosition;
 
-        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform, .displayName = DisplayNames::Rotation)
         Math::Quaternion m_localRotation;
 
-        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform)
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Transform, .displayName = DisplayNames::Scale)
         Math::Vector3 m_localScale{ 1.0f, 1.0f, 1.0f };
 
         mutable Math::Matrix4 m_worldMatrix;

@@ -63,6 +63,7 @@ namespace BrightBox3D::Rendering
         float normalBias = 1.5f;
     };
 
+    BrightEnum()
     enum class RenderDebugMode
     {
         Lit,

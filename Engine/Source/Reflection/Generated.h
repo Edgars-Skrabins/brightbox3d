@@ -48,7 +48,7 @@ namespace BrightBox3D::Reflection
     {
         PropertyInfo property;
         property.name = name;
-        property.displayName = Core::PrettifyName(name);
+        property.displayName = metadata.displayName.IsSet() ? std::string(metadata.displayName.text) : Core::PrettifyName(name);
         property.category = std::string(metadata.category.name);
         property.flags = EditFlags(metadata.edit) | UIAccessFlags(ui.access);
         property.access = access;
