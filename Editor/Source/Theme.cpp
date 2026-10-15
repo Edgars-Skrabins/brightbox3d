@@ -34,7 +34,9 @@ namespace BrightBox3D::Editor
             560.0f,
             640.0f,
             520.0f,
-            480.0f
+            480.0f,
+            640.0f,
+            420.0f
         };
 
         static_assert(std::size(EditorMetrics) == static_cast<size_t>(EditorMetric::Count));

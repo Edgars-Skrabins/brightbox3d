@@ -294,6 +294,26 @@ namespace BrightBox3D::Editor
             });
         }
 
+        void RegisterNewPanel(CommandRegistry& registry, EditorApplication& application, CommandId id, const char* key, EditorText label, EditorWindow type)
+        {
+            registry.Register(id, {
+                .key = key,
+                .icon = GetWindowInfo(type).icon,
+                .label = label,
+                .tooltip = EditorText::FloatingPanelHint,
+                .execute = [&application, type] { application.CreatePanel(type); },
+            });
+        }
+
+        void RegisterWindowCommands(CommandRegistry& registry, EditorApplication& application)
+        {
+            RegisterNewPanel(registry, application, CommandId::NewLevelView, "NewLevelView", EditorText::NewLevelViewPanel, EditorWindow::LevelView);
+            RegisterNewPanel(registry, application, CommandId::NewLevelContents, "NewLevelContents", EditorText::NewLevelContentsPanel, EditorWindow::LevelContents);
+            RegisterNewPanel(registry, application, CommandId::NewInspector, "NewInspector", EditorText::NewInspectorPanel, EditorWindow::Inspector);
+            RegisterNewPanel(registry, application, CommandId::NewAssets, "NewAssets", EditorText::NewAssetsPanel, EditorWindow::Assets);
+            RegisterNewPanel(registry, application, CommandId::NewTerminal, "NewTerminal", EditorText::NewTerminalPanel, EditorWindow::Terminal);
+        }
+
         void RegisterAssetsLayout(CommandRegistry& registry, CommandId id, const char* key, Icon icon, EditorText label, AssetsLayout layout)
         {
             registry.Register(id, {
@@ -419,5 +439,6 @@ namespace BrightBox3D::Editor
         RegisterLevelViewCommands(registry, application);
         RegisterLevelContentsCommands(registry, application);
         RegisterAssetsCommands(registry, application);
+        RegisterWindowCommands(registry, application);
     }
 }

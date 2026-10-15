@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorText.h"
+#include "IconGlyphs.h"
 
 #include <filesystem>
 #include <string>
@@ -24,6 +25,7 @@ namespace BrightBox3D::Editor
         const char* id;
         EditorText title;
         const char* legacyTitle;
+        Icon icon;
     };
 
     const EditorWindowInfo& GetWindowInfo(EditorWindow window);

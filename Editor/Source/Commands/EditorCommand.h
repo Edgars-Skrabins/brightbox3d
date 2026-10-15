@@ -61,6 +61,11 @@ namespace BrightBox3D::Editor
         AssetRefresh,
         AssetsOneColumnLayout,
         AssetsTwoColumnLayout,
+        NewLevelView,
+        NewLevelContents,
+        NewInspector,
+        NewAssets,
+        NewTerminal,
         Count
     };
 

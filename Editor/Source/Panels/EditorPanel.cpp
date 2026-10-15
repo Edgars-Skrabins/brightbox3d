@@ -1,6 +1,7 @@
 #include "Panels/EditorPanel.h"
 
 #include "EditorText.h"
+#include "Theme.h"
 
 #include <string>
 
@@ -18,6 +19,7 @@ namespace BrightBox3D::Editor
 
     bool EditorPanel::BeginWindow(ImGuiWindowFlags flags)
     {
-        return ImGui::Begin(GetWindowName().c_str(), nullptr, flags);
+        ImGui::SetNextWindowSize(ImVec2(ScaledMetric(EditorMetric::FloatingPanelWidth), ScaledMetric(EditorMetric::FloatingPanelHeight)), ImGuiCond_FirstUseEver);
+        return ImGui::Begin(GetWindowName().c_str(), &m_open, flags);
     }
 }

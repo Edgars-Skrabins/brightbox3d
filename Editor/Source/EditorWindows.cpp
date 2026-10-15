@@ -15,13 +15,13 @@ namespace BrightBox3D::Editor
     namespace
     {
         const EditorWindowInfo WindowInfos[] = {
-            { "LevelContents", EditorText::LevelContentsTitle, "Level Contents" },
-            { "Inspector", EditorText::InspectorTitle, "Inspector" },
-            { "Assets", EditorText::AssetsTitle, "Assets" },
-            { "Terminal", EditorText::TerminalTitle, "Terminal" },
-            { "LevelView", EditorText::LevelViewTitle, "Level View" },
-            { "ProjectSettings", EditorText::ProjectSettingsTitle, "Project Settings" },
-            { "Preferences", EditorText::PreferencesTitle, "Preferences" },
+            { "LevelContents", EditorText::LevelContentsTitle, "Level Contents", Icon::ListTree },
+            { "Inspector", EditorText::InspectorTitle, "Inspector", Icon::Info },
+            { "Assets", EditorText::AssetsTitle, "Assets", Icon::Folder },
+            { "Terminal", EditorText::TerminalTitle, "Terminal", Icon::Terminal },
+            { "LevelView", EditorText::LevelViewTitle, "Level View", Icon::Box },
+            { "ProjectSettings", EditorText::ProjectSettingsTitle, "Project Settings", Icon::SlidersHorizontal },
+            { "Preferences", EditorText::PreferencesTitle, "Preferences", Icon::Settings },
         };
 
         static_assert(std::size(WindowInfos) == static_cast<size_t>(EditorWindow::Count));

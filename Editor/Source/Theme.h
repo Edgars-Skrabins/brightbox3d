@@ -27,6 +27,8 @@ namespace BrightBox3D::Editor
         PreferencesWindowHeight,
         ProjectSettingsWindowWidth,
         ProjectSettingsWindowHeight,
+        FloatingPanelWidth,
+        FloatingPanelHeight,
         Count
     };
 

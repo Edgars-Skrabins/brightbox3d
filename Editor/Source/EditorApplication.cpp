@@ -62,7 +62,7 @@ namespace BrightBox3D::Editor
         const ToolbarItem FileMenu[] = { CommandId::NewLevel, CommandId::Save, CommandId::BuildGame, ToolbarSeparator, CommandId::ProjectSettings, CommandId::OpenOtherProject, ToolbarSeparator, CommandId::Exit };
         const ToolbarItem EditMenu[] = { CommandId::Undo, CommandId::Redo, ToolbarSeparator, CommandId::Duplicate, CommandId::Delete, ToolbarSeparator, CommandId::Preferences };
         const ToolbarItem GameMenu[] = { CommandId::Play, CommandId::Compile };
-        const ToolbarItem WindowMenu[] = { CommandId::ResetLayout };
+        const ToolbarItem WindowMenu[] = { CommandId::NewLevelView, CommandId::NewLevelContents, CommandId::NewInspector, CommandId::NewAssets, CommandId::NewTerminal, ToolbarSeparator, CommandId::ResetLayout };
         constexpr EditorWindow DefaultPanels[] = { EditorWindow::LevelView, EditorWindow::LevelContents, EditorWindow::Inspector, EditorWindow::Assets, EditorWindow::Terminal };
 
         void DrawMenuItems(std::span<const ToolbarItem> items)
@@ -222,7 +222,7 @@ namespace BrightBox3D::Editor
     int EditorApplication::NextInstanceIndex(EditorWindow type) const
     {
         int index = 1;
-        while (std::ranges::any_of(m_panels, [&](const std::unique_ptr<EditorPanel>& panel) { return panel->GetWindowType() == type && panel->GetInstanceIndex() == index; }))
+        while (std::ranges::any_of(m_panels, [&](const std::unique_ptr<EditorPanel>& panel) { return panel->IsOpen() && panel->GetWindowType() == type && panel->GetInstanceIndex() == index; }))
         {
             ++index;
         }
@@ -440,6 +440,20 @@ namespace BrightBox3D::Editor
     void EditorApplication::ResetLayout()
     {
         m_resetLayout = true;
+        for (const std::unique_ptr<EditorPanel>& panel : m_panels)
+        {
+            if (panel->GetInstanceIndex() > 1)
+            {
+                panel->Close();
+            }
+        }
+        for (EditorWindow type : DefaultPanels)
+        {
+            if (!FindPanel<EditorPanel>(type))
+            {
+                CreatePanel(type);
+            }
+        }
     }
 
     void EditorApplication::OpenFileInEditor(const std::string& path, int line)
@@ -617,6 +631,7 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::DrawEditor()
     {
+        std::erase_if(m_panels, [](const std::unique_ptr<EditorPanel>& panel) { return !panel->IsOpen(); });
         DrawMainMenu();
         DrawDockSpace();
         for (size_t index = 0; index < m_panels.size(); ++index)
