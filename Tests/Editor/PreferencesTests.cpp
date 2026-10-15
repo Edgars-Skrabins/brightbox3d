@@ -10,6 +10,7 @@
 using namespace BrightBox3D;
 using Editor::AssetsLayout;
 using Editor::EditorPreferences;
+using Editor::TerminalFilter;
 
 namespace
 {
@@ -94,4 +95,29 @@ TEST_F(PreferencesTests, InvalidAssetValuesFallBackToDefaults)
     LoadText(R"({ "assets": { "layout": "OneColumn", "iconSize": 0 } })");
     EXPECT_EQ(EditorPreferences::Get().GetAssetsLayout(), AssetsLayout::OneColumn);
     EXPECT_TRUE(EditorPreferences::Get().IsAssetListMode());
+}
+
+TEST_F(PreferencesTests, TerminalFiltersDefaultOnAndRoundTrip)
+{
+    EditorPreferences& preferences = EditorPreferences::Get();
+    preferences.Load(m_path);
+    for (int index = 0; index < static_cast<int>(TerminalFilter::Count); ++index)
+    {
+        EXPECT_TRUE(preferences.IsTerminalFilterOn(static_cast<TerminalFilter>(index)));
+    }
+    preferences.SetTerminalFilter(TerminalFilter::Engine, false);
+    preferences.SetTerminalFilter(TerminalFilter::Warnings, false);
+    preferences.Save();
+
+    preferences.SetTerminalFilter(TerminalFilter::Engine, true);
+    preferences.Load(m_path);
+    EXPECT_TRUE(preferences.IsTerminalFilterOn(TerminalFilter::Info));
+    EXPECT_FALSE(preferences.IsTerminalFilterOn(TerminalFilter::Warnings));
+    EXPECT_TRUE(preferences.IsTerminalFilterOn(TerminalFilter::Errors));
+    EXPECT_FALSE(preferences.IsTerminalFilterOn(TerminalFilter::Engine));
+
+    LoadText(R"({ "terminal": { "showInfo": false, "showEngine": "no" } })");
+    EXPECT_FALSE(preferences.IsTerminalFilterOn(TerminalFilter::Info));
+    EXPECT_TRUE(preferences.IsTerminalFilterOn(TerminalFilter::Engine));
+    EXPECT_TRUE(preferences.IsTerminalFilterOn(TerminalFilter::Warnings));
 }

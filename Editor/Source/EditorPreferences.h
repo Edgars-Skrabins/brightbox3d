@@ -75,6 +75,15 @@ namespace BrightBox3D::Editor
         Count
     };
 
+    enum class TerminalFilter
+    {
+        Info,
+        Warnings,
+        Errors,
+        Engine,
+        Count
+    };
+
     struct EditorColorInfo
     {
         const char* key;
@@ -107,6 +116,9 @@ namespace BrightBox3D::Editor
         void SetAssetIconSize(int size);
         bool IsAssetListMode() const { return m_assetIconSize == AssetListIconSize; }
 
+        bool IsTerminalFilterOn(TerminalFilter filter) const { return m_terminalFilters[static_cast<size_t>(filter)]; }
+        void SetTerminalFilter(TerminalFilter filter, bool on);
+
         static constexpr AssetsLayout DefaultAssetsLayout = AssetsLayout::TwoColumn;
         static constexpr int AssetListIconSize = 0;
         static constexpr int MinAssetIconSize = 56;
@@ -119,10 +131,12 @@ namespace BrightBox3D::Editor
         EditorPreferences();
 
         void LoadAssets(const Serialization::JsonValue& assets);
+        void LoadTerminal(const Serialization::JsonValue& terminal);
 
         std::array<Math::Color, static_cast<size_t>(EditorColor::Count)> m_colors;
         AssetsLayout m_assetsLayout = DefaultAssetsLayout;
         int m_assetIconSize = DefaultAssetIconSize;
+        std::array<bool, static_cast<size_t>(TerminalFilter::Count)> m_terminalFilters;
         std::filesystem::path m_path;
         uint32_t m_revision = 1;
     };

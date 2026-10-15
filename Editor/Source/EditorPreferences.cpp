@@ -27,6 +27,11 @@ namespace BrightBox3D::Editor
 
         static_assert(std::size(AssetsLayoutNames) == static_cast<size_t>(AssetsLayout::Count));
 
+        constexpr const char* TerminalSection = "terminal";
+        constexpr const char* TerminalFilterKeys[] = { "showInfo", "showWarnings", "showErrors", "showEngine" };
+
+        static_assert(std::size(TerminalFilterKeys) == static_cast<size_t>(TerminalFilter::Count));
+
         bool IsValidAssetIconSize(int size)
         {
             return size == EditorPreferences::AssetListIconSize || (size >= EditorPreferences::MinAssetIconSize && size <= EditorPreferences::MaxAssetIconSize);
@@ -127,6 +132,7 @@ namespace BrightBox3D::Editor
 
     EditorPreferences::EditorPreferences()
     {
+        m_terminalFilters.fill(true);
         for (size_t i = 0; i < m_colors.size(); ++i)
         {
             m_colors[i] = ColorInfos[i].defaultValue;
@@ -138,6 +144,7 @@ namespace BrightBox3D::Editor
         m_path = path;
         m_assetsLayout = DefaultAssetsLayout;
         m_assetIconSize = DefaultAssetIconSize;
+        m_terminalFilters.fill(true);
         Serialization::JsonDocument document;
         if (!std::filesystem::exists(path))
         {
@@ -168,7 +175,23 @@ namespace BrightBox3D::Editor
         {
             LoadAssets(*assets);
         }
+        if (const Serialization::JsonValue* terminal = Serialization::FindMember(document, TerminalSection); terminal && terminal->IsObject())
+        {
+            LoadTerminal(*terminal);
+        }
         ++m_revision;
+    }
+
+    void EditorPreferences::LoadTerminal(const Serialization::JsonValue& terminal)
+    {
+        for (size_t i = 0; i < m_terminalFilters.size(); ++i)
+        {
+            const Serialization::JsonValue* value = Serialization::FindMember(terminal, TerminalFilterKeys[i]);
+            if (value && value->IsBool())
+            {
+                m_terminalFilters[i] = value->GetBool();
+            }
+        }
     }
 
     void EditorPreferences::LoadAssets(const Serialization::JsonValue& assets)
@@ -210,6 +233,12 @@ namespace BrightBox3D::Editor
         Serialization::SetMember(assets, AssetsLayoutKey, Serialization::MakeString(AssetsLayoutNames[static_cast<size_t>(m_assetsLayout)], document.GetAllocator()), document.GetAllocator());
         Serialization::SetMember(assets, AssetIconSizeKey, Serialization::JsonValue(m_assetIconSize), document.GetAllocator());
         Serialization::SetMember(document, AssetsSection, std::move(assets), document.GetAllocator());
+        Serialization::JsonValue terminal(rapidjson::kObjectType);
+        for (size_t i = 0; i < m_terminalFilters.size(); ++i)
+        {
+            Serialization::SetMember(terminal, TerminalFilterKeys[i], Serialization::JsonValue(m_terminalFilters[i]), document.GetAllocator());
+        }
+        Serialization::SetMember(document, TerminalSection, std::move(terminal), document.GetAllocator());
         Serialization::SaveJsonFile(m_path, document);
     }
 
@@ -258,6 +287,12 @@ namespace BrightBox3D::Editor
     void EditorPreferences::SetAssetIconSize(int size)
     {
         m_assetIconSize = size <= AssetListIconSize ? AssetListIconSize : std::clamp(size, MinAssetIconSize, MaxAssetIconSize);
+        ++m_revision;
+    }
+
+    void EditorPreferences::SetTerminalFilter(TerminalFilter filter, bool on)
+    {
+        m_terminalFilters[static_cast<size_t>(filter)] = on;
         ++m_revision;
     }
 
