@@ -5,6 +5,7 @@
 #include "EditorPlaySession.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
+#include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "PropertyDrawer.h"
 #include "Theme.h"
@@ -70,7 +71,7 @@ namespace BrightBox3D::Editor
         ImGui::PushStyleColor(ImGuiCol_ChildBg, EditorColorVec4(EditorColor::Linked, LinkBarBackgroundAlpha));
         ImGui::BeginChild("LinkBar", ImVec2(0, ImGui::GetFrameHeightWithSpacing() * LinkBarHeightInRows), ImGuiChildFlags_Borders);
         bool linkedToTemplate = record && record->type == Assets::AssetType::LevelObjectTemplate;
-        ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(linkedToTemplate ? EditorText::LinkedTemplate : EditorText::LinkedVariant, record ? record->name : std::string(Text(EditorText::MissingLink))).c_str());
+        ImGui::TextColored(EditorColorVec4(EditorColor::Linked), "%s", Text(linkedToTemplate ? EditorText::LinkedTemplate : EditorText::LinkedVariant, Assets::AssetTypeName(linkedToTemplate ? Assets::AssetType::LevelObjectTemplate : Assets::AssetType::LevelObjectVariant), record ? record->name : std::string(Text(EditorText::MissingLink))).c_str());
         bool stop = false;
         if (linkRoot && !context.GetLevelService().IsPlaying())
         {
@@ -246,7 +247,7 @@ namespace BrightBox3D::Editor
         }
         else
         {
-            ImGui::TextDisabled("%s", Text(EditorText::UnlinkToAddComponents));
+            ImGui::TextDisabled("%s", Text(EditorText::UnlinkToAddComponents, TypeName<Level::LevelObject>()).c_str());
         }
         if (!playing)
         {

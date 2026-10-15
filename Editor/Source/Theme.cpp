@@ -226,6 +226,11 @@ namespace BrightBox3D::Editor
 
     bool IconButton(Icon icon, EditorText tooltip)
     {
+        return IconButton(icon, std::string(Text(tooltip)));
+    }
+
+    bool IconButton(Icon icon, const std::string& tooltip)
+    {
         float size = ImGui::GetFrameHeight();
         ImGui::PushID(static_cast<int>(icon));
         bool pressed = ImGui::Button("##IconButton", ImVec2(size, size));
@@ -233,7 +238,7 @@ namespace BrightBox3D::Editor
         DrawCenteredIcon(icon, ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip))
         {
-            ImGui::SetTooltip("%s", Text(tooltip));
+            ImGui::SetTooltip("%s", tooltip.c_str());
         }
         return pressed;
     }

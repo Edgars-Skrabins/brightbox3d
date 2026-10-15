@@ -5,6 +5,7 @@
 #include "EditorApplication.h"
 #include "EditorPlaySession.h"
 #include "EditorText.h"
+#include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/AssetsPanel.h"
 
@@ -16,11 +17,11 @@ namespace BrightBox3D::Editor::LevelContentsContextMenu
     {
         void DrawLinkedRootItems(EditorContext& context, Level::LevelObject& object)
         {
-            if (ImGui::MenuItem(Text(EditorText::SelectLevelObjectAsset)))
+            if (ImGui::MenuItem(Text(EditorText::SelectLevelObjectAsset, TypeName<Level::LevelObject>()).c_str()))
             {
                 context.GetSelectionService().SelectAsset(object.GetLink().asset);
             }
-            if (ImGui::MenuItem(Text(EditorText::OpenLevelObject)))
+            if (ImGui::MenuItem(Text(EditorText::OpenLevelObject, TypeName<Level::LevelObject>()).c_str()))
             {
                 context.GetLevelObjectEditService().OpenLevelObjectEditor(object.GetLink().asset);
                 return;
@@ -52,11 +53,11 @@ namespace BrightBox3D::Editor::LevelContentsContextMenu
             AssetCreationService& assets = application.GetContext().GetAssetCreationService();
             AssetsPanel* panel = application.GetAssets();
             std::string folder = panel ? panel->GetState().folder : std::string();
-            if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectVariant)))
+            if (ImGui::MenuItem(Text(EditorText::CreateNamedType, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant)).c_str()))
             {
                 assets.CreateVariantAsset(object, folder);
             }
-            if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectTemplate)))
+            if (ImGui::MenuItem(Text(EditorText::CreateNamedType, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)).c_str()))
             {
                 assets.CreateTemplateAsset(&object, folder);
             }

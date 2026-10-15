@@ -59,7 +59,7 @@ namespace BrightBox3D::Editor
         std::vector<MenuItem> items;
         for (const CreateMenuEntry& entry : m_entries)
         {
-            items.push_back({ entry.submenu == EditorText::Count ? std::string() : std::string(Text(entry.submenu)), Text(entry.label), entry.icon, entry.create });
+            items.push_back({ entry.submenu == EditorText::Count ? std::string() : std::string(Text(entry.submenu)), entry.labelSubject ? Text(entry.label, entry.labelSubject()) : std::string(Text(entry.label)), entry.icon, entry.create });
         }
         std::vector<const Reflection::TypeInfo*> types;
         for (const Reflection::TypeInfo* type : Reflection::TypeRegistry::GetDerived(Level::LevelObject::StaticType()))

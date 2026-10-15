@@ -29,9 +29,8 @@ namespace BrightBox3D::Editor
     void PreferencesPanel::DrawColorRow(EditorColor color)
     {
         EditorPreferences& preferences = EditorPreferences::Get();
-        const EditorColorInfo& info = EditorPreferences::GetColorInfo(color);
         bool isDefault = preferences.IsDefault(color);
-        PropertyDrawer::BeginRow(Text(info.label), false);
+        PropertyDrawer::BeginRow(EditorColorLabel(color).c_str(), false);
         float resetWidth = ImGui::GetFrameHeight();
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - resetWidth - ImGui::GetStyle().ItemInnerSpacing.x);
         Math::Color value = preferences.GetColor(color);

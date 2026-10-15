@@ -117,7 +117,7 @@ namespace BrightBox3D::Editor
         }
         ImVec2 labelPosition(position.x + ImGui::GetStyle().FramePadding.x, position.y + (height - ImGui::GetTextLineHeight()) * 0.5f);
         DrawRowLabel(labelPosition, IconGlyph(Icon::Map), EditorColorVec4(EditorColor::Accent), label, EditorColorVec4(EditorColor::Text), suffix);
-        DrawRowTag(labelPosition.y, Text(EditorText::AssetTypeLevel));
+        DrawRowTag(labelPosition.y, Assets::AssetTypeName(Assets::AssetType::Level));
     }
 
     void LevelContentsTree::TrackScrollTarget()
@@ -186,7 +186,7 @@ namespace BrightBox3D::Editor
         ImVec2 labelPosition = TreeLabelPosition(ImGui::GetCursorScreenPos());
         bool open = ImGui::TreeNodeEx("##collection", flags, "%s", "");
         DrawRowLabel(labelPosition, IconGlyph(Icon::Layers), EditorColorVec4(EditorColor::TextDim), label, EditorColorVec4(EditorColor::Text), suffix);
-        DrawRowTag(labelPosition.y, Text(EditorText::CollectionTag));
+        DrawRowTag(labelPosition.y, Assets::AssetTypeName(Assets::AssetType::LevelCollection));
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
             context.GetSelectionService().SelectCollection(&collection);

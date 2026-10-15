@@ -3,6 +3,8 @@
 #include "EditorText.h"
 #include "IconGlyphs.h"
 
+#include <string>
+
 struct ImVec2;
 
 namespace BrightBox3D::Editor
@@ -40,4 +42,5 @@ namespace BrightBox3D::Editor
     void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max);
     void DrawCenteredIcon(Icon icon, const ImVec2& min, const ImVec2& max, float size, unsigned int color);
     bool IconButton(Icon icon, EditorText tooltip);
+    bool IconButton(Icon icon, const std::string& tooltip);
 }

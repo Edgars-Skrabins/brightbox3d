@@ -3,6 +3,9 @@
 #include "Commands/CommandRegistry.h"
 #include "Commands/ShortcutBindings.h"
 #include "Core/Log.h"
+#include "Framework/PlayerStart.h"
+#include "Labels.h"
+#include "Level/LevelObject.h"
 #include "Serialization/Json.h"
 
 #include <algorithm>
@@ -50,7 +53,7 @@ namespace BrightBox3D::Editor
             { "RowStripe", EditorText::ColorRowStripe, EditorColorCategory::Interface, Hex(0xFFFFFF, 0.025f) },
             { "RowHovered", EditorText::ColorRowHovered, EditorColorCategory::Interface, Hex(0xFFFFFF, 0.05f) },
             { "TreeLines", EditorText::ColorTreeLines, EditorColorCategory::Interface, Hex(0x8B8B93, 0.25f) },
-            { "Linked", EditorText::ColorLinked, EditorColorCategory::Status, Hex(0x5AA9FF) },
+            { "Linked", EditorText::ColorLinked, EditorColorCategory::Status, Hex(0x5AA9FF), { &TypeName<Level::LevelObject> } },
             { "Missing", EditorText::ColorMissing, EditorColorCategory::Status, Hex(0xFF5C5C) },
             { "Override", EditorText::ColorOverride, EditorColorCategory::Status, Hex(0x5AA9FF) },
             { "PlayMode", EditorText::ColorPlayMode, EditorColorCategory::Status, Hex(0x3D8BFF) },
@@ -63,20 +66,20 @@ namespace BrightBox3D::Editor
             { "AxisZ", EditorText::ColorAxisZ, EditorColorCategory::LevelView, Hex(0x4D4DF2, 0.8f) },
             { "LightGizmo", EditorText::ColorLightGizmo, EditorColorCategory::LevelView, Hex(0xFFE666, 0.9f) },
             { "CameraGizmo", EditorText::ColorCameraGizmo, EditorColorCategory::LevelView, Hex(0xC8D2FF) },
-            { "PlayerStartGizmo", EditorText::ColorPlayerStartGizmo, EditorColorCategory::LevelView, Hex(0x78F08C) },
+            { "PlayerStartGizmo", EditorText::ColorPlayerStartGizmo, EditorColorCategory::LevelView, Hex(0x78F08C), { &TypeName<Framework::PlayerStart> } },
             { "Collider", EditorText::ColorCollider, EditorColorCategory::LevelView, Hex(0x59FF66, 0.9f) },
             { "Trigger", EditorText::ColorTrigger, EditorColorCategory::LevelView, Hex(0x4DCCFF, 0.9f) },
             { "GizmoBackground", EditorText::ColorGizmoBackground, EditorColorCategory::LevelView, Hex(0x28282A, 0.8f) },
-            { "AssetFolder", EditorText::ColorAssetFolder, EditorColorCategory::AssetTypes, Hex(0xDCBE5A) },
-            { "AssetLevel", EditorText::ColorAssetLevel, EditorColorCategory::AssetTypes, Hex(0x78C878) },
-            { "AssetCollection", EditorText::ColorAssetCollection, EditorColorCategory::AssetTypes, Hex(0x64AA78) },
-            { "AssetLevelObject", EditorText::ColorAssetLevelObject, EditorColorCategory::AssetTypes, Hex(0x64AAFF) },
-            { "AssetTemplate", EditorText::ColorAssetTemplate, EditorColorCategory::AssetTypes, Hex(0xA08CFF) },
-            { "AssetMaterial", EditorText::ColorAssetMaterial, EditorColorCategory::AssetTypes, Hex(0xE678A0) },
-            { "AssetModel", EditorText::ColorAssetModel, EditorColorCategory::AssetTypes, Hex(0x969696) },
-            { "AssetTexture", EditorText::ColorAssetTexture, EditorColorCategory::AssetTypes, Hex(0x78DCDC) },
-            { "AssetUI", EditorText::ColorAssetUI, EditorColorCategory::AssetTypes, Hex(0xF0A050) },
-            { "AssetStyleSheet", EditorText::ColorAssetStyleSheet, EditorColorCategory::AssetTypes, Hex(0xC878F0) },
+            { "AssetFolder", EditorText::ColorAssetFolder, EditorColorCategory::AssetTypes, Hex(0xDCBE5A), { &AssetTypeLabel<Assets::AssetType::Folder> } },
+            { "AssetLevel", EditorText::ColorAssetLevel, EditorColorCategory::AssetTypes, Hex(0x78C878), { &AssetTypeLabel<Assets::AssetType::Level> } },
+            { "AssetCollection", EditorText::ColorAssetCollection, EditorColorCategory::AssetTypes, Hex(0x64AA78), { &AssetTypeLabel<Assets::AssetType::LevelCollection> } },
+            { "AssetLevelObject", EditorText::ColorAssetLevelObject, EditorColorCategory::AssetTypes, Hex(0x64AAFF), { &AssetTypeLabel<Assets::AssetType::LevelObjectVariant> } },
+            { "AssetTemplate", EditorText::ColorAssetTemplate, EditorColorCategory::AssetTypes, Hex(0xA08CFF), { &AssetTypeLabel<Assets::AssetType::LevelObjectTemplate> } },
+            { "AssetMaterial", EditorText::ColorAssetMaterial, EditorColorCategory::AssetTypes, Hex(0xE678A0), { &AssetTypeLabel<Assets::AssetType::Material> } },
+            { "AssetModel", EditorText::ColorAssetModel, EditorColorCategory::AssetTypes, Hex(0x969696), { &AssetTypeLabel<Assets::AssetType::Model> } },
+            { "AssetTexture", EditorText::ColorAssetTexture, EditorColorCategory::AssetTypes, Hex(0x78DCDC), { &AssetTypeLabel<Assets::AssetType::Texture> } },
+            { "AssetUI", EditorText::ColorAssetUI, EditorColorCategory::AssetTypes, Hex(0xF0A050), { &AssetTypeLabel<Assets::AssetType::Screen>, &AssetTypeLabel<Assets::AssetType::Widget> } },
+            { "AssetStyleSheet", EditorText::ColorAssetStyleSheet, EditorColorCategory::AssetTypes, Hex(0xC878F0), { &AssetTypeLabel<Assets::AssetType::StyleSheet> } },
             { "AssetOther", EditorText::ColorAssetOther, EditorColorCategory::AssetTypes, Hex(0xB4B4B4) }
         };
 
@@ -112,6 +115,20 @@ namespace BrightBox3D::Editor
         {
             return ToHex(a) == ToHex(b);
         }
+    }
+
+    std::string EditorColorLabel(EditorColor color)
+    {
+        const EditorColorInfo& info = ColorInfos[static_cast<size_t>(color)];
+        if (info.labelSubjects[1])
+        {
+            return Text(info.label, info.labelSubjects[0](), info.labelSubjects[1]());
+        }
+        if (info.labelSubjects[0])
+        {
+            return Text(info.label, info.labelSubjects[0]());
+        }
+        return Text(info.label);
     }
 
     EditorText ColorCategoryLabel(EditorColorCategory category)

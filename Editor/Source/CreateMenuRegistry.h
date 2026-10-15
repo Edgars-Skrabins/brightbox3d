@@ -34,6 +34,7 @@ namespace BrightBox3D::Editor
     {
         EditorText submenu = EditorText::Count;
         EditorText label = EditorText::Count;
+        const char* (*labelSubject)() = nullptr;
         Icon icon = Icon::None;
         std::function<void(const CreateMenuContext&)> create;
     };

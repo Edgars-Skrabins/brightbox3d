@@ -50,10 +50,10 @@ namespace BrightBox3D::Editor
         LevelObject* refreshed = LevelSerializer::RefreshLinkedInstance(object);
         if (refreshed)
         {
-            m_context.GetUndoService().RecordObjectChange(id, before, Text(EditorText::CreateLevelObjectVariant));
+            m_context.GetUndoService().RecordObjectChange(id, before, Text(EditorText::CreateNamedType, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant)));
             m_context.GetSelectionService().Select(refreshed->GetId());
         }
-        Core::Log::Info(Text(EditorText::CreatedVariant, path));
+        Core::Log::Info(Text(EditorText::CreatedVariant, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), path));
         return asset;
     }
 
@@ -99,7 +99,7 @@ namespace BrightBox3D::Editor
         Core::Guid created = database.CreateJsonAsset(path, document);
         if (created.IsValid())
         {
-            Core::Log::Info(Text(EditorText::CreatedVariantFromTemplate, path));
+            Core::Log::Info(Text(EditorText::CreatedVariantFromTemplate, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), path, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)));
         }
         return created;
     }

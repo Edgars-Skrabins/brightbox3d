@@ -6,6 +6,7 @@
 #include "EditorText.h"
 #include "Geometry/ModelAsset.h"
 #include "ImGui/ImGuiRenderer.h"
+#include "Labels.h"
 #include "Rendering/TextureAsset.h"
 #include "Thumbnails.h"
 
@@ -61,7 +62,7 @@ namespace BrightBox3D::Editor
     void AssetInspector::DrawVariant(const Core::Guid& guid)
     {
         EditorContext& context = m_application.GetContext();
-        if (ImGui::Button(Text(EditorText::OpenLevelObject)))
+        if (ImGui::Button(Text(EditorText::OpenLevelObject, TypeName<Level::LevelObject>()).c_str()))
         {
             context.GetLevelObjectEditService().OpenLevelObjectEditor(guid);
         }
@@ -75,7 +76,7 @@ namespace BrightBox3D::Editor
     void AssetInspector::DrawTemplate(const Core::Guid& guid)
     {
         EditorContext& context = m_application.GetContext();
-        ImGui::TextWrapped("%s", Text(EditorText::TemplateExplanation));
+        ImGui::TextWrapped("%s", Text(EditorText::TemplateExplanation, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate), TypeName<Level::LevelObject>()).c_str());
         if (ImGui::Button(Text(EditorText::EditTemplate)))
         {
             context.GetLevelObjectEditService().OpenLevelObjectEditor(guid);

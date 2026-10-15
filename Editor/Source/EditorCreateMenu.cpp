@@ -4,6 +4,7 @@
 #include "EditorContext.h"
 #include "Framework/Camera.h"
 #include "Framework/PlayerStart.h"
+#include "Labels.h"
 #include "ObjectIcons.h"
 #include "Rendering/BuiltinAssets.h"
 #include "Rendering/Light.h"
@@ -31,6 +32,7 @@ namespace BrightBox3D::Editor
         {
             registry.Register({
                 .label = EditorText::EmptyLevelObject,
+                .labelSubject = &TypeName<Level::LevelObject>,
                 .icon = ObjectIcons::TypeIcon(Level::LevelObject::StaticType()),
                 .create = [](const CreateMenuContext& context)
                 {

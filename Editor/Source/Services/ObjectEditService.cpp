@@ -5,6 +5,7 @@
 #include "EditorContext.h"
 #include "EditorText.h"
 #include "Geometry/ModelAsset.h"
+#include "Labels.h"
 #include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 #include "Rendering/Light.h"
@@ -276,7 +277,7 @@ namespace BrightBox3D::Editor
         }
         if (object.IsLinked() && !object.GetLink().isRoot && !m_context.GetLevelObjectEditService().IsEditingLevelObject())
         {
-            Core::Log::Warning(Text(EditorText::CannotMoveInstanceChild));
+            Core::Log::Warning(Text(EditorText::CannotMoveInstanceChild, TypeName<Level::LevelObject>(), TypeName<Level::LevelObject>()));
             return;
         }
         ObjectLocation from = LocateObject(m_context, object, false);

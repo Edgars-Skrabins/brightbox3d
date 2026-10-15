@@ -5,6 +5,8 @@
 #include "DragDrop.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
+#include "Labels.h"
+#include "Level/LevelObject.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/ObjectSerializer.h"
 #include "Theme.h"
@@ -184,11 +186,11 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject)))
+        if (ImGui::MenuItem(Text(EditorText::RevertToLevelObject, TypeName<Level::LevelObject>()).c_str()))
         {
             options.onContextAction(property, PropertyContextAction::Revert);
         }
-        if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject)))
+        if (ImGui::MenuItem(Text(EditorText::ApplyToLevelObject, TypeName<Level::LevelObject>()).c_str()))
         {
             options.onContextAction(property, PropertyContextAction::Apply);
         }

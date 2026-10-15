@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Assets/AssetType.h"
 #include "EditorText.h"
 #include "IconGlyphs.h"
 
@@ -25,5 +26,17 @@ namespace BrightBox3D::Editor
     inline std::string LabelWithId(EditorText text, const char* id)
     {
         return LabelWithId(std::string(Text(text)), id);
+    }
+
+    template <typename T>
+    const char* TypeName()
+    {
+        return T::StaticType().GetName().c_str();
+    }
+
+    template <Assets::AssetType Type>
+    const char* AssetTypeLabel()
+    {
+        return Assets::AssetTypeName(Type);
     }
 }

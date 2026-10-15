@@ -90,7 +90,10 @@ namespace BrightBox3D::Editor
         EditorText label;
         EditorColorCategory category;
         Math::Color defaultValue;
+        std::array<const char* (*)(), 2> labelSubjects{};
     };
+
+    std::string EditorColorLabel(EditorColor color);
 
     class EditorPreferences
     {

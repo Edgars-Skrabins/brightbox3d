@@ -49,7 +49,7 @@ namespace BrightBox3D::Editor::LevelInspector
 
         void DrawCollectionList(EditorContext& context, Level::Level& level)
         {
-            ImGui::SeparatorText(Text(EditorText::LevelCollections));
+            ImGui::SeparatorText(Text(EditorText::LevelCollections, Assets::AssetTypeName(Assets::AssetType::LevelCollection)).c_str());
             for (const auto& collection : level.GetCollections())
             {
                 ImGui::BulletText("%s", collection->GetName().c_str());
@@ -152,7 +152,7 @@ namespace BrightBox3D::Editor::LevelInspector
             ImGui::TextDisabled("%s", Text(EditorText::NothingSelected));
             return;
         }
-        ImGui::TextUnformatted(Text(EditorText::LevelCollection));
+        ImGui::TextUnformatted(Assets::AssetTypeName(Assets::AssetType::LevelCollection));
         std::string name = collection->GetName();
         PropertyDrawer::BeginRow(Text(EditorText::Name), false);
         if (ImGui::InputText("##name", &name, ImGuiInputTextFlags_EnterReturnsTrue) && !context.GetLevelService().IsPlaying())

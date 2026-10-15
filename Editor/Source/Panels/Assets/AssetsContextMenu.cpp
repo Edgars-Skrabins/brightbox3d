@@ -63,37 +63,37 @@ namespace BrightBox3D::Editor::AssetsContextMenu
     void DrawCreateMenu(EditorApplication& application, const std::string& folder)
     {
         EditorContext& context = application.GetContext();
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeFolder)))
+        if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Folder)))
         {
             CreateFolder(folder);
         }
         ImGui::Separator();
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevel)))
+        if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Level)))
         {
             context.GetSelectionService().SelectAsset(Level::LevelSerializer::CreateLevelAsset(NewAssetPath(folder, EditorText::NewLevelName, Assets::AssetType::Level)));
         }
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelCollection)))
+        if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::LevelCollection)))
         {
             context.GetSelectionService().SelectAsset(CreateCollection(folder));
         }
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeLevelObjectTemplate)))
+        if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)))
         {
             context.GetSelectionService().SelectAsset(context.GetAssetCreationService().CreateTemplateAsset(nullptr, folder));
         }
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeMaterial)))
+        if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Material)))
         {
             context.GetSelectionService().SelectAsset(CreateMaterial(folder));
         }
         ImGui::Separator();
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeScreen)))
+        if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Screen)).c_str()))
         {
             CreateTextAsset(folder, EditorText::NewScreenName, Assets::AssetType::Screen, DefaultScreenMarkup);
         }
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeWidget)))
+        if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Widget)).c_str()))
         {
             CreateTextAsset(folder, EditorText::NewWidgetName, Assets::AssetType::Widget, DefaultWidgetMarkup);
         }
-        if (ImGui::MenuItem(Text(EditorText::AssetTypeStyleSheet)))
+        if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::StyleSheet)).c_str()))
         {
             CreateTextAsset(folder, EditorText::NewStyleSheetName, Assets::AssetType::StyleSheet, DefaultStyleSheet);
         }

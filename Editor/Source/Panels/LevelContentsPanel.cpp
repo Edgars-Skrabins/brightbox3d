@@ -28,7 +28,7 @@ namespace BrightBox3D::Editor
 
     void LevelContentsPanel::DrawToolbar()
     {
-        if (IconButton(Icon::Plus, EditorText::CreateLevelObjectTooltip))
+        if (IconButton(Icon::Plus, Text(EditorText::CreateNamedType, TypeName<Level::LevelObject>())))
         {
             ImGui::OpenPopup("CreatePopup");
         }
