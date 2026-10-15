@@ -23,24 +23,36 @@ namespace BrightBox3D::Core
             }
             return -1;
         }
+
+        struct GuidGenerator
+        {
+            GuidGenerator()
+            {
+                std::random_device device;
+                std::seed_seq seed{ device(), device(), device(), device(), device(), device(), device(), device() };
+                engine.seed(seed);
+            }
+
+            std::mutex mutex;
+            std::mt19937_64 engine;
+        };
+
+        GuidGenerator& Generator()
+        {
+            static GuidGenerator* generator = new GuidGenerator();
+            return *generator;
+        }
     }
 
     Guid Guid::Generate()
     {
-        static std::mutex mutex;
-        static std::mt19937_64 engine([]
-        {
-            std::random_device device;
-            std::seed_seq seed{ device(), device(), device(), device(), device(), device(), device(), device() };
-            return std::mt19937_64(seed);
-        }());
-
-        std::lock_guard<std::mutex> lock(mutex);
+        GuidGenerator& generator = Generator();
+        std::lock_guard<std::mutex> lock(generator.mutex);
         Guid guid;
         do
         {
-            guid.high = engine();
-            guid.low = engine();
+            guid.high = generator.engine();
+            guid.low = generator.engine();
         } while (!guid.IsValid());
         return guid;
     }

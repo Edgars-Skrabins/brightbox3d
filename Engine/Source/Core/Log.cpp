@@ -18,8 +18,8 @@ namespace BrightBox3D::Core
 
         std::mutex& Mutex()
         {
-            static std::mutex mutex;
-            return mutex;
+            static std::mutex* mutex = new std::mutex();
+            return *mutex;
         }
 
         struct LogState
@@ -33,8 +33,8 @@ namespace BrightBox3D::Core
 
         LogState& State()
         {
-            static LogState state;
-            return state;
+            static LogState* state = new LogState();
+            return *state;
         }
 
         int& CountOf(LogState& state, LogSource source, LogLevel level)
