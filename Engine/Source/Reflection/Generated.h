@@ -44,7 +44,7 @@ namespace BrightBox3D::Reflection
     }
 
     template <typename T>
-    PropertyInfo MakeProperty(const char* name, const PropertyMetadata& metadata, const UIPropertyMetadata& ui, void* (*access)(EngineObject*))
+    PropertyInfo MakeProperty(const char* name, const PropertyMetadata& metadata, const UIPropertyMetadata& ui, void* (*access)(EngineObject*), const void* (*constAccess)(const EngineObject*))
     {
         PropertyInfo property;
         property.name = name;
@@ -52,6 +52,7 @@ namespace BrightBox3D::Reflection
         property.category = std::string(metadata.category.name);
         property.flags = EditFlags(metadata.edit) | UIAccessFlags(ui.access);
         property.access = access;
+        property.constAccess = constAccess;
         DescribeProperty<std::remove_cv_t<T>>(property);
         return property;
     }

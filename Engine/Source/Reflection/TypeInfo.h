@@ -94,6 +94,7 @@ namespace BrightBox3D::Reflection
         size_t (*size)(const void* array) = nullptr;
         void (*resize)(void* array, size_t count) = nullptr;
         void* (*element)(void* array, size_t index) = nullptr;
+        const void* (*constElement)(const void* array, size_t index) = nullptr;
     };
 
     struct PropertyInfo
@@ -106,10 +107,11 @@ namespace BrightBox3D::Reflection
         ValueDescriptor element;
         ArrayAccess array;
         void* (*access)(EngineObject* object) = nullptr;
+        const void* (*constAccess)(const EngineObject* object) = nullptr;
         const TypeInfo* owner = nullptr;
 
         void* GetValuePointer(EngineObject* object) const { return access(object); }
-        const void* GetValuePointer(const EngineObject* object) const { return access(const_cast<EngineObject*>(object)); }
+        const void* GetValuePointer(const EngineObject* object) const { return constAccess(object); }
 
         template <typename T>
         T& GetValue(EngineObject* object) const { return *static_cast<T*>(access(object)); }

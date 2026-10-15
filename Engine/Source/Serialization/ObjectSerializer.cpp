@@ -275,7 +275,7 @@ namespace BrightBox3D::Serialization
         for (size_t i = 0; i < count; ++i)
         {
             JsonValue element;
-            WriteValue(property.element, property.array.element(const_cast<void*>(value), i), element, allocator);
+            WriteValue(property.element, property.array.constElement(value, i), element, allocator);
             out.PushBack(element, allocator);
         }
     }

@@ -63,6 +63,7 @@ namespace BrightBox3D::HeaderTool
                 out << "    type.AddProperty(" << reflection << "MakeProperty<decltype(" << qualified << "::" << property.name << ")>(\"" << property.name << "\", "
                     << reflection << "PropertyMetadata{ " << property.propertyMetadata << " }, "
                     << reflection << "UIPropertyMetadata{ " << property.uiMetadata << " }, [](" << reflection << "EngineObject* object) -> void* { return &static_cast<"
+                    << qualified << "*>(object)->" << property.name << "; }, [](const " << reflection << "EngineObject* object) -> const void* { return &static_cast<const "
                     << qualified << "*>(object)->" << property.name << "; }));\n";
             }
             out << "}\n\n";

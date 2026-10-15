@@ -147,6 +147,7 @@ namespace BrightBox3D::Reflection
             property.array.size = [](const void* array) { return static_cast<const T*>(array)->size(); };
             property.array.resize = [](void* array, size_t count) { static_cast<T*>(array)->resize(count); };
             property.array.element = [](void* array, size_t index) -> void* { return &(*static_cast<T*>(array))[index]; };
+            property.array.constElement = [](const void* array, size_t index) -> const void* { return &(*static_cast<const T*>(array))[index]; };
         }
         else
         {
