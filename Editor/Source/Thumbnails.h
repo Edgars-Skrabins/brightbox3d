@@ -9,6 +9,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace BrightBox3D::Assets
+{
+    struct AssetRecord;
+}
+
 namespace BrightBox3D::Rendering
 {
     class Renderer;
@@ -30,6 +35,8 @@ namespace BrightBox3D::Editor
 
     private:
         bool Generate(RHI::CommandList& commands, const Core::Guid& asset);
+        bool CopyTextureThumbnail(const Core::Guid& asset);
+        bool RenderPreview(RHI::CommandList& commands, const Assets::AssetRecord& record);
 
         RHI::Device& m_device;
         Rendering::Renderer& m_renderer;
