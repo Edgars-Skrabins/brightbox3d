@@ -18,7 +18,7 @@ namespace BrightBox3D::Editor
 
 namespace BrightBox3D::Editor::AssetActions
 {
-    void Open(EditorApplication& application, const Core::Guid& guid);
+    void Open(EditorApplication& application, AssetsPanelState& state, const Core::Guid& guid);
     bool IsEditable(const AssetsTarget& target);
     bool IsAssetOfType(const AssetsTarget& target, Assets::AssetType type);
     bool CanCreateIn(const std::string& folder);

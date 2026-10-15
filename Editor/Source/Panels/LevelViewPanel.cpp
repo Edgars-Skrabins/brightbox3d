@@ -418,6 +418,10 @@ namespace BrightBox3D::Editor
         {
             PlayModeOverlay::Draw(origin, size);
         }
+        if (hovered || ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+        {
+            m_application.SetActivePanel(*this);
+        }
         if ((hovered || ImGui::IsWindowFocused()) && !m_camera.IsFlying())
         {
             CommandRegistry::Get().DispatchShortcuts(CommandScope::LevelView);

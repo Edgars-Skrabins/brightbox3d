@@ -6,7 +6,7 @@
 #include "EditorPlaySession.h"
 #include "EditorText.h"
 #include "Level/LevelSerializer.h"
-#include "Panels/LevelViewPanel.h"
+#include "Panels/AssetsPanel.h"
 
 #include <imgui.h>
 
@@ -47,16 +47,18 @@ namespace BrightBox3D::Editor::LevelContentsContextMenu
             }
         }
 
-        void DrawAssetCreationItems(EditorContext& context, Level::LevelObject& object)
+        void DrawAssetCreationItems(EditorApplication& application, Level::LevelObject& object)
         {
-            AssetCreationService& assets = context.GetAssetCreationService();
+            AssetCreationService& assets = application.GetContext().GetAssetCreationService();
+            AssetsPanel* panel = application.GetAssets();
+            std::string folder = panel ? panel->GetState().folder : std::string();
             if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectVariant)))
             {
-                assets.CreateVariantAsset(object, assets.GetAssetsFolder());
+                assets.CreateVariantAsset(object, folder);
             }
             if (ImGui::MenuItem(Text(EditorText::CreateLevelObjectTemplate)))
             {
-                assets.CreateTemplateAsset(&object, assets.GetAssetsFolder());
+                assets.CreateTemplateAsset(&object, folder);
             }
         }
 
@@ -73,7 +75,7 @@ namespace BrightBox3D::Editor::LevelContentsContextMenu
 
     void DrawCreateMenu(EditorApplication& application, Level::LevelObject* parent)
     {
-        Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : application.GetActiveLevelView().GetSpawnPoint();
+        Math::Vector3 spawn = parent ? parent->GetTransform().GetPosition() : application.GetSpawnPoint();
         CreateMenuRegistry::Get().Draw({ application.GetContext(), parent, spawn });
     }
 
@@ -112,7 +114,7 @@ namespace BrightBox3D::Editor::LevelContentsContextMenu
         }
         else if (!object.IsLinked() && !context.GetLevelObjectEditService().IsEditingLevelObject())
         {
-            DrawAssetCreationItems(context, object);
+            DrawAssetCreationItems(application, object);
         }
     }
 

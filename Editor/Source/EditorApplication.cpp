@@ -22,6 +22,7 @@
 #include "ImGui/ImGuiRenderer.h"
 #include "Labels.h"
 #include "Level/LevelSerializer.h"
+#include "Panels/Assets/AssetFileImport.h"
 #include "Panels/AssetsPanel.h"
 #include "Panels/InspectorPanel.h"
 #include "Panels/LevelContentsPanel.h"
@@ -185,19 +186,37 @@ namespace BrightBox3D::Editor
         m_hotReload->OnReloaded = [this] { m_context.GetLevelService().BumpLevelRevision(); };
     }
 
-    LevelViewPanel& EditorApplication::GetActiveLevelView()
+    LevelViewPanel* EditorApplication::GetActiveLevelView()
     {
-        return *FindPanel<LevelViewPanel>(EditorWindow::LevelView);
+        return FindActivePanel<LevelViewPanel>(EditorWindow::LevelView);
     }
 
-    LevelContentsPanel& EditorApplication::GetLevelContents()
+    LevelContentsPanel* EditorApplication::GetLevelContents()
     {
-        return *FindPanel<LevelContentsPanel>(EditorWindow::LevelContents);
+        return FindActivePanel<LevelContentsPanel>(EditorWindow::LevelContents);
     }
 
-    AssetsPanel& EditorApplication::GetAssets()
+    AssetsPanel* EditorApplication::GetAssets()
     {
-        return *FindPanel<AssetsPanel>(EditorWindow::Assets);
+        for (const std::unique_ptr<EditorPanel>& panel : m_panels)
+        {
+            if (panel->GetWindowType() == EditorWindow::Assets && panel->IsOpen() && static_cast<AssetsPanel*>(panel.get())->GetState().menuTarget)
+            {
+                return static_cast<AssetsPanel*>(panel.get());
+            }
+        }
+        return FindActivePanel<AssetsPanel>(EditorWindow::Assets);
+    }
+
+    Math::Vector3 EditorApplication::GetSpawnPoint()
+    {
+        LevelViewPanel* view = GetActiveLevelView();
+        return view ? view->GetSpawnPoint() : Math::Vector3();
+    }
+
+    void EditorApplication::SetActivePanel(const EditorPanel& panel)
+    {
+        m_activePanels[static_cast<size_t>(panel.GetWindowType())] = panel.GetInstanceIndex();
     }
 
     int EditorApplication::NextInstanceIndex(EditorWindow type) const
@@ -240,7 +259,14 @@ namespace BrightBox3D::Editor
         {
             if (m_context.GetProjectService().HasProject())
             {
-                GetAssets().ImportFiles(files);
+                if (AssetsPanel* assets = GetAssets())
+                {
+                    assets->ImportFiles(files);
+                }
+                else
+                {
+                    AssetFileImport::ImportFiles(files, "");
+                }
             }
         });
         m_window->OnCloseRequested.Subscribe([this]

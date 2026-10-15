@@ -6,7 +6,6 @@
 #include "EditorText.h"
 #include "Geometry/ModelAsset.h"
 #include "ImGui/ImGuiRenderer.h"
-#include "Panels/LevelViewPanel.h"
 #include "Rendering/TextureAsset.h"
 #include "Thumbnails.h"
 
@@ -69,7 +68,7 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         if (ImGui::Button(Text(EditorText::PlaceInLevel)))
         {
-            context.GetObjectEditService().InstantiateLevelObject(guid, m_application.GetActiveLevelView().GetSpawnPoint());
+            context.GetObjectEditService().InstantiateLevelObject(guid, m_application.GetSpawnPoint());
         }
     }
 
@@ -113,7 +112,7 @@ namespace BrightBox3D::Editor
             ImGui::TextUnformatted(Text(EditorText::ModelSummary, model->GetMeshes().size(), model->GetNodes().size(), triangles).c_str());
             if (ImGui::Button(Text(EditorText::PlaceInLevel)))
             {
-                m_application.GetContext().GetObjectEditService().CreateModelObject(record.guid, StemOf(record.name), m_application.GetActiveLevelView().GetSpawnPoint());
+                m_application.GetContext().GetObjectEditService().CreateModelObject(record.guid, StemOf(record.name), m_application.GetSpawnPoint());
             }
         }
         m_importSettings.Draw(record.guid);

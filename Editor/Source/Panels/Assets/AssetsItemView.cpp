@@ -39,7 +39,7 @@ namespace BrightBox3D::Editor
 
     std::string AssetsItemView::CurrentFolder() const
     {
-        return m_application.GetContext().GetAssetCreationService().GetAssetsFolder();
+        return m_state.folder;
     }
 
     bool AssetsItemView::IsSelected(const Assets::AssetRecord& record) const
@@ -53,7 +53,7 @@ namespace BrightBox3D::Editor
         ImGui::PushID(folder.c_str());
         if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_None, ImGui::CalcTextSize(label.c_str())))
         {
-            m_application.GetContext().GetAssetCreationService().SetAssetsFolder(folder);
+            m_state.folder = folder;
         }
         AssetActions::AcceptMoveDrop(folder);
         ImGui::PopID();
@@ -90,7 +90,7 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
         {
-            m_application.GetContext().GetAssetCreationService().SetAssetsFolder(CurrentFolder() == BuiltinFolder ? "" : ParentFolder(CurrentFolder()));
+            m_state.folder = CurrentFolder() == BuiltinFolder ? "" : ParentFolder(CurrentFolder());
         }
         ImGui::SameLine();
         DrawBreadcrumbs();
@@ -140,7 +140,7 @@ namespace BrightBox3D::Editor
         m_application.GetContext().GetSelectionService().SelectAsset(record.guid);
         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
-            AssetActions::Open(m_application, record.guid);
+            AssetActions::Open(m_application, m_state, record.guid);
         }
     }
 

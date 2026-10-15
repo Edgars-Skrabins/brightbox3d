@@ -198,13 +198,19 @@ namespace BrightBox3D::Editor
                 .tooltip = tooltip,
                 .scope = CommandScope::LevelView,
                 .defaultShortcut = Chord(shortcut),
-                .isChecked = [&application, operation] { return application.GetActiveLevelView().GetGizmoOperation() == operation; },
-                .execute = [&application, operation] { application.GetActiveLevelView().SetGizmoOperation(operation); },
+                .isEnabled = [&application] { return application.GetActiveLevelView() != nullptr; },
+                .isChecked = [&application, operation]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    return view && view->GetGizmoOperation() == operation;
+                },
+                .execute = [&application, operation] { application.GetActiveLevelView()->SetGizmoOperation(operation); },
             });
         }
 
         void RegisterLevelViewCommands(CommandRegistry& registry, EditorApplication& application)
         {
+            auto hasView = [&application] { return application.GetActiveLevelView() != nullptr; };
             RegisterGizmoOperation(registry, application, CommandId::GizmoMove, "GizmoMove", Icon::Move, EditorText::GizmoMove, EditorText::GizmoMoveTooltip, ImGuiKey_W, GizmoOperation::Translate);
             RegisterGizmoOperation(registry, application, CommandId::GizmoRotate, "GizmoRotate", Icon::RotateCw, EditorText::GizmoRotate, EditorText::GizmoRotateTooltip, ImGuiKey_E, GizmoOperation::Rotate);
             RegisterGizmoOperation(registry, application, CommandId::GizmoScale, "GizmoScale", Icon::Scaling, EditorText::GizmoScale, EditorText::GizmoScaleTooltip, ImGuiKey_R, GizmoOperation::Scale);
@@ -214,8 +220,17 @@ namespace BrightBox3D::Editor
                 .label = EditorText::GizmoWorld,
                 .tooltip = EditorText::GizmoSpaceTooltip,
                 .scope = CommandScope::LevelView,
-                .execute = [&application] { application.GetActiveLevelView().SetGizmoLocal(!application.GetActiveLevelView().IsGizmoLocal()); },
-                .dynamicLabel = [&application] { return std::string(Text(application.GetActiveLevelView().IsGizmoLocal() ? EditorText::GizmoLocal : EditorText::GizmoWorld)); },
+                .isEnabled = hasView,
+                .execute = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    view->SetGizmoLocal(!view->IsGizmoLocal());
+                },
+                .dynamicLabel = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    return std::string(Text(view && view->IsGizmoLocal() ? EditorText::GizmoLocal : EditorText::GizmoWorld));
+                },
             });
             registry.Register(CommandId::Snap, {
                 .key = "Snap",
@@ -223,8 +238,17 @@ namespace BrightBox3D::Editor
                 .label = EditorText::Snap,
                 .tooltip = EditorText::SnapTooltip,
                 .scope = CommandScope::LevelView,
-                .isChecked = [&application] { return application.GetActiveLevelView().IsSnapping(); },
-                .execute = [&application] { application.GetActiveLevelView().SetSnapping(!application.GetActiveLevelView().IsSnapping()); },
+                .isEnabled = hasView,
+                .isChecked = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    return view && view->IsSnapping();
+                },
+                .execute = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    view->SetSnapping(!view->IsSnapping());
+                },
             });
             registry.Register(CommandId::Grid, {
                 .key = "Grid",
@@ -232,8 +256,17 @@ namespace BrightBox3D::Editor
                 .label = EditorText::Grid,
                 .tooltip = EditorText::GridTooltip,
                 .scope = CommandScope::LevelView,
-                .isChecked = [&application] { return application.GetActiveLevelView().IsGridVisible(); },
-                .execute = [&application] { application.GetActiveLevelView().SetGridVisible(!application.GetActiveLevelView().IsGridVisible()); },
+                .isEnabled = hasView,
+                .isChecked = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    return view && view->IsGridVisible();
+                },
+                .execute = [&application]
+                {
+                    LevelViewPanel* view = application.GetActiveLevelView();
+                    view->SetGridVisible(!view->IsGridVisible());
+                },
             });
             registry.Register(CommandId::FocusSelection, {
                 .key = "FocusSelection",
@@ -242,7 +275,8 @@ namespace BrightBox3D::Editor
                 .tooltip = EditorText::FocusTooltip,
                 .scope = CommandScope::LevelView,
                 .defaultShortcut = Chord(ImGuiKey_F),
-                .execute = [&application] { application.GetActiveLevelView().FocusSelection(); },
+                .isEnabled = hasView,
+                .execute = [&application] { application.GetActiveLevelView()->FocusSelection(); },
             });
         }
 
@@ -255,8 +289,8 @@ namespace BrightBox3D::Editor
                 .tooltip = EditorText::RenameTooltip,
                 .scope = CommandScope::LevelContents,
                 .defaultShortcut = Chord(ImGuiKey_F2),
-                .isEnabled = [&application] { return application.GetContext().GetSelectionService().GetPrimarySelection() != nullptr; },
-                .execute = [&application] { application.GetLevelContents().BeginRenameSelection(); },
+                .isEnabled = [&application] { return application.GetLevelContents() && application.GetContext().GetSelectionService().GetPrimarySelection() != nullptr; },
+                .execute = [&application] { application.GetLevelContents()->BeginRenameSelection(); },
             });
         }
 
@@ -278,7 +312,11 @@ namespace BrightBox3D::Editor
 
         void RegisterAssetsCommands(CommandRegistry& registry, EditorApplication& application)
         {
-            auto target = [&application] { return application.GetAssets().GetCommandTarget(); };
+            auto target = [&application]
+            {
+                AssetsPanel* assets = application.GetAssets();
+                return assets ? assets->GetCommandTarget() : AssetsTarget{};
+            };
             auto editable = [target] { return AssetActions::IsEditable(target()); };
             registry.Register(CommandId::AssetShowInFileBrowser, {
                 .key = "AssetShowInFileBrowser",
@@ -298,7 +336,7 @@ namespace BrightBox3D::Editor
                 .label = EditorText::Open,
                 .scope = CommandScope::Assets,
                 .isEnabled = editable,
-                .execute = [&application, target] { AssetActions::Open(application, target().asset); },
+                .execute = [&application, target] { AssetActions::Open(application, application.GetAssets()->GetState(), target().asset); },
             });
             registry.Register(CommandId::AssetRename, {
                 .key = "AssetRename",
@@ -307,7 +345,7 @@ namespace BrightBox3D::Editor
                 .scope = CommandScope::Assets,
                 .defaultShortcut = Chord(ImGuiKey_F2),
                 .isEnabled = editable,
-                .execute = [&application, target] { AssetActions::BeginRename(application.GetAssets().GetState(), target()); },
+                .execute = [&application, target] { AssetActions::BeginRename(application.GetAssets()->GetState(), target()); },
             });
             registry.Register(CommandId::AssetDelete, {
                 .key = "AssetDelete",
@@ -316,7 +354,7 @@ namespace BrightBox3D::Editor
                 .scope = CommandScope::Assets,
                 .defaultShortcut = Chord(ImGuiKey_Delete),
                 .isEnabled = editable,
-                .execute = [&application, target] { application.GetAssets().GetState().pendingDelete = target().asset; },
+                .execute = [&application, target] { application.GetAssets()->GetState().pendingDelete = target().asset; },
             });
             registry.Register(CommandId::AssetDuplicate, {
                 .key = "AssetDuplicate",

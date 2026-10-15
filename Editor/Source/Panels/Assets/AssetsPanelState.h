@@ -25,6 +25,7 @@ namespace BrightBox3D::Editor
         Core::Guid pendingDelete;
         std::optional<AssetsTarget> menuTarget;
         std::string filter;
+        std::string folder;
     };
 
     AssetsTarget TargetForAsset(const Assets::AssetRecord& record);

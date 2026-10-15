@@ -55,6 +55,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsWindowFocused())
         {
+            m_application.SetActivePanel(*this);
             CommandRegistry::Get().DispatchShortcuts(CommandScope::LevelContents);
         }
     }

@@ -1,11 +1,15 @@
 #include "Panels/InspectorPanel.h"
 
+#include "Assets/AssetDatabase.h"
 #include "EditorApplication.h"
 #include "EditorText.h"
 #include "EditorWindows.h"
 #include "Panels/Inspector/LevelInspector.h"
+#include "Theme.h"
 
 #include <imgui.h>
+
+#include <algorithm>
 
 namespace BrightBox3D::Editor
 {
@@ -14,6 +18,56 @@ namespace BrightBox3D::Editor
     }
 
     InspectorPanel::~InspectorPanel() = default;
+
+    void InspectorPanel::SetLocked(bool locked)
+    {
+        m_locked = locked ? std::optional<InspectorTarget>(SelectedTarget()) : std::nullopt;
+    }
+
+    InspectorTarget InspectorPanel::SelectedTarget() const
+    {
+        SelectionService& selection = m_application.GetContext().GetSelectionService();
+        InspectorTarget target;
+        target.focus = selection.GetFocus();
+        if (Level::LevelObject* object = selection.GetPrimarySelection())
+        {
+            target.object = object->GetId();
+        }
+        target.asset = selection.GetSelectedAsset();
+        target.collection = selection.GetSelectedCollection();
+        return target;
+    }
+
+    bool InspectorPanel::TargetExists(const InspectorTarget& target) const
+    {
+        EditorContext& context = m_application.GetContext();
+        switch (target.focus)
+        {
+        case SelectionFocus::Objects:
+        {
+            Level::Level* level = context.GetLevelService().GetActiveLevel();
+            return level && level->FindObject(target.object);
+        }
+        case SelectionFocus::Asset:
+            return Assets::AssetDatabase::Get().FindRecord(target.asset) != nullptr;
+        case SelectionFocus::Collection:
+            return context.GetLevelService().GetCollectionIndex(target.collection) >= 0;
+        case SelectionFocus::Level:
+            return context.GetLevelService().GetEditLevel() != nullptr;
+        default:
+            return true;
+        }
+    }
+
+    void InspectorPanel::DrawLockButton()
+    {
+        float x = ImGui::GetCursorScreenPos().x + std::max(0.0f, ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight());
+        ImGui::SetCursorScreenPos(ImVec2(x, ImGui::GetCursorScreenPos().y));
+        if (IconButton(m_locked ? Icon::Lock : Icon::LockOpen, EditorText::LockInspector))
+        {
+            SetLocked(!m_locked);
+        }
+    }
 
     void InspectorPanel::DrawSelectedObjects()
     {
@@ -30,24 +84,35 @@ namespace BrightBox3D::Editor
         m_object.Draw(*object);
     }
 
-    void InspectorPanel::Draw()
+    void InspectorPanel::DrawMissingTarget()
     {
-        if (!BeginWindow())
+        ImGui::TextDisabled("%s", Text(EditorText::LockedTargetMissing));
+        if (ImGui::Button(Text(EditorText::Unlock)))
         {
-            ImGui::End();
-            return;
+            m_locked.reset();
         }
+    }
+
+    void InspectorPanel::DrawTarget(const InspectorTarget& target)
+    {
         EditorContext& context = m_application.GetContext();
-        switch (context.GetSelectionService().GetFocus())
+        switch (target.focus)
         {
         case SelectionFocus::Objects:
-            DrawSelectedObjects();
+            if (m_locked)
+            {
+                m_object.Draw(*context.GetLevelService().GetActiveLevel()->FindObject(target.object));
+            }
+            else
+            {
+                DrawSelectedObjects();
+            }
             break;
         case SelectionFocus::Asset:
-            m_asset.Draw(context.GetSelectionService().GetSelectedAsset());
+            m_asset.Draw(target.asset);
             break;
         case SelectionFocus::Collection:
-            LevelInspector::DrawCollection(context);
+            LevelInspector::DrawCollection(context, target.collection);
             break;
         case SelectionFocus::Level:
             LevelInspector::DrawLevel(context);
@@ -55,6 +120,24 @@ namespace BrightBox3D::Editor
         default:
             ImGui::TextDisabled("%s", Text(EditorText::SelectObjectOrAsset));
             break;
+        }
+    }
+
+    void InspectorPanel::Draw()
+    {
+        if (!BeginWindow())
+        {
+            ImGui::End();
+            return;
+        }
+        DrawLockButton();
+        if (m_locked && !TargetExists(*m_locked))
+        {
+            DrawMissingTarget();
+        }
+        else
+        {
+            DrawTarget(m_locked ? *m_locked : SelectedTarget());
         }
         ImGui::End();
     }

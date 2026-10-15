@@ -144,9 +144,8 @@ namespace BrightBox3D::Editor::LevelInspector
         DrawCollectionList(context, *level);
     }
 
-    void DrawCollection(EditorContext& context)
+    void DrawCollection(EditorContext& context, Level::LevelCollection* collection)
     {
-        Level::LevelCollection* collection = context.GetSelectionService().GetSelectedCollection();
         Level::Level* level = context.GetLevelService().GetActiveLevel();
         if (!collection || !level || context.GetLevelService().GetCollectionIndex(collection) < 0)
         {

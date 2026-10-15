@@ -44,7 +44,7 @@ namespace BrightBox3D::Editor::AssetActions
         }
     }
 
-    void Open(EditorApplication& application, const Core::Guid& guid)
+    void Open(EditorApplication& application, AssetsPanelState& state, const Core::Guid& guid)
     {
         EditorContext& context = application.GetContext();
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
@@ -56,7 +56,7 @@ namespace BrightBox3D::Editor::AssetActions
         switch (record->type)
         {
         case Assets::AssetType::Folder:
-            context.GetAssetCreationService().SetAssetsFolder(record->path);
+            state.folder = record->path;
             break;
         case Assets::AssetType::Level:
             context.GetLevelService().OpenLevel(guid);

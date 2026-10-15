@@ -29,7 +29,7 @@ namespace BrightBox3D::Editor
 
     std::string AssetsTreeView::CurrentFolder() const
     {
-        return m_application.GetContext().GetAssetCreationService().GetAssetsFolder();
+        return m_state.folder;
     }
 
     bool AssetsTreeView::IsSelected(const Core::Guid& guid) const
@@ -94,10 +94,10 @@ namespace BrightBox3D::Editor
             {
                 m_application.GetContext().GetSelectionService().SelectAsset(record->guid);
             }
-            m_application.GetContext().GetAssetCreationService().SetAssetsFolder(folder);
+            m_state.folder = folder;
             if (record && record->type != Assets::AssetType::Folder && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
-                AssetActions::Open(m_application, record->guid);
+                AssetActions::Open(m_application, m_state, record->guid);
             }
         }
         if (record && !Assets::AssetDatabase::Get().IsBuiltin(record->guid) && ImGui::BeginDragDropSource())
@@ -170,7 +170,7 @@ namespace BrightBox3D::Editor
         bool open = DrawNode(nullptr, "##builtin", Text(EditorText::BuiltinAssets), Assets::AssetType::Folder, ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth);
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
-            m_application.GetContext().GetAssetCreationService().SetAssetsFolder(BuiltinFolder);
+            m_state.folder = BuiltinFolder;
         }
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
         {
@@ -218,7 +218,7 @@ namespace BrightBox3D::Editor
                 m_application.GetContext().GetSelectionService().SelectAsset(record.guid);
                 if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                 {
-                    AssetActions::Open(m_application, record.guid);
+                    AssetActions::Open(m_application, m_state, record.guid);
                 }
             }
             HandleNodeInput(&record, record.type == Assets::AssetType::Folder ? record.path : ParentFolder(record.path));

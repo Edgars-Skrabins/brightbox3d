@@ -303,7 +303,10 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
-            m_application.GetActiveLevelView().FocusSelection();
+            if (LevelViewPanel* view = m_application.GetActiveLevelView())
+            {
+                view->FocusSelection();
+            }
         }
         if (ImGui::BeginDragDropSource())
         {

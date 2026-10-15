@@ -10,6 +10,7 @@
 #include "RecentProjects.h"
 #include "Runtime/RenderContext.h"
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -56,9 +57,11 @@ namespace BrightBox3D::Editor
         Platform::Window& GetWindow() { return *m_window; }
         HotReload* GetHotReload() { return m_hotReload.get(); }
         EditorPlaySession* GetPlaySession() { return m_playSession.get(); }
-        LevelViewPanel& GetActiveLevelView();
-        LevelContentsPanel& GetLevelContents();
-        AssetsPanel& GetAssets();
+        LevelViewPanel* GetActiveLevelView();
+        LevelContentsPanel* GetLevelContents();
+        AssetsPanel* GetAssets();
+        Math::Vector3 GetSpawnPoint();
+        void SetActivePanel(const EditorPanel& panel);
         EditorPanel& CreatePanel(EditorWindow type);
 
         void RequestRender(const ViewRenderRequest& request) { m_renderRequests.push_back(request); }
@@ -92,6 +95,20 @@ namespace BrightBox3D::Editor
             }
             return nullptr;
         }
+
+        template <typename T>
+        T* FindActivePanel(EditorWindow type) const
+        {
+            int active = m_activePanels[static_cast<size_t>(type)];
+            for (const std::unique_ptr<EditorPanel>& panel : m_panels)
+            {
+                if (panel->GetWindowType() == type && panel->IsOpen() && panel->GetInstanceIndex() == active)
+                {
+                    return static_cast<T*>(panel.get());
+                }
+            }
+            return FindPanel<T>(type);
+        }
         void SubscribeWindowEvents();
         void ApplyCommandLine();
         void Frame(float deltaTime);
@@ -113,6 +130,7 @@ namespace BrightBox3D::Editor
         std::unique_ptr<ImGuiRenderer> m_imguiRenderer;
         std::unique_ptr<ThumbnailCache> m_thumbnails;
         std::vector<std::unique_ptr<EditorPanel>> m_panels;
+        std::array<int, static_cast<size_t>(EditorWindow::Count)> m_activePanels{};
         std::unique_ptr<ProjectSettingsPanel> m_projectSettings;
         std::unique_ptr<PreferencesPanel> m_preferences;
         std::unique_ptr<EditorPlaySession> m_playSession;

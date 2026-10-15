@@ -48,10 +48,10 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             return folders;
         }
 
-        AssetsTarget FolderTarget(EditorContext& context, const std::string& folder)
+        AssetsTarget FolderTarget(const AssetsPanelState& state, const std::string& folder)
         {
             const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecordByPath(folder);
-            if (!record || context.GetAssetCreationService().GetAssetsFolder() == folder)
+            if (!record || state.folder == folder)
             {
                 return { {}, folder };
             }
@@ -79,7 +79,6 @@ namespace BrightBox3D::Editor::AssetsFolderTree
 
         void DrawFolder(EditorApplication& application, AssetsPanelState& state, const std::string& folder, const std::string& label)
         {
-            EditorContext& context = application.GetContext();
             std::vector<Assets::AssetRecord> folders = ChildFolders(folder);
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
             if (folders.empty())
@@ -90,7 +89,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             {
                 flags |= ImGuiTreeNodeFlags_DefaultOpen;
             }
-            if (context.GetAssetCreationService().GetAssetsFolder() == folder)
+            if (state.folder == folder)
             {
                 flags |= ImGuiTreeNodeFlags_Selected;
             }
@@ -98,11 +97,11 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             bool open = DrawNode(state, record, folder, label, flags);
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
             {
-                context.GetAssetCreationService().SetAssetsFolder(folder);
+                state.folder = folder;
             }
             if (ImGui::BeginPopupContextItem("FolderContext"))
             {
-                AssetsContextMenu::Draw(application, state, FolderTarget(context, folder));
+                AssetsContextMenu::Draw(application, state, FolderTarget(state, folder));
                 ImGui::EndPopup();
             }
             AssetActions::AcceptMoveDrop(folder);
@@ -119,13 +118,12 @@ namespace BrightBox3D::Editor::AssetsFolderTree
 
     void Draw(EditorApplication& application, AssetsPanelState& state)
     {
-        EditorContext& context = application.GetContext();
         DrawFolder(application, state, "", Text(EditorText::AssetsTitle));
-        bool showBuiltin = context.GetAssetCreationService().GetAssetsFolder() == BuiltinFolder;
+        bool showBuiltin = state.folder == BuiltinFolder;
         ImVec2 builtinPosition = ImGui::GetCursorScreenPos();
         if (ImGui::Selectable("##builtin", showBuiltin))
         {
-            context.GetAssetCreationService().SetAssetsFolder(BuiltinFolder);
+            state.folder = BuiltinFolder;
         }
         DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), false);
         if (ImGui::BeginPopupContextItem("BuiltinContext"))

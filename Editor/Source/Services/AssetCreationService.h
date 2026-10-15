@@ -18,11 +18,7 @@ namespace BrightBox3D::Editor
         Core::Guid CreateTemplateAsset(Level::LevelObject* object, const std::string& folder);
         Core::Guid CreateVariantFromTemplate(const Core::Guid& templateAsset);
 
-        const std::string& GetAssetsFolder() const { return m_assetsFolder; }
-        void SetAssetsFolder(const std::string& folder) { m_assetsFolder = folder; }
-
     private:
         EditorContext& m_context;
-        std::string m_assetsFolder;
     };
 }

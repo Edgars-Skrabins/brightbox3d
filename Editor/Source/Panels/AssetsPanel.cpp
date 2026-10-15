@@ -39,12 +39,12 @@ namespace BrightBox3D::Editor
                 return TargetForAsset(*record);
             }
         }
-        return { {}, m_application.GetContext().GetAssetCreationService().GetAssetsFolder() };
+        return { {}, m_state.folder };
     }
 
     void AssetsPanel::ImportFiles(const std::vector<std::filesystem::path>& files)
     {
-        AssetFileImport::ImportFiles(files, m_application.GetContext().GetAssetCreationService().GetAssetsFolder());
+        AssetFileImport::ImportFiles(files, m_state.folder);
     }
 
     void AssetsPanel::DrawDeleteConfirmation()
@@ -126,6 +126,7 @@ namespace BrightBox3D::Editor
         PopSelectionColors();
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
         {
+            m_application.SetActivePanel(*this);
             CommandRegistry::Get().DispatchShortcuts(CommandScope::Assets);
         }
         ImGui::End();
