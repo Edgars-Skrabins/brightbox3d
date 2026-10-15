@@ -4,6 +4,8 @@
 #include "Commands/CommandWidgets.h"
 #include "Core/FileSystem.h"
 #include "EditorApplication.h"
+#include "EditorContent.h"
+#include "EditorLayout.h"
 #include "EditorText.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/Assets/AssetActions.h"
@@ -16,21 +18,23 @@ namespace BrightBox3D::Editor::AssetsContextMenu
 {
     namespace
     {
-        constexpr const char* DefaultScreenMarkup = "<Screen>\n    <Panel class=\"root\">\n        <Label text=\"Hello BrightBox3D\" />\n    </Panel>\n</Screen>\n";
-        constexpr const char* DefaultWidgetMarkup = "<Widget>\n    <Panel class=\"widget\">\n        <Label text=\"Widget\" />\n    </Panel>\n</Widget>\n";
-        constexpr const char* DefaultStyleSheet = ".root {\n    width: 100%;\n    height: 100%;\n    padding: 16px;\n}\n";
-
         std::string NewAssetPath(const std::string& folder, Assets::AssetType type)
         {
             std::string prefix = folder.empty() ? "" : folder + "/";
             return prefix + Assets::NewAssetName(type) + Assets::AssetTypeExtension(type);
         }
 
-        void CreateTextAsset(const std::string& folder, Assets::AssetType type, const char* content)
+        std::string StarterContent(Assets::AssetType type)
+        {
+            std::filesystem::path file = EditorContentDirectory() / EditorLayout::AssetTemplatesFolder / (std::string(Assets::AssetTypeName(type)) + Assets::AssetTypeExtension(type));
+            return Core::FileSystem::ReadText(file).value_or(std::string());
+        }
+
+        void CreateTextAsset(const std::string& folder, Assets::AssetType type)
         {
             Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
             std::string path = database.MakeUniquePath(NewAssetPath(folder, type));
-            Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, content);
+            Core::FileSystem::WriteText(database.GetAssetsDirectory() / path, StarterContent(type));
             database.Refresh();
         }
 
@@ -87,15 +91,15 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         ImGui::Separator();
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Screen)).c_str()))
         {
-            CreateTextAsset(folder, Assets::AssetType::Screen, DefaultScreenMarkup);
+            CreateTextAsset(folder, Assets::AssetType::Screen);
         }
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::Widget)).c_str()))
         {
-            CreateTextAsset(folder, Assets::AssetType::Widget, DefaultWidgetMarkup);
+            CreateTextAsset(folder, Assets::AssetType::Widget);
         }
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::StyleSheet)).c_str()))
         {
-            CreateTextAsset(folder, Assets::AssetType::StyleSheet, DefaultStyleSheet);
+            CreateTextAsset(folder, Assets::AssetType::StyleSheet);
         }
     }
 

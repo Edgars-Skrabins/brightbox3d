@@ -2,6 +2,7 @@
 
 #include "Core/FileSystem.h"
 #include "Core/Utf8.h"
+#include "EditorContent.h"
 #include "EditorLayout.h"
 #include "EditorPreferences.h"
 #include "IconGlyphs.h"
@@ -59,10 +60,6 @@ namespace BrightBox3D::Editor
             return color;
         }
 
-        std::filesystem::path EditorContentDirectory()
-        {
-            return Core::FileSystem::FindContentDirectory(EditorLayout::ContentFolder, std::filesystem::path(EditorLayout::SourceTreeEditorFolder) / EditorLayout::SourceTreeContentFolder).value_or(std::filesystem::path());
-        }
     }
 
     void PushSelectionColors()

@@ -11,6 +11,7 @@ namespace BrightBox3D::Editor::EditorLayout
     inline constexpr const char* ThirdPartyFolder = "ThirdParty";
     inline constexpr const char* IconFontFolder = "Lucide";
     inline constexpr const char* IconFontFileName = "lucide.ttf";
+    inline constexpr const char* AssetTemplatesFolder = "AssetTemplates";
 
     inline constexpr const char* UserSettingsFolder = ".brightbox3d";
     inline constexpr const char* PortableSettingsFolder = "UserSettings";

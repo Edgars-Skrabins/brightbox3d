@@ -1,0 +1,5 @@
+<Screen>
+    <Panel class="root">
+        <Label text="Hello BrightBox3D" />
+    </Panel>
+</Screen>

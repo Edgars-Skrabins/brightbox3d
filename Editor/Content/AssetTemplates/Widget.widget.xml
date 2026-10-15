@@ -1,0 +1,5 @@
+<Widget>
+    <Panel class="widget">
+        <Label text="Widget" />
+    </Panel>
+</Widget>
