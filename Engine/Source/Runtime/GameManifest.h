@@ -16,9 +16,10 @@ namespace BrightBox3D::Runtime
         BrightBody()
     public:
         static constexpr const char* FileName = "Game.json";
+        static constexpr const char* DefaultName = "Game";
 
         BrightProperty()
-        std::string name = "Game";
+        std::string name = DefaultName;
 
         BrightProperty()
         std::string gameModule;

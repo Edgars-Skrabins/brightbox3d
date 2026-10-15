@@ -14,13 +14,12 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr const char* PopupId = "NewLevel";
-        constexpr const char* DefaultLevelName = "NewLevel";
     }
 
     void NewLevelDialog::Open()
     {
         m_openRequested = true;
-        m_name = DefaultLevelName;
+        m_name = Assets::NewAssetName(Assets::AssetType::Level);
     }
 
     void NewLevelDialog::Draw(LevelService& levels)

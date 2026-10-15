@@ -279,6 +279,8 @@ namespace BrightBox3D::Editor
             { "SaveLevelFailed", "Saving level '{}' failed", 1 },
             { "UndoCreate", "Create {}", 1 },
             { "DefaultNodeName", "Node", 0 },
+            { "VariantAssetName", "{} Variant", 1 },
+            { "DefaultProjectName", "MyGame", 0 },
             { "UndoPlace", "Place {}", 1 },
             { "CannotMoveInstanceChild", "Objects inside a {} instance cannot be moved; unlink the instance or edit the {}", 2 },
             { "CreateMenuLight", "Light", 0 },

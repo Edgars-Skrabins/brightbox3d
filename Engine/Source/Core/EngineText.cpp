@@ -152,6 +152,10 @@ namespace BrightBox3D::Core
             { "NewScreenName", "New Screen", 0 },
             { "NewWidgetName", "New Widget", 0 },
             { "NewStyleSheetName", "New Style", 0 },
+            { "CameraName", "{} Camera", 1 },
+            { "MissingNamed", "Missing {}", 1 },
+            { "MainLevelName", "Main", 0 },
+            { "MainCollectionName", "Main", 0 },
         };
 
         static_assert(std::size(TextInfos) == static_cast<size_t>(EngineText::Count));

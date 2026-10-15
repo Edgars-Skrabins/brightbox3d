@@ -16,6 +16,7 @@ namespace BrightBox3D::Editor
     namespace
     {
         constexpr uint64_t ThumbnailViewId = 0x5448554D;
+        constexpr const char* ThumbnailLevelName = "Thumbnail";
     }
 
     ThumbnailCache::ThumbnailCache(RHI::Device& device, Rendering::Renderer& renderer) : m_device(device), m_renderer(renderer)
@@ -127,7 +128,7 @@ namespace BrightBox3D::Editor
             return true;
         }
 
-        Level::Level preview("Thumbnail");
+        Level::Level preview(ThumbnailLevelName);
         Math::Bounds bounds;
         auto addRenderer = [&](Level::LevelObject& object, const Core::Guid& model, int mesh)
         {

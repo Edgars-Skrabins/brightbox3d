@@ -95,7 +95,7 @@ namespace BrightBox3D::Editor
         LevelSerializer::MakeLevelObjectDocument(*variant, document, Assets::AssetType::LevelObjectVariant);
         std::filesystem::path templatePath(record->path);
         std::string folder = templatePath.parent_path().generic_string();
-        std::string path = database.MakeUniquePath((folder.empty() ? "" : folder + "/") + record->name + " Variant" + Assets::AssetTypeExtension(Assets::AssetType::LevelObjectVariant));
+        std::string path = database.MakeUniquePath((folder.empty() ? "" : folder + "/") + Text(EditorText::VariantAssetName, record->name) + Assets::AssetTypeExtension(Assets::AssetType::LevelObjectVariant));
         Core::Guid created = database.CreateJsonAsset(path, document);
         if (created.IsValid())
         {

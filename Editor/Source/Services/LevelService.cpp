@@ -1,6 +1,7 @@
 #include "Services/LevelService.h"
 
 #include "Assets/AssetDatabase.h"
+#include "Core/EngineText.h"
 #include "Core/Log.h"
 #include "EditorContext.h"
 #include "EditorText.h"
@@ -13,7 +14,6 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
-        constexpr const char* DefaultLevelName = "Main";
     }
 
     Level::Level* LevelService::GetActiveLevel() const
@@ -83,7 +83,7 @@ namespace BrightBox3D::Editor
             OpenLevel(levels.front().guid);
             return;
         }
-        NewLevel(Runtime::ProjectLayout::LevelAssetPath(DefaultLevelName));
+        NewLevel(Runtime::ProjectLayout::LevelAssetPath(Core::Text(Core::EngineText::MainLevelName)));
         project.SetStartupLevel(m_level ? m_level->GetAsset() : Core::Guid{});
         project.Save();
     }

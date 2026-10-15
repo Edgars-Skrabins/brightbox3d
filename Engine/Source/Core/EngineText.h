@@ -155,6 +155,10 @@ namespace BrightBox3D::Core
         NewScreenName,
         NewWidgetName,
         NewStyleSheetName,
+        CameraName,
+        MissingNamed,
+        MainLevelName,
+        MainCollectionName,
         Count
     };
 

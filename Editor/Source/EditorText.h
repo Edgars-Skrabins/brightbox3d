@@ -281,6 +281,8 @@ namespace BrightBox3D::Editor
         SaveLevelFailed,
         UndoCreate,
         DefaultNodeName,
+        VariantAssetName,
+        DefaultProjectName,
         UndoPlace,
         CannotMoveInstanceChild,
         CreateMenuLight,

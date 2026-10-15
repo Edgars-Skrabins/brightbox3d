@@ -5,6 +5,7 @@
 #include "Core/FileSystem.h"
 #include "Core/SharedLibrary.h"
 #include "Core/StringUtils.h"
+#include "Runtime/GameManifest.h"
 #include "Runtime/ProjectTemplates.h"
 #include "Serialization/ObjectSerializer.h"
 
@@ -29,7 +30,7 @@ namespace BrightBox3D::Runtime
             }
             if (result.empty() || std::isdigit(static_cast<unsigned char>(result[0])))
             {
-                result = "Game" + result;
+                result = GameManifest::DefaultName + result;
             }
             return result;
         }

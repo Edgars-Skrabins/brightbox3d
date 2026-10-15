@@ -21,8 +21,6 @@ namespace BrightBox3D::Level
 
     namespace
     {
-        constexpr const char* MissingLevelObjectName = "Missing LevelObject";
-        constexpr const char* MissingCollectionName = "Missing Collection";
         constexpr const char* EmptyProperties = "{}";
 
         std::unique_ptr<LevelObjectComponent> CreateComponent(const std::string& typeName, const JsonValue* properties)
@@ -73,7 +71,7 @@ namespace BrightBox3D::Level
         {
             Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString()));
             std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
-            placeholder->SetName(GetString(node, LevelFileSchema::Name, MissingLevelObjectName));
+            placeholder->SetName(GetString(node, LevelFileSchema::Name, Core::Text(Core::EngineText::MissingNamed, LevelObject::StaticType().GetName())));
             placeholder->SetMissingType(LevelFileSchema::MissingLevelObjectType, Serialization::WriteJson(node, false));
             ReadTransform(*placeholder, node);
             return level.AdoptObject(std::move(placeholder), collection, parent, false);
@@ -375,7 +373,7 @@ namespace BrightBox3D::Level
                 Core::Guid guid = Core::Guid::Parse(GetString(entry, LevelFileSchema::Collection));
                 if (!LoadCollectionInto(*level, guid))
                 {
-                    LevelCollection* missing = level->AddCollection(GetString(entry, LevelFileSchema::Name, MissingCollectionName), guid);
+                    LevelCollection* missing = level->AddCollection(GetString(entry, LevelFileSchema::Name, Core::Text(Core::EngineText::MissingNamed, Assets::AssetTypeName(Assets::AssetType::LevelCollection))), guid);
                     missing->SetDirty(false);
                 }
             }

@@ -19,7 +19,6 @@ namespace BrightBox3D::Level
         constexpr uint64_t DeriveSaltHigh = 0xA5A5A5A5A5A5A5A5ull;
         constexpr uint64_t DeriveSaltLow = 0x5A5A5A5A5A5A5A5Aull;
         constexpr Core::Guid FallbackDerivedId{ 1, 1 };
-        constexpr const char* MainCollectionName = "Main";
         constexpr const char* NameSeparator = "_";
 
         std::string FolderPrefix(const std::string& folder)
@@ -123,8 +122,8 @@ namespace BrightBox3D::Level
         std::string folder = std::filesystem::path(path).parent_path().generic_string();
 
         JsonDocument collection;
-        WriteEmptyCollection(MainCollectionName, collection, collection.GetAllocator());
-        Core::Guid collectionGuid = database.CreateJsonAsset(database.MakeUniquePath(CollectionAssetPath(folder, name, MainCollectionName)), collection);
+        WriteEmptyCollection(Core::Text(Core::EngineText::MainCollectionName), collection, collection.GetAllocator());
+        Core::Guid collectionGuid = database.CreateJsonAsset(database.MakeUniquePath(CollectionAssetPath(folder, name, Core::Text(Core::EngineText::MainCollectionName))), collection);
 
         JsonDocument level;
         level.SetObject();
@@ -134,7 +133,7 @@ namespace BrightBox3D::Level
         JsonValue collections(rapidjson::kArrayType);
         JsonValue entry(rapidjson::kObjectType);
         entry.AddMember(LevelFileSchema::Collection, MakeString(collectionGuid.ToString(), allocator), allocator);
-        entry.AddMember(LevelFileSchema::Name, JsonValue(MainCollectionName, allocator), allocator);
+        entry.AddMember(LevelFileSchema::Name, JsonValue(Core::Text(Core::EngineText::MainCollectionName), allocator), allocator);
         collections.PushBack(entry, allocator);
         level.AddMember(LevelFileSchema::Collections, collections, allocator);
         level.AddMember(LevelFileSchema::Settings, JsonValue(rapidjson::kObjectType), allocator);

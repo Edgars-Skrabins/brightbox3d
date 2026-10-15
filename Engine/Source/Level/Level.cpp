@@ -1,5 +1,7 @@
 #include "Level/Level.h"
 
+#include "Core/EngineText.h"
+
 #include <algorithm>
 #include <mutex>
 
@@ -123,7 +125,7 @@ namespace BrightBox3D::Level
     {
         if (m_collections.empty())
         {
-            AddCollection("Main");
+            AddCollection(Core::Text(Core::EngineText::MainCollectionName));
         }
         return m_collections.front().get();
     }

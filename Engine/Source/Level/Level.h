@@ -38,7 +38,9 @@ namespace BrightBox3D::Level
     public:
         static constexpr const char* RuntimeCollectionName = "Runtime";
 
-        explicit Level(std::string name = "Level");
+        static constexpr const char* UnnamedLevel = "Level";
+
+        explicit Level(std::string name = UnnamedLevel);
         ~Level();
 
         Level(const Level&) = delete;

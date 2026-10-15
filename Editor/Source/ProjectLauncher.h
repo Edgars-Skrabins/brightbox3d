@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EditorText.h"
+
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -24,7 +26,7 @@ namespace BrightBox3D::Editor
 
         const RecentProjects& m_recentProjects;
         std::string m_openPath;
-        std::string m_name = "MyGame";
+        std::string m_name = Text(EditorText::DefaultProjectName);
         std::string m_location;
         std::string m_error;
     };
