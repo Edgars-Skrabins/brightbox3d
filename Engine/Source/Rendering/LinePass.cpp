@@ -59,7 +59,7 @@ namespace BrightBox3D::Rendering
         }
     }
 
-    RHI::Pipeline* LinePass::GetLinePipeline(RHI::Format format, bool depthTest)
+    RHI::Pipeline* LinePass::GetLinePipeline(RHI::Format format, DepthTest depthTest)
     {
         RHI::PipelineDesc desc;
         desc.vertexShader = m_shaders.Get(ShaderProgram::Lines, RHI::ShaderStage::Vertex);
@@ -67,15 +67,15 @@ namespace BrightBox3D::Rendering
         desc.vertexLayout = LineLayout();
         desc.topology = RHI::PrimitiveTopology::LineList;
         desc.rasterizer.cullMode = RHI::CullMode::None;
-        desc.depthStencil.depthTest = depthTest;
+        desc.depthStencil.depthTest = depthTest == DepthTest::On;
         desc.depthStencil.depthWrite = false;
         desc.colorFormats = { format };
         desc.depthFormat = DepthFormat;
         desc.blend[0] = RHI::BlendState::AlphaBlend();
-        return m_shaders.GetPipeline({ ShaderProgram::Lines, format, RHI::CullMode::None, depthTest }, desc);
+        return m_shaders.GetPipeline({ ShaderProgram::Lines, format, RHI::CullMode::None, depthTest == DepthTest::On }, desc);
     }
 
-    void LinePass::DrawLines(RHI::CommandList& commands, const std::vector<LineVertex>& lines, RHI::Format format, bool depthTest, float gridFade)
+    void LinePass::DrawLines(RHI::CommandList& commands, const std::vector<LineVertex>& lines, RHI::Format format, DepthTest depthTest, float gridFade)
     {
         if (lines.empty())
         {
@@ -107,9 +107,9 @@ namespace BrightBox3D::Rendering
         pass.debugName = "Lines";
         commands.BeginRenderPass(pass);
         commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
-        DrawLines(commands, grid, format, true, GridFadeDistance);
-        DrawLines(commands, depthTested, format, true, NoFade);
-        DrawLines(commands, overlay, format, false, NoFade);
+        DrawLines(commands, grid, format, DepthTest::On, GridFadeDistance);
+        DrawLines(commands, depthTested, format, DepthTest::On, NoFade);
+        DrawLines(commands, overlay, format, DepthTest::Off, NoFade);
         commands.EndRenderPass();
     }
 }

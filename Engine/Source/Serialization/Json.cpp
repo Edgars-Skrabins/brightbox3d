@@ -50,10 +50,10 @@ namespace BrightBox3D::Serialization
         return ParseJson(*text, document, error);
     }
 
-    std::string WriteJson(const JsonValue& value, bool pretty)
+    std::string WriteJson(const JsonValue& value, JsonFormat format)
     {
         rapidjson::StringBuffer buffer;
-        if (pretty)
+        if (format == JsonFormat::Pretty)
         {
             rapidjson::PrettyWriter<rapidjson::StringBuffer, rapidjson::UTF8<>, rapidjson::UTF8<>, rapidjson::CrtAllocator, rapidjson::kWriteNanAndInfFlag> writer(buffer);
             writer.SetIndent(' ', 4);
@@ -66,7 +66,7 @@ namespace BrightBox3D::Serialization
             value.Accept(writer);
         }
         std::string text(buffer.GetString(), buffer.GetSize());
-        if (pretty)
+        if (format == JsonFormat::Pretty)
         {
             text += '\n';
         }
@@ -75,7 +75,7 @@ namespace BrightBox3D::Serialization
 
     bool SaveJsonFile(const std::filesystem::path& path, const JsonValue& value)
     {
-        return Core::FileSystem::WriteText(path, WriteJson(value, true));
+        return Core::FileSystem::WriteText(path, WriteJson(value, JsonFormat::Pretty));
     }
 
     JsonValue MakeString(const std::string& text, JsonAllocator& allocator)

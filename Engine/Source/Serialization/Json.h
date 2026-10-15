@@ -12,9 +12,15 @@ namespace BrightBox3D::Serialization
     using JsonValue = rapidjson::Value;
     using JsonAllocator = rapidjson::Document::AllocatorType;
 
+    enum class JsonFormat
+    {
+        Pretty,
+        Compact
+    };
+
     bool ParseJson(const std::string& text, JsonDocument& document, std::string* error = nullptr);
     bool LoadJsonFile(const std::filesystem::path& path, JsonDocument& document, std::string* error = nullptr);
-    std::string WriteJson(const JsonValue& value, bool pretty = true);
+    std::string WriteJson(const JsonValue& value, JsonFormat format = JsonFormat::Pretty);
     bool SaveJsonFile(const std::filesystem::path& path, const JsonValue& value);
 
     JsonValue MakeString(const std::string& text, JsonAllocator& allocator);

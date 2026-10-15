@@ -59,7 +59,7 @@ namespace BrightBox3D::Physics
                 {
                     continue;
                 }
-                JPH::RefConst<JPH::Shape> shape = CreateColliderShape(*collider, motion == MotionType::Dynamic && !collider->IsTrigger());
+                JPH::RefConst<JPH::Shape> shape = CreateColliderShape(*collider, collider->IsTrigger() ? MotionType::Static : motion);
                 if (!shape)
                 {
                     continue;
@@ -219,9 +219,9 @@ namespace BrightBox3D::Physics
         records[object.GetId()] = record;
     }
 
-    void PhysicsWorld::Implementation::MoveBody(JPH::BodyInterface& bodies, JPH::BodyID id, JPH::RVec3Arg position, JPH::QuatArg rotation, bool kinematic, float deltaTime)
+    void PhysicsWorld::Implementation::MoveBody(JPH::BodyInterface& bodies, JPH::BodyID id, JPH::RVec3Arg position, JPH::QuatArg rotation, MotionType motion, float deltaTime)
     {
-        if (kinematic && deltaTime > 0.0f)
+        if (motion == MotionType::Kinematic && deltaTime > 0.0f)
         {
             bodies.MoveKinematic(id, position, rotation, deltaTime);
         }
@@ -247,11 +247,11 @@ namespace BrightBox3D::Physics
             JPH::Quat rotation = ToJolt(transform.GetRotation());
             if (!record.solid.IsInvalid() && moved)
             {
-                MoveBody(bodies, record.solid, position, rotation, record.motion == MotionType::Kinematic, fixedDeltaTime);
+                MoveBody(bodies, record.solid, position, rotation, record.motion, fixedDeltaTime);
             }
             if (!record.sensor.IsInvalid() && (moved || record.motion == MotionType::Dynamic))
             {
-                MoveBody(bodies, record.sensor, position, rotation, true, fixedDeltaTime);
+                MoveBody(bodies, record.sensor, position, rotation, MotionType::Kinematic, fixedDeltaTime);
             }
             record.transformVersion = transform.GetVersion();
         }

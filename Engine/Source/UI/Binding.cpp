@@ -88,7 +88,7 @@ namespace BrightBox3D::UI
             Serialization::JsonDocument document;
             Serialization::JsonValue json;
             Serialization::WriteProperty(*property, *object, json, document.GetAllocator());
-            return json.IsString() ? json.GetString() : Serialization::WriteJson(json, false);
+            return json.IsString() ? json.GetString() : Serialization::WriteJson(json, Serialization::JsonFormat::Compact);
         }
         }
     }

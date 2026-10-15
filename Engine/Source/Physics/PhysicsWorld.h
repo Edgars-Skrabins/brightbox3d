@@ -15,6 +15,12 @@ namespace BrightBox3D::Physics
 {
     class Rigidbody;
 
+    enum class TriggerQuery
+    {
+        Ignore,
+        Include
+    };
+
     struct RaycastHit
     {
         Level::LevelObject* object = nullptr;
@@ -38,7 +44,7 @@ namespace BrightBox3D::Physics
         void OnComponentAdded(Level::LevelObjectComponent& component) override;
         void OnComponentRemoved(Level::LevelObjectComponent& component) override;
 
-        bool Raycast(const Math::Vector3& origin, const Math::Vector3& direction, float maxDistance, RaycastHit& hit, bool includeTriggers = false) const;
+        bool Raycast(const Math::Vector3& origin, const Math::Vector3& direction, float maxDistance, RaycastHit& hit, TriggerQuery triggers = TriggerQuery::Ignore) const;
         void SetGravity(const Math::Vector3& gravity);
         Math::Vector3 GetGravity() const;
         void MarkDirty(Level::LevelObject& object);

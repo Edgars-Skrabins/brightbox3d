@@ -23,7 +23,7 @@ namespace BrightBox3D::Editor::SelectionOverlay
         constexpr uint32_t PreviewAspectWidth = 16;
         constexpr uint32_t PreviewAspectHeight = 9;
         constexpr float PreviewFarPlane = 3.0f;
-        constexpr bool DepthTested = false;
+        constexpr Rendering::DepthTest DepthTested = Rendering::DepthTest::Off;
 
         void DrawAxisCircles(const Math::Vector3& center, float radius, const Math::Color& color, int segments)
         {

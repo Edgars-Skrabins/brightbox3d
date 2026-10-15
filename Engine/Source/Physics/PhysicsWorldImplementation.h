@@ -49,6 +49,6 @@ namespace BrightBox3D::Physics
         void DispatchContacts(Level::Level& level);
         JPH::BodyInterface* BodiesFor(const Rigidbody& rigidbody) const;
 
-        static void MoveBody(JPH::BodyInterface& bodies, JPH::BodyID id, JPH::RVec3Arg position, JPH::QuatArg rotation, bool kinematic, float deltaTime);
+        static void MoveBody(JPH::BodyInterface& bodies, JPH::BodyID id, JPH::RVec3Arg position, JPH::QuatArg rotation, MotionType motion, float deltaTime);
     };
 }

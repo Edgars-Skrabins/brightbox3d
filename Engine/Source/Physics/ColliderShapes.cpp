@@ -88,7 +88,7 @@ namespace BrightBox3D::Physics
             return result.Get();
         }
 
-        JPH::RefConst<JPH::Shape> CreateMeshShape(const MeshCollider& mesh, bool dynamic)
+        JPH::RefConst<JPH::Shape> CreateMeshShape(const MeshCollider& mesh, MotionType motion)
         {
             auto model = mesh.GetModel().Load();
             const Geometry::MeshData* data = model ? model->GetMesh(mesh.GetMeshIndex()) : nullptr;
@@ -96,14 +96,14 @@ namespace BrightBox3D::Physics
             {
                 return nullptr;
             }
-            if (!mesh.IsConvex() && dynamic)
+            if (!mesh.IsConvex() && motion == MotionType::Dynamic)
             {
                 Core::Log::Warning(Core::Text(Core::EngineText::ConvexHullFallback, mesh.GetOwner()->GetName()));
             }
-            return mesh.IsConvex() || dynamic ? CreateConvexHullShape(*data) : CreateTriangleMeshShape(*data);
+            return mesh.IsConvex() || motion == MotionType::Dynamic ? CreateConvexHullShape(*data) : CreateTriangleMeshShape(*data);
         }
 
-        JPH::RefConst<JPH::Shape> CreateLocalShape(const Collider& collider, bool dynamic)
+        JPH::RefConst<JPH::Shape> CreateLocalShape(const Collider& collider, MotionType motion)
         {
             if (auto* box = Reflection::Cast<BoxCollider>(&collider))
             {
@@ -119,15 +119,15 @@ namespace BrightBox3D::Physics
             }
             if (auto* mesh = Reflection::Cast<MeshCollider>(&collider))
             {
-                return CreateMeshShape(*mesh, dynamic);
+                return CreateMeshShape(*mesh, motion);
             }
             return nullptr;
         }
     }
 
-    JPH::RefConst<JPH::Shape> CreateColliderShape(const Collider& collider, bool dynamic)
+    JPH::RefConst<JPH::Shape> CreateColliderShape(const Collider& collider, MotionType motion)
     {
-        JPH::RefConst<JPH::Shape> shape = CreateLocalShape(collider, dynamic);
+        JPH::RefConst<JPH::Shape> shape = CreateLocalShape(collider, motion);
         if (shape && collider.GetCenter().LengthSquared() > 0.0f)
         {
             shape = new JPH::RotatedTranslatedShape(ToJolt(collider.GetCenter()), JPH::Quat::sIdentity(), shape);

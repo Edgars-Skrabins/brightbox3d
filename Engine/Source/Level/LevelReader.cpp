@@ -41,7 +41,7 @@ namespace BrightBox3D::Level
                 return nullptr;
             }
             auto missing = std::make_unique<MissingComponent>();
-            missing->SetMissing(typeName, properties ? Serialization::WriteJson(*properties, false) : EmptyProperties);
+            missing->SetMissing(typeName, properties ? Serialization::WriteJson(*properties, Serialization::JsonFormat::Compact) : EmptyProperties);
             Core::Log::Warning(Core::Text(Core::EngineText::MissingComponentType, typeName));
             return missing;
         }
@@ -72,7 +72,7 @@ namespace BrightBox3D::Level
             Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString()));
             std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
             placeholder->SetName(GetString(node, LevelFileSchema::Name, Core::Text(Core::EngineText::MissingNamed, LevelObject::StaticType().GetName())));
-            placeholder->SetMissingType(LevelFileSchema::MissingLevelObjectType, Serialization::WriteJson(node, false));
+            placeholder->SetMissingType(LevelFileSchema::MissingLevelObjectType, Serialization::WriteJson(node, Serialization::JsonFormat::Compact));
             ReadTransform(*placeholder, node);
             return level.AdoptObject(std::move(placeholder), collection, parent, Initialization::Deferred);
         }
@@ -157,7 +157,7 @@ namespace BrightBox3D::Level
             const JsonValue* properties = FindMember(node, LevelFileSchema::Properties);
             if (missing)
             {
-                object.SetMissingType(typeName, properties ? Serialization::WriteJson(*properties, false) : EmptyProperties);
+                object.SetMissingType(typeName, properties ? Serialization::WriteJson(*properties, Serialization::JsonFormat::Compact) : EmptyProperties);
                 Core::Log::Warning(Core::Text(Core::EngineText::MissingObjectType, LevelObject::StaticType().GetName(), typeName, object.GetName()));
             }
             else if (properties)

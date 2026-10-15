@@ -43,7 +43,7 @@ namespace BrightBox3D::Level
         {
             Serialization::JsonDocument document;
             Serialization::SerializeProperties(object, document, document.GetAllocator());
-            return Serialization::WriteJson(document, false);
+            return Serialization::WriteJson(document, Serialization::JsonFormat::Compact);
         }
 
         void Deserialize(Reflection::EngineObject& object, const std::string& data)

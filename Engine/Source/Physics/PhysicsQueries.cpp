@@ -36,7 +36,7 @@ namespace BrightBox3D::Physics
         return &system->GetBodyInterface();
     }
 
-    bool PhysicsWorld::Raycast(const Math::Vector3& origin, const Math::Vector3& direction, float maxDistance, RaycastHit& hit, bool includeTriggers) const
+    bool PhysicsWorld::Raycast(const Math::Vector3& origin, const Math::Vector3& direction, float maxDistance, RaycastHit& hit, TriggerQuery triggers) const
     {
         Implementation& implementation = *m_implementation;
         if (!implementation.system)
@@ -48,7 +48,7 @@ namespace BrightBox3D::Physics
         JPH::RayCastResult result;
         IgnoreSensors ignoreSensors;
         JPH::BodyFilter allBodies;
-        bool found = implementation.system->GetNarrowPhaseQuery().CastRay(ray, result, {}, {}, includeTriggers ? allBodies : static_cast<const JPH::BodyFilter&>(ignoreSensors));
+        bool found = implementation.system->GetNarrowPhaseQuery().CastRay(ray, result, {}, {}, triggers == TriggerQuery::Include ? allBodies : static_cast<const JPH::BodyFilter&>(ignoreSensors));
         if (!found)
         {
             return false;

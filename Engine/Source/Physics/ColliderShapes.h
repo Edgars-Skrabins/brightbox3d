@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math/Vector3.h"
+#include "Physics/Rigidbody.h"
 
 #include <Jolt/Jolt.h>
 
@@ -12,7 +13,7 @@ namespace BrightBox3D::Physics
 {
     class Collider;
 
-    JPH::RefConst<JPH::Shape> CreateColliderShape(const Collider& collider, bool dynamic);
+    JPH::RefConst<JPH::Shape> CreateColliderShape(const Collider& collider, MotionType motion);
     JPH::RefConst<JPH::Shape> CombineShapes(const std::vector<JPH::RefConst<JPH::Shape>>& shapes);
     JPH::RefConst<JPH::Shape> ApplyScale(const JPH::RefConst<JPH::Shape>& shape, const Math::Vector3& scale);
 }

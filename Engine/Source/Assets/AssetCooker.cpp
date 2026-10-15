@@ -43,7 +43,7 @@ namespace BrightBox3D::Assets
             {
                 if (const Serialization::JsonValue* importer = Serialization::FindMember(document, AssetFileSchema::Importer))
                 {
-                    hash = Core::HashCombine(hash, Core::HashString(Serialization::WriteJson(*importer, false)));
+                    hash = Core::HashCombine(hash, Core::HashString(Serialization::WriteJson(*importer, Serialization::JsonFormat::Compact)));
                 }
             }
         }

@@ -79,7 +79,7 @@ namespace BrightBox3D::Assets
 
     bool AssetDatabase::SaveJsonAsset(const Core::Guid& guid, const Serialization::JsonValue& content)
     {
-        return WriteSourceFile(guid, Serialization::WriteJson(content, true));
+        return WriteSourceFile(guid, Serialization::WriteJson(content, Serialization::JsonFormat::Pretty));
     }
 
     bool AssetDatabase::WriteSourceFile(const Core::Guid& guid, const std::string& content)

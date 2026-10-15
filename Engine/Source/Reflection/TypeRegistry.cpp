@@ -111,12 +111,12 @@ namespace BrightBox3D::Reflection
         return result;
     }
 
-    std::vector<const TypeInfo*> TypeRegistry::GetDerived(const TypeInfo& base, bool includeAbstract)
+    std::vector<const TypeInfo*> TypeRegistry::GetDerived(const TypeInfo& base, AbstractTypes abstractTypes)
     {
         std::vector<const TypeInfo*> result;
         for (const TypeInfo* type : GetAll())
         {
-            if (type->IsA(base) && (includeAbstract || !type->IsAbstract()))
+            if (type->IsA(base) && (abstractTypes == AbstractTypes::Include || !type->IsAbstract()))
             {
                 result.push_back(type);
             }

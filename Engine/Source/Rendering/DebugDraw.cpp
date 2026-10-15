@@ -11,7 +11,7 @@ namespace BrightBox3D::Rendering
             LineVertex from;
             LineVertex to;
             float remaining = 0.0f;
-            bool depthTest = true;
+            DepthTest depthTest = DepthTest::On;
         };
 
         std::vector<TimedLine>& TimedLines()
@@ -33,7 +33,7 @@ namespace BrightBox3D::Rendering
         return lines;
     }
 
-    void DebugDraw::Line(const Math::Vector3& from, const Math::Vector3& to, const Math::Color& color, float duration, bool depthTest)
+    void DebugDraw::Line(const Math::Vector3& from, const Math::Vector3& to, const Math::Color& color, float duration, DepthTest depthTest)
     {
         uint32_t packed = color.ToRgba8();
         if (duration > 0.0f)
@@ -41,7 +41,7 @@ namespace BrightBox3D::Rendering
             TimedLines().push_back({ { from, packed }, { to, packed }, duration, depthTest });
             return;
         }
-        auto& target = depthTest ? DepthTested() : Overlay();
+        auto& target = depthTest == DepthTest::On ? DepthTested() : Overlay();
         target.push_back({ from, packed });
         target.push_back({ to, packed });
     }
@@ -65,7 +65,7 @@ namespace BrightBox3D::Rendering
         }
     }
 
-    void DebugDraw::WireBox(const Math::Matrix4& transform, const Math::Vector3& extents, const Math::Color& color, float duration, bool depthTest)
+    void DebugDraw::WireBox(const Math::Matrix4& transform, const Math::Vector3& extents, const Math::Color& color, float duration, DepthTest depthTest)
     {
         Math::Vector3 corners[8];
         for (int i = 0; i < 8; ++i)
@@ -79,7 +79,7 @@ namespace BrightBox3D::Rendering
         }
     }
 
-    void DebugDraw::Circle(const Math::Vector3& center, const Math::Vector3& normal, float radius, const Math::Color& color, int segments, bool depthTest)
+    void DebugDraw::Circle(const Math::Vector3& center, const Math::Vector3& normal, float radius, const Math::Color& color, int segments, DepthTest depthTest)
     {
         Math::Vector3 axis = std::abs(normal.y) < 0.99f ? Math::Vector3::Up() : Math::Vector3::Right();
         Math::Vector3 u = Math::Vector3::Cross(axis, normal).Normalized();
@@ -101,7 +101,7 @@ namespace BrightBox3D::Rendering
         Circle(center, Math::Vector3::Forward(), radius, color);
     }
 
-    void DebugDraw::Cone(const Math::Vector3& apex, const Math::Vector3& direction, float length, float angleDegrees, const Math::Color& color, bool depthTest)
+    void DebugDraw::Cone(const Math::Vector3& apex, const Math::Vector3& direction, float length, float angleDegrees, const Math::Color& color, DepthTest depthTest)
     {
         Math::Vector3 forward = direction.Normalized();
         float radius = std::tan(angleDegrees * Math::DegreesToRadians) * length;
@@ -116,7 +116,7 @@ namespace BrightBox3D::Rendering
         Line(apex, center - v * radius, color, 0.0f, depthTest);
     }
 
-    void DebugDraw::Frustum(const Math::Matrix4& inverseViewProjection, const Math::Color& color, bool depthTest)
+    void DebugDraw::Frustum(const Math::Matrix4& inverseViewProjection, const Math::Color& color, DepthTest depthTest)
     {
         Math::Vector3 corners[8];
         for (int i = 0; i < 8; ++i)
@@ -135,7 +135,7 @@ namespace BrightBox3D::Rendering
         auto& timed = TimedLines();
         for (TimedLine& line : timed)
         {
-            auto& target = line.depthTest ? DepthTested() : Overlay();
+            auto& target = line.depthTest == DepthTest::On ? DepthTested() : Overlay();
             target.push_back(line.from);
             target.push_back(line.to);
             line.remaining -= deltaTime;

@@ -9,6 +9,12 @@
 
 namespace BrightBox3D::Reflection
 {
+    enum class AbstractTypes
+    {
+        Exclude,
+        Include
+    };
+
     class TypeRegistry
     {
     public:
@@ -20,7 +26,7 @@ namespace BrightBox3D::Reflection
         static const TypeInfo* Find(const std::string& name);
         static const EnumInfo* FindEnum(const std::string& name);
         static std::vector<const TypeInfo*> GetAll();
-        static std::vector<const TypeInfo*> GetDerived(const TypeInfo& base, bool includeAbstract = false);
+        static std::vector<const TypeInfo*> GetDerived(const TypeInfo& base, AbstractTypes abstractTypes = AbstractTypes::Exclude);
         static std::vector<const TypeInfo*> GetFromModule(const std::string& moduleName);
         static uint64_t Revision();
 

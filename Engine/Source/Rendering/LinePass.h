@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Rendering/DebugDraw.h"
 #include "Rendering/RenderPass.h"
 
 namespace BrightBox3D::Rendering
@@ -15,7 +16,7 @@ namespace BrightBox3D::Rendering
         void Execute(FrameContext& frame) override;
 
     private:
-        RHI::Pipeline* GetLinePipeline(RHI::Format format, bool depthTest);
-        void DrawLines(RHI::CommandList& commands, const std::vector<LineVertex>& lines, RHI::Format format, bool depthTest, float gridFade);
+        RHI::Pipeline* GetLinePipeline(RHI::Format format, DepthTest depthTest);
+        void DrawLines(RHI::CommandList& commands, const std::vector<LineVertex>& lines, RHI::Format format, DepthTest depthTest, float gridFade);
     };
 }
