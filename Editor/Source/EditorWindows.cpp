@@ -52,6 +52,18 @@ namespace BrightBox3D::Editor
         return Identity(GetWindowInfo(window));
     }
 
+    std::optional<EditorWindow> FindWindowById(std::string_view id)
+    {
+        for (size_t index = 0; index < std::size(WindowInfos); ++index)
+        {
+            if (id == WindowInfos[index].id)
+            {
+                return static_cast<EditorWindow>(index);
+            }
+        }
+        return std::nullopt;
+    }
+
     void MigrateEditorLayout(const std::filesystem::path& path)
     {
         std::optional<std::string> text = Core::FileSystem::ReadText(path);

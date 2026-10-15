@@ -247,6 +247,8 @@ namespace BrightBox3D::Editor
         NewAssetsPanel,
         NewTerminalPanel,
         FloatingPanelHint,
+        AddTab,
+        UnknownPanel,
         OpenLogSourceTooltip,
         Copy,
         ProjectName,

@@ -245,6 +245,8 @@ namespace BrightBox3D::Editor
             { "NewAssetsPanel", "New Assets", 0 },
             { "NewTerminalPanel", "New Terminal", 0 },
             { "FloatingPanelHint", "Opens a floating panel", 0 },
+            { "AddTab", "Add tab", 0 },
+            { "UnknownPanel", "Unknown panel '{}'", 1 },
             { "OpenLogSourceTooltip", "Double-click to open {}:{}", 2 },
             { "Copy", "Copy", 0 },
             { "ProjectName", "Project: {}", 1 },

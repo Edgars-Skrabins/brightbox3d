@@ -9,6 +9,7 @@
 #include "Core/Process.h"
 #include "CreateMenuRegistry.h"
 #include "DockLayout.h"
+#include "DockTabButtons.h"
 #include "EditorCommandLine.h"
 #include "EditorCommands.h"
 #include "EditorCreateMenu.h"
@@ -41,6 +42,7 @@
 #include "Thumbnails.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <ImGuizmo.h>
 
 #include <span>
@@ -251,6 +253,36 @@ namespace BrightBox3D::Editor
             break;
         }
         return *m_panels.back();
+    }
+
+    void EditorApplication::AddPanelToDock(EditorWindow type, ImGuiID node)
+    {
+        EditorPanel& panel = CreatePanel(type);
+        ImGui::DockBuilderDockWindow(panel.GetWindowName().c_str(), node);
+        panel.RequestFocus();
+    }
+
+    void EditorApplication::AddCommandLinePanel()
+    {
+        if (m_options.addPanel.empty())
+        {
+            return;
+        }
+        std::optional<EditorWindow> type = FindWindowById(m_options.addPanel);
+        if (!type)
+        {
+            Core::Log::Error(Text(EditorText::UnknownPanel, m_options.addPanel));
+            m_options.addPanel.clear();
+            return;
+        }
+        EditorPanel* first = FindPanel<EditorPanel>(*type);
+        ImGuiWindow* window = first ? ImGui::FindWindowByName(first->GetWindowName().c_str()) : nullptr;
+        if (!window || window->DockId == 0)
+        {
+            return;
+        }
+        AddPanelToDock(*type, window->DockId);
+        m_options.addPanel.clear();
     }
 
     void EditorApplication::SubscribeWindowEvents()
@@ -555,6 +587,8 @@ namespace BrightBox3D::Editor
         }
         ImGui::DockSpace(dockspace, ImVec2(0, 0), ImGuiDockNodeFlags_None);
         ImGui::End();
+        AddCommandLinePanel();
+        DockTabButtons::Draw(*this);
 
         ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - statusHeight));
         ImGui::SetNextWindowSize(ImVec2(viewport->WorkSize.x, statusHeight));

@@ -17,6 +17,7 @@ namespace BrightBox3D::Editor
         bool build = false;
         bool play = false;
         std::filesystem::path createProject;
+        std::string addPanel;
     };
 
     inline const Core::CommandLineOption<EditorOptions> EditorCommandLine[] = {
@@ -28,5 +29,6 @@ namespace BrightBox3D::Editor
         { "--build", &EditorOptions::build },
         { "--play", &EditorOptions::play },
         { "--create-project", &EditorOptions::createProject },
+        { "--add-panel", &EditorOptions::addPanel },
     };
 }

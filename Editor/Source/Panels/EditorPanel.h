@@ -23,6 +23,7 @@ namespace BrightBox3D::Editor
         int GetInstanceIndex() const { return m_instanceIndex; }
         bool IsOpen() const { return m_open; }
         void Close() { m_open = false; }
+        void RequestFocus() { m_focusRequested = true; }
         std::string GetWindowName() const;
 
     protected:
@@ -32,5 +33,6 @@ namespace BrightBox3D::Editor
         EditorWindow m_type;
         int m_instanceIndex = 1;
         bool m_open = true;
+        bool m_focusRequested = false;
     };
 }

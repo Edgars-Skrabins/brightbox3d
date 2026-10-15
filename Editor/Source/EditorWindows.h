@@ -4,7 +4,9 @@
 #include "IconGlyphs.h"
 
 #include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace BrightBox3D::Editor
 {
@@ -31,5 +33,6 @@ namespace BrightBox3D::Editor
     const EditorWindowInfo& GetWindowInfo(EditorWindow window);
     std::string WindowTitle(EditorWindow window);
     std::string WindowIdentity(EditorWindow window);
+    std::optional<EditorWindow> FindWindowById(std::string_view id);
     void MigrateEditorLayout(const std::filesystem::path& path);
 }

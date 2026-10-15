@@ -63,6 +63,7 @@ namespace BrightBox3D::Editor
         Math::Vector3 GetSpawnPoint();
         void SetActivePanel(const EditorPanel& panel);
         EditorPanel& CreatePanel(EditorWindow type);
+        void AddPanelToDock(EditorWindow type, ImGuiID node);
 
         void RequestRender(const ViewRenderRequest& request) { m_renderRequests.push_back(request); }
         void RequestPlay();
@@ -81,6 +82,7 @@ namespace BrightBox3D::Editor
         bool CreateWindowAndDevice();
         void InitializeImGui();
         void CreatePanels();
+        void AddCommandLinePanel();
         int NextInstanceIndex(EditorWindow type) const;
 
         template <typename T>

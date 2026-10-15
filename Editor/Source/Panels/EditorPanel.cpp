@@ -3,6 +3,8 @@
 #include "EditorText.h"
 #include "Theme.h"
 
+#include <imgui_internal.h>
+
 #include <string>
 
 namespace BrightBox3D::Editor
@@ -20,6 +22,14 @@ namespace BrightBox3D::Editor
     bool EditorPanel::BeginWindow(ImGuiWindowFlags flags)
     {
         ImGui::SetNextWindowSize(ImVec2(ScaledMetric(EditorMetric::FloatingPanelWidth), ScaledMetric(EditorMetric::FloatingPanelHeight)), ImGuiCond_FirstUseEver);
+        if (m_focusRequested)
+        {
+            m_focusRequested = false;
+            ImGui::SetNextWindowFocus();
+        }
+        ImGuiWindowClass windowClass;
+        windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoCloseButton;
+        ImGui::SetNextWindowClass(&windowClass);
         return ImGui::Begin(GetWindowName().c_str(), &m_open, flags);
     }
 }
