@@ -15,6 +15,8 @@ namespace BrightBox3D::Editor::AssetsToolbar
 {
     namespace
     {
+        constexpr const char* CreateAssetPopupId = "CreateAsset";
+        constexpr const char* PanelMenuPopupId = "AssetsPanelMenu";
         constexpr float MinSearchWidth = 160.0f;
     }
 
@@ -22,9 +24,9 @@ namespace BrightBox3D::Editor::AssetsToolbar
     {
         if (ImGui::Button(Text(EditorText::CreateAssetButton)))
         {
-            ImGui::OpenPopup("CreateAsset");
+            ImGui::OpenPopup(CreateAssetPopupId);
         }
-        if (ImGui::BeginPopup("CreateAsset"))
+        if (ImGui::BeginPopup(CreateAssetPopupId))
         {
             AssetsContextMenu::DrawCreateMenu(application, folder);
             ImGui::EndPopup();
@@ -42,9 +44,9 @@ namespace BrightBox3D::Editor::AssetsToolbar
     {
         if (IconButton(Icon::EllipsisVertical, EditorText::AssetsPanelMenu))
         {
-            ImGui::OpenPopup("AssetsPanelMenu");
+            ImGui::OpenPopup(PanelMenuPopupId);
         }
-        if (ImGui::BeginPopup("AssetsPanelMenu"))
+        if (ImGui::BeginPopup(PanelMenuPopupId))
         {
             CommandMenuItem(CommandId::AssetsOneColumnLayout);
             CommandMenuItem(CommandId::AssetsTwoColumnLayout);

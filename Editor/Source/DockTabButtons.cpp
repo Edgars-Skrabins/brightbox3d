@@ -14,6 +14,7 @@ namespace BrightBox3D::Editor::DockTabButtons
 {
     namespace
     {
+        constexpr const char* AddPanelPopupId = "AddPanel";
         constexpr EditorWindow AddableWindows[] = { EditorWindow::LevelView, EditorWindow::LevelContents, EditorWindow::Inspector, EditorWindow::Assets, EditorWindow::Terminal };
         constexpr ImGuiWindowFlags OverlayFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
 
@@ -34,7 +35,7 @@ namespace BrightBox3D::Editor::DockTabButtons
 
         void DrawPopup(EditorApplication& application, ImGuiID node)
         {
-            if (!ImGui::BeginPopup("AddPanel"))
+            if (!ImGui::BeginPopup(AddPanelPopupId))
             {
                 return;
             }
@@ -70,7 +71,7 @@ namespace BrightBox3D::Editor::DockTabButtons
                 }
                 if (IconButton(Icon::Plus, EditorText::AddTab))
                 {
-                    ImGui::OpenPopup("AddPanel");
+                    ImGui::OpenPopup(AddPanelPopupId);
                 }
                 DrawPopup(application, node.ID);
             }

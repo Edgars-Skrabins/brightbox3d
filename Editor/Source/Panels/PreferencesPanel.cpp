@@ -15,6 +15,8 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
+        constexpr const char* ResetAllColorsPopupId = "ResetAllColors";
+
         std::string CommandNames(const std::vector<CommandId>& commands)
         {
             std::string names;
@@ -117,10 +119,10 @@ namespace BrightBox3D::Editor
         ImGui::BeginDisabled(!preferences.HasChanges());
         if (ImGui::Button(IconLabel(Icon::RotateCcw, EditorText::ResetAllColors).c_str()))
         {
-            ImGui::OpenPopup(LabelWithId(EditorText::ResetAllColorsQuestion, "ResetAllColors").c_str());
+            ImGui::OpenPopup(LabelWithId(EditorText::ResetAllColorsQuestion, ResetAllColorsPopupId).c_str());
         }
         ImGui::EndDisabled();
-        if (ImGui::BeginPopupModal(LabelWithId(EditorText::ResetAllColorsQuestion, "ResetAllColors").c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(LabelWithId(EditorText::ResetAllColorsQuestion, ResetAllColorsPopupId).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::TextUnformatted(Text(EditorText::ResetAllColorsWarning));
             ImGui::Spacing();

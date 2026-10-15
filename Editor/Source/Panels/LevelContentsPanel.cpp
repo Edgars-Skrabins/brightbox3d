@@ -14,6 +14,11 @@
 
 namespace BrightBox3D::Editor
 {
+    namespace
+    {
+        constexpr const char* CreatePopupId = "CreatePopup";
+    }
+
     LevelContentsPanel::LevelContentsPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::LevelContents, instanceIndex), m_application(application), m_tree(application)
     {
     }
@@ -30,9 +35,9 @@ namespace BrightBox3D::Editor
     {
         if (IconButton(Icon::Plus, Text(EditorText::CreateNamedType, TypeName<Level::LevelObject>())))
         {
-            ImGui::OpenPopup("CreatePopup");
+            ImGui::OpenPopup(CreatePopupId);
         }
-        if (ImGui::BeginPopup("CreatePopup"))
+        if (ImGui::BeginPopup(CreatePopupId))
         {
             LevelContentsContextMenu::DrawCreateMenu(m_application, nullptr);
             ImGui::EndPopup();

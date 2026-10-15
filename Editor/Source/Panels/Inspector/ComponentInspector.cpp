@@ -28,6 +28,8 @@ namespace BrightBox3D::Editor
 
     namespace
     {
+        constexpr const char* AddComponentPopupId = "AddComponentPopup";
+
         bool DrawTransformProperties(Level::Transform& transform, PropertyDrawOptions& options)
         {
             bool changed = false;
@@ -197,9 +199,9 @@ namespace BrightBox3D::Editor
         if (ImGui::Button(Text(EditorText::AddComponent), ImVec2(width, 0.0f)))
         {
             m_filter.clear();
-            ImGui::OpenPopup("AddComponentPopup");
+            ImGui::OpenPopup(AddComponentPopupId);
         }
-        if (!ImGui::BeginPopup("AddComponentPopup"))
+        if (!ImGui::BeginPopup(AddComponentPopupId))
         {
             return false;
         }
