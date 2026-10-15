@@ -4,6 +4,8 @@
 #include "Core/Hash.h"
 #include "Core/Process.h"
 #include "Core/StringUtils.h"
+#include "Platform/Shell.h"
+#include "Platform/ShellLaunch.h"
 
 #include <gtest/gtest.h>
 
@@ -174,6 +176,24 @@ TEST(ProcessTests, TerminateKillsTheWholeProcessTree)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     EXPECT_TRUE(childGone);
+    std::filesystem::remove_all(directory);
+}
+
+TEST(ShellTests, ShutdownStopsLaunchesThatAreStillRunning)
+{
+    auto directory = BrightBox3D::Tests::MakeTempDirectory("ShellLaunch");
+    auto marker = directory / "started";
+    BrightBox3D::Platform::Shell::Launch({ "sh", "-c", "touch \"" + marker.string() + "\"; sleep 30" });
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline && !std::filesystem::exists(marker))
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    ASSERT_TRUE(std::filesystem::exists(marker));
+
+    auto start = std::chrono::steady_clock::now();
+    BrightBox3D::Platform::Shell::Shutdown();
+    EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(3));
     std::filesystem::remove_all(directory);
 }
 #endif

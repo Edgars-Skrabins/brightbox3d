@@ -400,6 +400,7 @@ namespace BrightBox3D::Editor
         }
         m_fileChanges.Stop();
         m_context.GetProjectService().CloseProject();
+        Platform::Shell::Shutdown();
         m_hotReload.reset();
         m_playSession.reset();
         m_projectSettings.reset();
