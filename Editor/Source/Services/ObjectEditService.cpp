@@ -46,7 +46,7 @@ namespace BrightBox3D::Editor
 
     void ObjectEditService::Snapshot(const LevelObject& object, JsonDocument& document)
     {
-        LevelSerializer::WriteObject(object, document, document.GetAllocator(), true);
+        LevelSerializer::WriteObject(object, document, document.GetAllocator(), Level::LinkWriting::Preserve);
     }
 
     LevelObject* ObjectEditService::RestoreSnapshot(const JsonValue& snapshot, const Core::Guid& parentId, int collectionIndex, int siblingIndex)
@@ -63,7 +63,7 @@ namespace BrightBox3D::Editor
         }
         LevelObject* parent = parentId.IsValid() ? level->FindObject(parentId) : nullptr;
         LevelCollection* collection = m_context.GetLevelService().GetCollectionByIndex(collectionIndex);
-        LevelObject* restored = LevelSerializer::ReadObject(*level, collection, parent, snapshot, true);
+        LevelObject* restored = LevelSerializer::ReadObject(*level, collection, parent, snapshot, Level::Initialization::Immediate);
         if (restored)
         {
             restored->SetSiblingIndex(siblingIndex);
@@ -252,7 +252,7 @@ namespace BrightBox3D::Editor
             }
             JsonDocument snapshot;
             Snapshot(*object, snapshot);
-            LevelObject* copy = LevelSerializer::InstantiateNode(*level, snapshot, object->GetCollection(), object->GetParent(), true);
+            LevelObject* copy = LevelSerializer::InstantiateNode(*level, snapshot, object->GetCollection(), object->GetParent(), Level::Initialization::Immediate);
             if (copy)
             {
                 copy->SetName(object->GetName());
@@ -284,11 +284,11 @@ namespace BrightBox3D::Editor
         m_context.GetLevelService().MarkDirty(object);
         if (parent)
         {
-            object.SetParent(parent, true, siblingIndex);
+            object.SetParent(parent, Level::ParentTransform::KeepWorld, siblingIndex);
         }
         else
         {
-            object.SetParent(nullptr, true);
+            object.SetParent(nullptr, Level::ParentTransform::KeepWorld);
             m_context.GetLevelService().GetActiveLevel()->SetRootCollection(object, collection ? collection : object.GetCollection(), siblingIndex);
         }
         m_context.GetLevelService().MarkDirty(object);

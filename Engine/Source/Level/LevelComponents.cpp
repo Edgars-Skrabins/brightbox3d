@@ -12,7 +12,7 @@ namespace BrightBox3D::Level
         component.OnGameLoad();
     }
 
-    void Level::ApplyEnabledState(LevelObject& object, bool notify)
+    void Level::ApplyEnabledState(LevelObject& object, EnabledNotification notification)
     {
         bool objectEnabled = object.IsActiveInHierarchy() && !object.m_engineState.isPendingDestroy;
         if (objectEnabled && !object.m_engineState.hasLoaded && m_isPlaying)
@@ -23,7 +23,7 @@ namespace BrightBox3D::Level
         if (objectEnabled != object.m_engineState.isEnabledState)
         {
             object.m_engineState.isEnabledState = objectEnabled;
-            if (notify && m_isPlaying)
+            if (notification == EnabledNotification::Notify && m_isPlaying)
             {
                 if (objectEnabled)
                 {
@@ -46,7 +46,7 @@ namespace BrightBox3D::Level
             if (componentEnabled != component.m_engineState.isEnabledState)
             {
                 component.m_engineState.isEnabledState = componentEnabled;
-                if (notify && m_isPlaying)
+                if (notification == EnabledNotification::Notify && m_isPlaying)
                 {
                     if (componentEnabled)
                     {
@@ -63,7 +63,7 @@ namespace BrightBox3D::Level
 
     void Level::RefreshEnabledState(LevelObject& object)
     {
-        ApplyEnabledState(object, true);
+        ApplyEnabledState(object, EnabledNotification::Notify);
         std::vector<LevelObject*> children = object.m_children;
         for (LevelObject* child : children)
         {
@@ -80,7 +80,7 @@ namespace BrightBox3D::Level
         component.OnInitialize();
         if (m_isPlaying && component.m_owner)
         {
-            ApplyEnabledState(*component.m_owner, true);
+            ApplyEnabledState(*component.m_owner, EnabledNotification::Notify);
         }
     }
 

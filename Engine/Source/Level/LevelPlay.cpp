@@ -99,18 +99,18 @@ namespace BrightBox3D::Level
             FlushDestroyed();
             return;
         }
-        Tick(deltaTime, false);
+        Tick(deltaTime, TickMode::Running);
     }
 
     void Level::Step(float deltaTime)
     {
         if (m_isPlaying)
         {
-            Tick(deltaTime, true);
+            Tick(deltaTime, TickMode::Stepping);
         }
     }
 
-    void Level::Tick(float deltaTime, bool stepping)
+    void Level::Tick(float deltaTime, TickMode mode)
     {
         deltaTime = std::clamp(deltaTime, 0.0f, MaxTickDeltaTime);
         m_unscaledDeltaTime = deltaTime;
@@ -122,7 +122,7 @@ namespace BrightBox3D::Level
         RunPendingStarts();
 
         m_fixedAccumulator += m_deltaTime;
-        if (stepping && m_fixedAccumulator < m_fixedDeltaTime)
+        if (mode == TickMode::Stepping && m_fixedAccumulator < m_fixedDeltaTime)
         {
             m_fixedAccumulator = m_fixedDeltaTime;
         }

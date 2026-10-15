@@ -33,6 +33,18 @@ namespace BrightBox3D::Level
         ComponentState component;
     };
 
+    enum class InactiveObjects
+    {
+        Skip,
+        Include
+    };
+
+    enum class Initialization
+    {
+        Immediate,
+        Deferred
+    };
+
     class Level
     {
     public:
@@ -69,8 +81,8 @@ namespace BrightBox3D::Level
         LevelCollection* GetDefaultCollection();
         const std::vector<std::unique_ptr<LevelCollection>>& GetCollections() const { return m_collections; }
 
-        LevelObject* CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection = nullptr, LevelObject* parent = nullptr, const Core::Guid& id = {}, bool initialize = true);
-        LevelObject* AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, bool initialize);
+        LevelObject* CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection = nullptr, LevelObject* parent = nullptr, const Core::Guid& id = {}, Initialization initialization = Initialization::Immediate);
+        LevelObject* AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, Initialization initialization);
         void InitializeObject(LevelObject& object);
         void InitializeHierarchy(LevelObject& root);
 
@@ -117,12 +129,12 @@ namespace BrightBox3D::Level
         }
 
         template <typename T>
-        std::vector<T*> FindComponentsOfType(bool includeInactive = false) const
+        std::vector<T*> FindComponentsOfType(InactiveObjects inactive = InactiveObjects::Skip) const
         {
             std::vector<T*> result;
             for (const auto& object : m_objects)
             {
-                if (object->IsPendingDestroy() || (!includeInactive && !object->IsActiveInHierarchy()))
+                if (object->IsPendingDestroy() || (inactive == InactiveObjects::Skip && !object->IsActiveInHierarchy()))
                 {
                     continue;
                 }
@@ -134,7 +146,7 @@ namespace BrightBox3D::Level
                 {
                     for (const auto& component : object->GetComponents())
                     {
-                        if (component->IsA(T::StaticType()) && !component->IsPendingDestroy() && (includeInactive || component->IsEnabled()))
+                        if (component->IsA(T::StaticType()) && !component->IsPendingDestroy() && (inactive == InactiveObjects::Include || component->IsEnabled()))
                         {
                             result.push_back(static_cast<T*>(component.get()));
                         }
@@ -240,14 +252,32 @@ namespace BrightBox3D::Level
         void SetUserData(void* userData) { m_userData = userData; }
 
     private:
+        enum class EnabledNotification
+        {
+            Notify,
+            Silent
+        };
+
+        enum class DestroyCallbacks
+        {
+            Call,
+            Skip
+        };
+
+        enum class TickMode
+        {
+            Running,
+            Stepping
+        };
+
         void ActivateForPlay(LevelObject& object);
-        void ApplyEnabledState(LevelObject& object, bool notify);
+        void ApplyEnabledState(LevelObject& object, EnabledNotification notification);
         void LoadComponent(LevelObjectComponent& component);
         void RunPendingStarts();
         void FlushDestroyed();
-        void DestroyRecursive(LevelObject& object, bool callLifecycle, std::vector<LevelObject*>& order);
+        void DestroyRecursive(LevelObject& object, DestroyCallbacks callbacks, std::vector<LevelObject*>& order);
         void FinalizeDestroy(const std::vector<LevelObject*>& order);
-        void Tick(float deltaTime, bool stepping);
+        void Tick(float deltaTime, TickMode mode);
         void DispatchUpdate(void (Reflection::EngineObject::*callback)(float), float deltaTime);
         void LoadEngineObject(Reflection::EngineObject& object);
         static bool IsUpdatable(const Reflection::EngineObject& object);

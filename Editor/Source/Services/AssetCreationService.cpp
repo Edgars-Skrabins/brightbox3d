@@ -86,7 +86,7 @@ namespace BrightBox3D::Editor
         linked.AddMember(Level::LevelFileSchema::LevelObjectAsset, Serialization::MakeString(templateAsset.ToString(), linked.GetAllocator()), linked.GetAllocator());
         linked.AddMember(Level::LevelFileSchema::Overrides, JsonValue(rapidjson::kArrayType), linked.GetAllocator());
         Level::Level scratch;
-        LevelObject* variant = LevelSerializer::ReadObject(scratch, nullptr, nullptr, linked, false);
+        LevelObject* variant = LevelSerializer::ReadObject(scratch, nullptr, nullptr, linked, Level::Initialization::Deferred);
         if (!variant)
         {
             return {};

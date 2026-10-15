@@ -97,7 +97,7 @@ namespace BrightBox3D::Level
             LevelCollection* collection = linkRoot.GetCollection();
             int sibling = linkRoot.GetSiblingIndex();
             level->DestroyObjectImmediate(&linkRoot);
-            LevelObject* restored = LevelSerializer::ReadObject(*level, collection, parent, document, true);
+            LevelObject* restored = LevelSerializer::ReadObject(*level, collection, parent, document, Initialization::Immediate);
             if (restored)
             {
                 restored->SetSiblingIndex(sibling);
@@ -305,7 +305,7 @@ namespace BrightBox3D::Level
         for (auto& entry : pending)
         {
             LevelObject* parent = entry->parentId.IsValid() ? level.FindObject(entry->parentId) : nullptr;
-            if (LevelObject* restored = ReadObject(level, entry->collection, parent, entry->document, true))
+            if (LevelObject* restored = ReadObject(level, entry->collection, parent, entry->document, Initialization::Immediate))
             {
                 restored->SetSiblingIndex(entry->sibling);
             }

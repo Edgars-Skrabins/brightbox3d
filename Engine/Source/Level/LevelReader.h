@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Level/Level.h"
 #include "Level/LevelObjectLinking.h"
+#include "Level/LevelSerializationOptions.h"
 #include "Serialization/Json.h"
 
 #include <memory>
@@ -29,7 +31,7 @@ namespace BrightBox3D::Level::LevelReader
     };
 
     LevelObject* ReadNode(Level& level, LevelCollection* collection, LevelObject* parent, const Serialization::JsonValue& node, ReadContext& context, bool isAssetRoot);
-    const Serialization::JsonValue* FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, bool allowTemplate);
-    LevelObject* InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, bool initialize, bool allowTemplate);
+    const Serialization::JsonValue* FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates);
+    LevelObject* InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization, TemplateAccess templates);
     void TagForEditing(LevelObject& node);
 }

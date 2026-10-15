@@ -51,7 +51,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelObject::SetParent(LevelObject* parent, bool keepWorldTransform, int siblingIndex)
+    void LevelObject::SetParent(LevelObject* parent, ParentTransform mode, int siblingIndex)
     {
         if (parent == this || (parent && parent->IsDescendantOf(this)))
         {
@@ -98,7 +98,7 @@ namespace BrightBox3D::Level
             m_collection->AddRoot(this, siblingIndex);
         }
 
-        if (keepWorldTransform)
+        if (mode == ParentTransform::KeepWorld)
         {
             m_transform.SetWorldMatrix(world);
         }
@@ -175,7 +175,7 @@ namespace BrightBox3D::Level
         return object;
     }
 
-    LevelObject* LevelObject::FindChild(const std::string& name, bool recursive) const
+    LevelObject* LevelObject::FindChild(const std::string& name, ChildSearch search) const
     {
         for (LevelObject* child : m_children)
         {
@@ -184,11 +184,11 @@ namespace BrightBox3D::Level
                 return child;
             }
         }
-        if (recursive)
+        if (search == ChildSearch::Recursive)
         {
             for (LevelObject* child : m_children)
             {
-                if (LevelObject* found = child->FindChild(name, true))
+                if (LevelObject* found = child->FindChild(name, ChildSearch::Recursive))
                 {
                     return found;
                 }

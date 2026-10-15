@@ -27,7 +27,7 @@ namespace BrightBox3D::Level
         }
         Entry entry;
         entry.level = std::make_unique<Level>(PrototypeLevelName);
-        entry.root = LevelReader::InstantiateAsset(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), false, true);
+        entry.root = LevelReader::InstantiateAsset(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), Initialization::Deferred, TemplateAccess::Allow);
         if (!entry.root)
         {
             return nullptr;

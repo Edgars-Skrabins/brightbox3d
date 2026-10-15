@@ -65,7 +65,7 @@ namespace
         linked.SetObject();
         linked.AddMember("levelObject", Serialization::MakeString(parent.ToString(), linked.GetAllocator()), linked.GetAllocator());
         RuntimeLevel scratch;
-        auto* variant = static_cast<TestPlayer*>(LevelSerializer::ReadObject(scratch, nullptr, nullptr, linked, false));
+        auto* variant = static_cast<TestPlayer*>(LevelSerializer::ReadObject(scratch, nullptr, nullptr, linked, Level::Initialization::Deferred));
         if (!variant)
         {
             return {};

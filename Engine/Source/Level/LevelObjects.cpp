@@ -8,7 +8,7 @@
 
 namespace BrightBox3D::Level
 {
-    LevelObject* Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObject* parent, const Core::Guid& id, bool initialize)
+    LevelObject* Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObject* parent, const Core::Guid& id, Initialization initialization)
     {
         if (!type.IsA(LevelObject::StaticType()))
         {
@@ -27,10 +27,10 @@ namespace BrightBox3D::Level
             object->m_state.id = id;
         }
         object->m_state.name = type.GetName();
-        return AdoptObject(std::move(object), collection, parent, initialize);
+        return AdoptObject(std::move(object), collection, parent, initialization);
     }
 
-    LevelObject* Level::AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, bool initialize)
+    LevelObject* Level::AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, Initialization initialization)
     {
         if (m_index.count(object->GetId()))
         {
@@ -78,7 +78,7 @@ namespace BrightBox3D::Level
 
         MarkHierarchyChanged();
         OnObjectCreated.Broadcast(*raw);
-        if (initialize)
+        if (initialization == Initialization::Immediate)
         {
             InitializeObject(*raw);
         }
@@ -113,7 +113,7 @@ namespace BrightBox3D::Level
         {
             LoadComponent(*object.m_components[i]);
         }
-        ApplyEnabledState(object, true);
+        ApplyEnabledState(object, EnabledNotification::Notify);
     }
 
     void Level::DestroyObject(LevelObject* object)
@@ -139,15 +139,15 @@ namespace BrightBox3D::Level
         m_pendingDestroy.push_back(object);
     }
 
-    void Level::DestroyRecursive(LevelObject& object, bool callLifecycle, std::vector<LevelObject*>& order)
+    void Level::DestroyRecursive(LevelObject& object, DestroyCallbacks callbacks, std::vector<LevelObject*>& order)
     {
         object.m_engineState.isPendingDestroy = true;
         std::vector<LevelObject*> children = object.m_children;
         for (LevelObject* child : children)
         {
-            DestroyRecursive(*child, callLifecycle, order);
+            DestroyRecursive(*child, callbacks, order);
         }
-        if (callLifecycle)
+        if (callbacks == DestroyCallbacks::Call)
         {
             for (const auto& component : object.m_components)
             {
@@ -213,7 +213,7 @@ namespace BrightBox3D::Level
             return;
         }
         std::vector<LevelObject*> order;
-        DestroyRecursive(*object, m_isPlaying, order);
+        DestroyRecursive(*object, m_isPlaying ? DestroyCallbacks::Call : DestroyCallbacks::Skip, order);
         FinalizeDestroy(order);
     }
 
@@ -277,7 +277,7 @@ namespace BrightBox3D::Level
                 }
                 if (!nested)
                 {
-                    DestroyRecursive(*root, true, order);
+                    DestroyRecursive(*root, DestroyCallbacks::Call, order);
                 }
             }
             FinalizeDestroy(order);
@@ -326,7 +326,7 @@ namespace BrightBox3D::Level
     LevelObject* Level::Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent)
     {
         LevelCollection* collection = parent ? parent->GetCollection() : (m_isPlaying ? GetRuntimeCollection() : GetDefaultCollection());
-        LevelObject* object = LevelSerializer::Instantiate(*this, variant.guid, collection, parent, {}, false);
+        LevelObject* object = LevelSerializer::Instantiate(*this, variant.guid, collection, parent, {}, Initialization::Deferred);
         if (!object)
         {
             return nullptr;

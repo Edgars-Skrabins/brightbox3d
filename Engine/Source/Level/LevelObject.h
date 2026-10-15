@@ -34,6 +34,18 @@ namespace BrightBox3D::Level
         std::string missingTypeData;
     };
 
+    enum class ParentTransform
+    {
+        KeepWorld,
+        KeepLocal
+    };
+
+    enum class ChildSearch
+    {
+        Recursive,
+        DirectChildren
+    };
+
     BrightClass(.icon = Icon::CircleDashed)
     class LevelObject : public Reflection::EngineObject
     {
@@ -58,12 +70,12 @@ namespace BrightBox3D::Level
 
         LevelObject* GetParent() const { return m_parent; }
         const std::vector<LevelObject*>& GetChildren() const { return m_children; }
-        void SetParent(LevelObject* parent, bool keepWorldTransform = true, int siblingIndex = -1);
+        void SetParent(LevelObject* parent, ParentTransform mode = ParentTransform::KeepWorld, int siblingIndex = -1);
         int GetSiblingIndex() const;
         void SetSiblingIndex(int index);
         bool IsDescendantOf(const LevelObject* ancestor) const;
         LevelObject* GetRoot();
-        LevelObject* FindChild(const std::string& name, bool recursive = true) const;
+        LevelObject* FindChild(const std::string& name, ChildSearch search = ChildSearch::Recursive) const;
 
         LevelCollection* GetCollection() const { return m_collection; }
 

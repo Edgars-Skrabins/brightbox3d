@@ -81,11 +81,11 @@ namespace BrightBox3D::Editor
         Level::LevelObject* parent = location.parent.IsValid() ? level->FindObject(location.parent) : nullptr;
         if (parent)
         {
-            object->SetParent(parent, true, location.sibling);
+            object->SetParent(parent, Level::ParentTransform::KeepWorld, location.sibling);
         }
         else
         {
-            object->SetParent(nullptr, true);
+            object->SetParent(nullptr, Level::ParentTransform::KeepWorld);
             level->SetRootCollection(*object, levels.GetCollectionByIndex(location.collection), location.sibling);
         }
         levels.MarkDirty(*object);

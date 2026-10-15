@@ -69,7 +69,7 @@ namespace BrightBox3D::Level
                     continue;
                 }
                 JsonValue node;
-                LevelWriter::WriteNode(*child, node, allocator, true, false);
+                LevelWriter::WriteNode(*child, node, allocator, LinkWriting::Preserve, NodeWriting::Level);
                 node.AddMember(LevelFileSchema::AttachTo, MakeString(attachTo->GetLink().sourceId.ToString(), allocator), allocator);
                 children.PushBack(node, allocator);
             }
@@ -112,7 +112,7 @@ namespace BrightBox3D::Level
             return components;
         }
 
-        JsonValue WriteChildren(const LevelObject& object, JsonAllocator& allocator, bool preserveLinks, bool assetMode)
+        JsonValue WriteChildren(const LevelObject& object, JsonAllocator& allocator, LinkWriting links, NodeWriting nodes)
         {
             JsonValue children(rapidjson::kArrayType);
             for (const LevelObject* child : object.GetChildren())
@@ -122,7 +122,7 @@ namespace BrightBox3D::Level
                     continue;
                 }
                 JsonValue node;
-                LevelWriter::WriteNode(*child, node, allocator, preserveLinks && !assetMode, assetMode);
+                LevelWriter::WriteNode(*child, node, allocator, nodes == NodeWriting::Asset ? LinkWriting::Flatten : links, nodes);
                 children.PushBack(node, allocator);
             }
             return children;
@@ -143,33 +143,33 @@ namespace BrightBox3D::Level
         out.AddMember(LevelFileSchema::Children, WriteForeignChildren(root, allocator), allocator);
     }
 
-    void LevelWriter::WriteNode(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks, bool assetMode)
+    void LevelWriter::WriteNode(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, LinkWriting links, NodeWriting nodes)
     {
         if (object.GetMissingTypeName() == LevelFileSchema::MissingLevelObjectType)
         {
             WriteRawJson(object.GetMissingTypeData(), out, allocator);
             return;
         }
-        if (preserveLinks && !assetMode && object.GetLink().isRoot && object.GetLink().asset.IsValid())
+        if (links == LinkWriting::Preserve && nodes == NodeWriting::Level && object.GetLink().isRoot && object.GetLink().asset.IsValid())
         {
             WriteLinkedNode(object, out, allocator);
             return;
         }
         out.SetObject();
-        Core::Guid id = assetMode && object.GetLink().sourceId.IsValid() ? object.GetLink().sourceId : object.GetId();
+        Core::Guid id = nodes == NodeWriting::Asset && object.GetLink().sourceId.IsValid() ? object.GetLink().sourceId : object.GetId();
         WriteObjectFields(object, id, out, allocator);
         out.AddMember(LevelFileSchema::Components, WriteComponents(object, allocator), allocator);
-        out.AddMember(LevelFileSchema::Children, WriteChildren(object, allocator, preserveLinks, assetMode), allocator);
+        out.AddMember(LevelFileSchema::Children, WriteChildren(object, allocator, links, nodes), allocator);
     }
 
-    void LevelSerializer::WriteObject(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, bool preserveLinks)
+    void LevelSerializer::WriteObject(const LevelObject& object, JsonValue& out, JsonAllocator& allocator, LinkWriting links)
     {
-        LevelWriter::WriteNode(object, out, allocator, preserveLinks, false);
+        LevelWriter::WriteNode(object, out, allocator, links, NodeWriting::Level);
     }
 
     void LevelSerializer::WriteAssetNode(const LevelObject& root, JsonValue& out, JsonAllocator& allocator)
     {
-        LevelWriter::WriteNode(root, out, allocator, false, true);
+        LevelWriter::WriteNode(root, out, allocator, LinkWriting::Flatten, NodeWriting::Asset);
     }
 
     void LevelSerializer::MakeLevelObjectDocument(const LevelObject& root, JsonDocument& document, Assets::AssetType type)
@@ -210,7 +210,7 @@ namespace BrightBox3D::Level
                 continue;
             }
             JsonValue node;
-            LevelWriter::WriteNode(*root, node, allocator, true, false);
+            LevelWriter::WriteNode(*root, node, allocator, LinkWriting::Preserve, NodeWriting::Level);
             objects.PushBack(node, allocator);
         }
     }

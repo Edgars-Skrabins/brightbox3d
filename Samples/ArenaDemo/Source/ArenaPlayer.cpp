@@ -25,5 +25,5 @@ void ArenaPlayer::OnGameUpdate(float deltaTime)
     if (controller->IsKeyDown(Key::D)) input.x += 1.0f;
     if (controller->IsKeyDown(Key::A)) input.x -= 1.0f;
     GetTransform().SetRotation(BrightBox3D::Math::Quaternion::Euler(0.0f, controller->GetYaw(), 0.0f));
-    GetTransform().Translate(input.Normalized() * m_moveSpeed * deltaTime, false);
+    GetTransform().Translate(input.Normalized() * m_moveSpeed * deltaTime);
 }

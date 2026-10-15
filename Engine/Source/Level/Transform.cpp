@@ -105,15 +105,15 @@ namespace BrightBox3D::Level
         return GetRotation() * Math::Vector3::Up();
     }
 
-    void Transform::Translate(const Math::Vector3& offset, bool worldSpace)
+    void Transform::Translate(const Math::Vector3& offset, TransformSpace space)
     {
-        SetPosition(GetPosition() + (worldSpace ? offset : GetRotation() * offset));
+        SetPosition(GetPosition() + (space == TransformSpace::World ? offset : GetRotation() * offset));
     }
 
-    void Transform::Rotate(const Math::Vector3& eulerDegrees, bool worldSpace)
+    void Transform::Rotate(const Math::Vector3& eulerDegrees, TransformSpace space)
     {
         Math::Quaternion delta = Math::Quaternion::Euler(eulerDegrees);
-        if (worldSpace)
+        if (space == TransformSpace::World)
         {
             SetRotation(delta * GetRotation());
         }

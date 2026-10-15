@@ -114,12 +114,12 @@ TEST(LevelTests, TransformHierarchyComposesAndKeepsWorld)
     ExpectNear(child->GetTransform().GetPosition(), { 11.0f, 0.0f, 0.0f });
     ExpectNear(child->GetTransform().GetForward(), { 1.0f, 0.0f, 0.0f });
 
-    child->SetParent(nullptr, true);
+    child->SetParent(nullptr, Level::ParentTransform::KeepWorld);
     ExpectNear(child->GetTransform().GetPosition(), { 11.0f, 0.0f, 0.0f });
     ExpectNear(child->GetTransform().GetLocalPosition(), { 11.0f, 0.0f, 0.0f });
     EXPECT_EQ(level.GetDefaultCollection()->GetRoots().size(), 2u);
 
-    child->SetParent(parent, false);
+    child->SetParent(parent, Level::ParentTransform::KeepLocal);
     ExpectNear(child->GetTransform().GetPosition(), { 10.0f, 0.0f, -11.0f });
     EXPECT_TRUE(child->IsDescendantOf(parent));
     parent->SetParent(child);

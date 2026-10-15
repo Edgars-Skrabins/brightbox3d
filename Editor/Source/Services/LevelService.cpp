@@ -131,7 +131,7 @@ namespace BrightBox3D::Editor
         {
             return false;
         }
-        bool saved = Level::LevelSerializer::SaveLevel(*m_level, false);
+        bool saved = Level::LevelSerializer::SaveLevel(*m_level, Level::SaveScope::All);
         if (saved)
         {
             Core::Log::Info(Text(EditorText::SavedLevel, m_level->GetName()));

@@ -6,6 +6,12 @@
 
 namespace BrightBox3D::Level
 {
+    enum class TransformSpace
+    {
+        Local,
+        World
+    };
+
     BrightClass()
     class Transform : public LevelObjectComponent
     {
@@ -33,8 +39,8 @@ namespace BrightBox3D::Level
         Math::Vector3 GetRight() const;
         Math::Vector3 GetUp() const;
 
-        void Translate(const Math::Vector3& offset, bool worldSpace = false);
-        void Rotate(const Math::Vector3& eulerDegrees, bool worldSpace = false);
+        void Translate(const Math::Vector3& offset, TransformSpace space = TransformSpace::Local);
+        void Rotate(const Math::Vector3& eulerDegrees, TransformSpace space = TransformSpace::Local);
         void RotateAround(const Math::Vector3& point, const Math::Vector3& axis, float degrees);
         void LookAt(const Math::Vector3& target, const Math::Vector3& up = Math::Vector3::Up());
 

@@ -41,12 +41,12 @@ namespace BrightBox3D::Level
     LevelObject* LevelSerializer::OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset)
     {
         std::shared_ptr<Assets::Asset> holder;
-        const JsonValue* root = LevelReader::FindAssetRoot(asset, holder, true);
+        const JsonValue* root = LevelReader::FindAssetRoot(asset, holder, TemplateAccess::Allow);
         if (!root)
         {
             return nullptr;
         }
-        LevelObject* object = ReadObject(level, collection, nullptr, *root, false);
+        LevelObject* object = ReadObject(level, collection, nullptr, *root, Initialization::Deferred);
         if (object && !(object->GetLink().isRoot && object->GetLink().asset.IsValid()))
         {
             LevelReader::TagForEditing(*object);
@@ -95,12 +95,12 @@ namespace BrightBox3D::Level
         return saved;
     }
 
-    bool LevelSerializer::SaveLevel(Level& level, bool onlyDirty)
+    bool LevelSerializer::SaveLevel(Level& level, SaveScope scope)
     {
         bool success = true;
         for (const auto& collection : level.GetCollections())
         {
-            if (!onlyDirty || collection->IsDirty() || !collection->GetAsset().IsValid())
+            if (scope == SaveScope::All || collection->IsDirty() || !collection->GetAsset().IsValid())
             {
                 success = SaveCollection(*collection) && success;
             }
