@@ -109,9 +109,9 @@ namespace BrightBox3D::UI
         AddQuad(x, y, x + width, y + height, 0, 0, 1, 1, nullptr, color, DrawMode::Ring, std::min(radius, std::min(width, height) * 0.5f), thickness, 0.0f);
     }
 
-    void DrawList::AddImage(float x, float y, float width, float height, RHI::Texture* texture, bool srgb, const Math::Color& tint, float radius)
+    void DrawList::AddImage(float x, float y, float width, float height, RHI::Texture* texture, ImageEncoding encoding, const Math::Color& tint, float radius)
     {
-        AddQuad(x, y, x + width, y + height, 0, 0, 1, 1, texture, tint, srgb ? DrawMode::SrgbImage : DrawMode::LinearImage, std::min(radius, std::min(width, height) * 0.5f), 0.0f, 0.0f);
+        AddQuad(x, y, x + width, y + height, 0, 0, 1, 1, texture, tint, encoding == ImageEncoding::Srgb ? DrawMode::SrgbImage : DrawMode::LinearImage, std::min(radius, std::min(width, height) * 0.5f), 0.0f, 0.0f);
     }
 
     void DrawList::AddGlyph(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, RHI::Texture* texture, const Math::Color& color, float unitRangeX, float unitRangeY)

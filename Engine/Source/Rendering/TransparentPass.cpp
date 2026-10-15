@@ -19,8 +19,8 @@ namespace BrightBox3D::Rendering
         pass.debugName = "Transparent";
         commands.BeginRenderPass(pass);
         frame.lighting.Bind(commands, frame.viewConstants, m_resources);
-        RHI::Pipeline* back = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::Back, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
-        RHI::Pipeline* none = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::None, { SceneColorFormat }, DepthFormat, false, RHI::BlendState::Premultiplied());
+        RHI::Pipeline* back = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::Back, { SceneColorFormat }, DepthFormat, DepthWrite::Off, RHI::BlendState::Premultiplied());
+        RHI::Pipeline* none = GetMeshPipeline(ShaderProgram::Forward, RHI::CullMode::None, { SceneColorFormat }, DepthFormat, DepthWrite::Off, RHI::BlendState::Premultiplied());
         DrawItems(commands, frame.transparent, back, none);
         commands.EndRenderPass();
     }

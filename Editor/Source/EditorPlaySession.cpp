@@ -55,7 +55,7 @@ namespace BrightBox3D::Editor
                 m_window->SetCursorMode(Platform::CursorMode::Normal);
             }
         });
-        m_swapchain = m_application.GetDevice().CreateSwapchain(*m_window, true);
+        m_swapchain = m_application.GetDevice().CreateSwapchain(*m_window, RHI::PresentMode::VSync);
         Platform::Input::SetWindow(m_window.get());
         m_window->Focus();
         return true;

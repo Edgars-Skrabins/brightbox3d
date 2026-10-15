@@ -24,8 +24,8 @@ namespace BrightBox3D::Rendering
         pass.debugName = "GBuffer";
         commands.BeginRenderPass(pass);
         commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
-        RHI::Pipeline* back = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::Back, formats, DepthFormat, true, {});
-        RHI::Pipeline* none = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::None, formats, DepthFormat, true, {});
+        RHI::Pipeline* back = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::Back, formats, DepthFormat, DepthWrite::On, {});
+        RHI::Pipeline* none = GetMeshPipeline(ShaderProgram::GBuffer, RHI::CullMode::None, formats, DepthFormat, DepthWrite::On, {});
         DrawItems(commands, frame.opaque, back, none);
         commands.EndRenderPass();
     }

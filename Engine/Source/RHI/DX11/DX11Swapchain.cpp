@@ -6,7 +6,7 @@
 
 namespace BrightBox3D::RHI
 {
-    DX11Swapchain::DX11Swapchain(ID3D11Device* device, IDXGIFactory2* factory, Platform::Window& window, bool vsync) : m_device(device), m_window(window), m_vsync(vsync)
+    DX11Swapchain::DX11Swapchain(ID3D11Device* device, IDXGIFactory2* factory, Platform::Window& window, PresentMode presentMode) : m_device(device), m_window(window), m_vsync(presentMode == PresentMode::VSync)
     {
         Math::Vector2 size = window.GetFramebufferSize();
         m_width = std::max<uint32_t>(static_cast<uint32_t>(size.x), 1);

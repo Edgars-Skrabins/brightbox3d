@@ -65,7 +65,7 @@ namespace BrightBox3D::Rendering
         const RenderView& view = frame.view;
         PostConstants constants{};
         Store(constants.sourceSize, static_cast<float>(view.width), static_cast<float>(view.height), 1.0f / view.width, 1.0f / view.height);
-        FullscreenPass(frame.commands, frame.output, GetFullscreenPipeline(ShaderProgram::FXAA, frame.output->GetFormat()), "FXAA", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, frame.output, GetFullscreenPipeline(ShaderProgram::FXAA, frame.output->GetFormat()), "FXAA", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
             commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, constants);

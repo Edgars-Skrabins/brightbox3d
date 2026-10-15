@@ -56,7 +56,7 @@ namespace BrightBox3D::Rendering
     {
     }
 
-    RHI::Pipeline* RenderPass::GetMeshPipeline(ShaderProgram program, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip, int32_t depthBias, float slopeBias)
+    RHI::Pipeline* RenderPass::GetMeshPipeline(ShaderProgram program, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, DepthWrite depthWrite, const RHI::BlendState& blend, DepthClip depthClip, int32_t depthBias, float slopeBias)
     {
         PipelineKey key{ program, colors.empty() ? depth : colors.front(), cull, true };
         RHI::PipelineDesc desc;
@@ -64,11 +64,11 @@ namespace BrightBox3D::Rendering
         desc.pixelShader = m_shaders.Get(program, RHI::ShaderStage::Pixel);
         desc.vertexLayout = MeshLayout();
         desc.rasterizer.cullMode = cull;
-        desc.rasterizer.depthClip = depthClip;
+        desc.rasterizer.depthClip = depthClip == DepthClip::On;
         desc.rasterizer.depthBias = depthBias;
         desc.rasterizer.slopeScaledDepthBias = slopeBias;
         desc.depthStencil.depthTest = true;
-        desc.depthStencil.depthWrite = depthWrite;
+        desc.depthStencil.depthWrite = depthWrite == DepthWrite::On;
         desc.colorFormats = colors;
         desc.depthFormat = depth;
         for (size_t i = 0; i < colors.size(); ++i)
@@ -121,10 +121,10 @@ namespace BrightBox3D::Rendering
         }
     }
 
-    void RenderPass::FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load, const std::function<void(RHI::CommandList&)>& bind)
+    void RenderPass::FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, RHI::LoadAction load, const std::function<void(RHI::CommandList&)>& bind)
     {
         RHI::RenderPassDesc pass;
-        pass.colors.push_back({ target, 0, 0, load ? RHI::LoadAction::Load : RHI::LoadAction::DontCare });
+        pass.colors.push_back({ target, 0, 0, load });
         pass.debugName = name;
         commands.BeginRenderPass(pass);
         commands.SetPipeline(pipeline);

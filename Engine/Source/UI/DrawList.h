@@ -42,6 +42,12 @@ namespace BrightBox3D::UI
         uint32_t indexCount = 0;
     };
 
+    enum class ImageEncoding
+    {
+        Linear,
+        Srgb
+    };
+
     class DrawList
     {
     public:
@@ -50,7 +56,7 @@ namespace BrightBox3D::UI
         void PopClip();
         void AddRect(float x, float y, float width, float height, const Math::Color& color, float radius);
         void AddBorder(float x, float y, float width, float height, const Math::Color& color, float radius, float thickness);
-        void AddImage(float x, float y, float width, float height, RHI::Texture* texture, bool srgb, const Math::Color& tint, float radius);
+        void AddImage(float x, float y, float width, float height, RHI::Texture* texture, ImageEncoding encoding, const Math::Color& tint, float radius);
         void AddGlyph(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, RHI::Texture* texture, const Math::Color& color, float unitRangeX, float unitRangeY);
 
         const std::vector<UIVertex>& GetVertices() const { return m_vertices; }

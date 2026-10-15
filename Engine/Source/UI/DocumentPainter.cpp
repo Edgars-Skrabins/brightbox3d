@@ -97,7 +97,7 @@ namespace BrightBox3D::UI::DocumentPainter
             case ElementType::Image:
                 if (Rendering::GpuTexture* texture = context.resources.GetTexture(element.GetImage()))
                 {
-                    context.drawList.AddImage(box.x, box.y, box.width, box.height, texture->texture.get(), texture->texture->GetFormat() == RHI::Format::RGBA8Srgb, box.Faded(style.color), style.borderRadius);
+                    context.drawList.AddImage(box.x, box.y, box.width, box.height, texture->texture.get(), texture->texture->GetFormat() == RHI::Format::RGBA8Srgb ? ImageEncoding::Srgb : ImageEncoding::Linear, box.Faded(style.color), style.borderRadius);
                 }
                 break;
             default:

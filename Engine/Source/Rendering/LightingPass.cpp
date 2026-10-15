@@ -8,7 +8,7 @@ namespace BrightBox3D::Rendering
     void LightingPass::Execute(FrameContext& frame)
     {
         RenderTargets& targets = frame.targets;
-        FullscreenPass(frame.commands, targets.sceneColor.get(), GetFullscreenPipeline(ShaderProgram::DeferredLighting, SceneColorFormat), "DeferredLighting", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, targets.sceneColor.get(), GetFullscreenPipeline(ShaderProgram::DeferredLighting, SceneColorFormat), "DeferredLighting", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             frame.lighting.Bind(commands, frame.viewConstants, m_resources);
             commands.SetTexture(BRIGHT_SLOT_GBUFFER_ALBEDO, targets.albedo.get());

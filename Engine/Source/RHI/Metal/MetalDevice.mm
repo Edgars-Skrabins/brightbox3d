@@ -203,9 +203,9 @@ namespace BrightBox3D::RHI
                 return std::make_unique<MetalPipeline>(desc, state, CreateDepthState(desc));
             }
 
-            std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, bool vsync) override
+            std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, PresentMode presentMode) override
             {
-                return std::make_unique<MetalSwapchain>(m_device, window, vsync);
+                return std::make_unique<MetalSwapchain>(m_device, window, presentMode);
             }
 
             CommandList& BeginFrame() override

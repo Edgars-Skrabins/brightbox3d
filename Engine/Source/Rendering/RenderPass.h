@@ -25,6 +25,18 @@ namespace BrightBox3D::Rendering
         RenderStatistics& statistics;
     };
 
+    enum class DepthWrite
+    {
+        On,
+        Off
+    };
+
+    enum class DepthClip
+    {
+        On,
+        Off
+    };
+
     class RenderPass
     {
     public:
@@ -35,8 +47,8 @@ namespace BrightBox3D::Rendering
 
     protected:
         void DrawItems(RHI::CommandList& commands, const std::vector<const DrawItem*>& items, RHI::Pipeline* single, RHI::Pipeline* doubleSided);
-        void FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, bool load, const std::function<void(RHI::CommandList&)>& bind);
-        RHI::Pipeline* GetMeshPipeline(ShaderProgram program, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, bool depthWrite, const RHI::BlendState& blend, bool depthClip = true, int32_t depthBias = 0, float slopeBias = 0.0f);
+        void FullscreenPass(RHI::CommandList& commands, RHI::Texture* target, RHI::Pipeline* pipeline, const char* name, RHI::LoadAction load, const std::function<void(RHI::CommandList&)>& bind);
+        RHI::Pipeline* GetMeshPipeline(ShaderProgram program, RHI::CullMode cull, const std::vector<RHI::Format>& colors, RHI::Format depth, DepthWrite depthWrite, const RHI::BlendState& blend, DepthClip depthClip = DepthClip::On, int32_t depthBias = 0, float slopeBias = 0.0f);
         RHI::Pipeline* GetFullscreenPipeline(ShaderProgram program, RHI::Format format, const RHI::BlendState& blend = {});
 
         RHI::Device& m_device;

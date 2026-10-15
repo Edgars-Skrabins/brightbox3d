@@ -18,7 +18,7 @@ namespace BrightBox3D::RHI
     class MetalSwapchain : public Swapchain
     {
     public:
-        MetalSwapchain(id<MTLDevice> device, Platform::Window& window, bool vsync);
+        MetalSwapchain(id<MTLDevice> device, Platform::Window& window, PresentMode presentMode);
 
         Texture* AcquireNextTexture() override;
         void Resize(uint32_t width, uint32_t height) override;

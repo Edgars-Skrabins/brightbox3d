@@ -19,7 +19,7 @@ namespace BrightBox3D::RHI
     class DX11Swapchain : public Swapchain
     {
     public:
-        DX11Swapchain(ID3D11Device* device, IDXGIFactory2* factory, Platform::Window& window, bool vsync);
+        DX11Swapchain(ID3D11Device* device, IDXGIFactory2* factory, Platform::Window& window, PresentMode presentMode);
 
         Texture* AcquireNextTexture() override;
         void Resize(uint32_t width, uint32_t height) override;

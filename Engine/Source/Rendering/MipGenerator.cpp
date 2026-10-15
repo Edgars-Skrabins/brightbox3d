@@ -148,20 +148,21 @@ namespace BrightBox3D::Rendering::MipGenerator
         }
     }
 
-    std::vector<TextureMip> BuildMips8(const uint8_t* pixels, uint32_t width, uint32_t height, bool srgb, bool normalMap, bool generate)
+    std::vector<TextureMip> BuildMips8(const uint8_t* pixels, uint32_t width, uint32_t height, MipEncoding encoding, MipChain chain)
     {
+        bool generate = chain == MipChain::Full;
         Rgba8Format format;
-        format.srgb = srgb;
-        format.normalMap = normalMap;
+        format.srgb = encoding == MipEncoding::Srgb;
+        format.normalMap = encoding == MipEncoding::NormalMap;
         if (generate)
         {
-            format.decode = BuildDecodeTable(srgb);
+            format.decode = BuildDecodeTable(format.srgb);
         }
         return BuildChain(pixels, width, height, generate, format);
     }
 
-    std::vector<TextureMip> BuildMipsFloat(const float* pixels, uint32_t width, uint32_t height, bool generate)
+    std::vector<TextureMip> BuildMipsFloat(const float* pixels, uint32_t width, uint32_t height, MipChain chain)
     {
-        return BuildChain(pixels, width, height, generate, FloatFormat{});
+        return BuildChain(pixels, width, height, chain == MipChain::Full, FloatFormat{});
     }
 }

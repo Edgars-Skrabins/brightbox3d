@@ -64,7 +64,7 @@ namespace BrightBox3D::Rendering
         }
         RHI::Texture* history = targets.history[targets.historyIndex].get();
         RHI::Texture* resolved = targets.history[1 - targets.historyIndex].get();
-        FullscreenPass(frame.commands, resolved, GetFullscreenPipeline(ShaderProgram::TemporalResolve, SceneColorFormat), "TemporalResolve", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, resolved, GetFullscreenPipeline(ShaderProgram::TemporalResolve, SceneColorFormat), "TemporalResolve", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             PostConstants constants{};
             Store(constants.params, TemporalHistoryWeight, targets.historyValid ? 0.0f : 1.0f, 0.0f, 0.0f);
@@ -90,7 +90,7 @@ namespace BrightBox3D::Rendering
         PostConstants constants{};
         Store(constants.params, post.bloomThreshold, 1.0f, 0.0f, 0.0f);
         StoreSourceSize(constants, hdr);
-        FullscreenPass(frame.commands, targets.bloom[0].get(), GetFullscreenPipeline(ShaderProgram::BloomPrefilter, BloomFormat), "BloomPrefilter", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, targets.bloom[0].get(), GetFullscreenPipeline(ShaderProgram::BloomPrefilter, BloomFormat), "BloomPrefilter", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             BindCommon(frame, constants);
             commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, hdr);
@@ -99,7 +99,7 @@ namespace BrightBox3D::Rendering
         {
             RHI::Texture* source = targets.bloom[level - 1].get();
             StoreSourceSize(constants, source);
-            FullscreenPass(frame.commands, targets.bloom[level].get(), GetFullscreenPipeline(ShaderProgram::BloomDownsample, BloomFormat), "BloomDownsample", false, [&](RHI::CommandList& commands)
+            FullscreenPass(frame.commands, targets.bloom[level].get(), GetFullscreenPipeline(ShaderProgram::BloomDownsample, BloomFormat), "BloomDownsample", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
             {
                 BindCommon(frame, constants);
                 commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, source);
@@ -109,7 +109,7 @@ namespace BrightBox3D::Rendering
         {
             RHI::Texture* source = targets.bloom[level].get();
             StoreSourceSize(constants, source);
-            FullscreenPass(frame.commands, targets.bloom[level - 1].get(), GetFullscreenPipeline(ShaderProgram::BloomUpsample, BloomFormat, RHI::BlendState::Additive()), "BloomUpsample", true, [&](RHI::CommandList& commands)
+            FullscreenPass(frame.commands, targets.bloom[level - 1].get(), GetFullscreenPipeline(ShaderProgram::BloomUpsample, BloomFormat, RHI::BlendState::Additive()), "BloomUpsample", RHI::LoadAction::Load, [&](RHI::CommandList& commands)
             {
                 BindCommon(frame, constants);
                 commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, source);
@@ -129,7 +129,7 @@ namespace BrightBox3D::Rendering
         }
         PostConstants constants{};
         StoreSourceSize(constants, hdr);
-        FullscreenPass(frame.commands, targets.luminance.get(), GetFullscreenPipeline(ShaderProgram::LogLuminance, LuminanceFormat), "LogLuminance", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, targets.luminance.get(), GetFullscreenPipeline(ShaderProgram::LogLuminance, LuminanceFormat), "LogLuminance", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             BindCommon(frame, constants);
             commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, hdr);
@@ -141,7 +141,7 @@ namespace BrightBox3D::Rendering
         RHI::Texture* current = targets.exposure[1 - targets.exposureIndex].get();
         Store(constants.params, post.exposure, post.autoExposureMin, post.autoExposureMax, post.autoExposureSpeed);
         Store(constants.params2, static_cast<float>(LuminanceSize), targets.exposureValid ? 0.0f : 1.0f, deltaTime, 0.0f);
-        FullscreenPass(frame.commands, current, GetFullscreenPipeline(ShaderProgram::ExposureAdapt, LuminanceFormat), "ExposureAdapt", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, current, GetFullscreenPipeline(ShaderProgram::ExposureAdapt, LuminanceFormat), "ExposureAdapt", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             BindCommon(frame, constants);
             commands.SetTexture(BRIGHT_SLOT_POST_SOURCE, targets.luminance.get());
@@ -166,7 +166,7 @@ namespace BrightBox3D::Rendering
         StoreColor(tonemap.lift, post.lift, 0.0f);
         StoreColor(tonemap.gamma, post.gamma, 1.0f);
         StoreColor(tonemap.gain, post.gain, 1.0f);
-        FullscreenPass(frame.commands, target, GetFullscreenPipeline(ShaderProgram::Tonemap, target->GetFormat()), "Tonemap", false, [&](RHI::CommandList& commands)
+        FullscreenPass(frame.commands, target, GetFullscreenPipeline(ShaderProgram::Tonemap, target->GetFormat()), "Tonemap", RHI::LoadAction::DontCare, [&](RHI::CommandList& commands)
         {
             commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, frame.viewConstants);
             commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, tonemap);

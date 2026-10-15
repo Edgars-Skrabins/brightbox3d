@@ -305,6 +305,12 @@ namespace BrightBox3D::RHI
         std::string debugName;
     };
 
+    enum class PresentMode
+    {
+        VSync,
+        Immediate
+    };
+
     enum class LoadAction
     {
         Load,

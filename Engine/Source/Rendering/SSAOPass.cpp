@@ -55,7 +55,7 @@ namespace BrightBox3D::Rendering
         SSAOConstants ssao{};
         Store(ssao.params, frame.view.post.ssaoRadius, frame.view.post.ssaoIntensity, DepthBias, static_cast<float>(SSAOKernelSize));
         std::memcpy(ssao.kernel, m_kernel, sizeof(m_kernel));
-        FullscreenPass(commands, targets.ao.get(), GetFullscreenPipeline(ShaderProgram::SSAO, AmbientOcclusionFormat), "SSAO", false, [&](RHI::CommandList&)
+        FullscreenPass(commands, targets.ao.get(), GetFullscreenPipeline(ShaderProgram::SSAO, AmbientOcclusionFormat), "SSAO", RHI::LoadAction::DontCare, [&](RHI::CommandList&)
         {
             commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, viewConstants);
             commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, ssao);
@@ -63,7 +63,7 @@ namespace BrightBox3D::Rendering
             commands.SetTexture(BRIGHT_SLOT_SSAO_NORMAL, targets.normal.get());
             commands.SetSampler(BRIGHT_SLOT_SSAO_SAMPLER, m_resources.GetPointClampSampler());
         });
-        FullscreenPass(commands, targets.aoBlur.get(), GetFullscreenPipeline(ShaderProgram::SSAOBlur, AmbientOcclusionFormat), "SSAOBlur", false, [&](RHI::CommandList&)
+        FullscreenPass(commands, targets.aoBlur.get(), GetFullscreenPipeline(ShaderProgram::SSAOBlur, AmbientOcclusionFormat), "SSAOBlur", RHI::LoadAction::DontCare, [&](RHI::CommandList&)
         {
             commands.SetConstants(BRIGHT_SLOT_VIEW_CONSTANTS, viewConstants);
             commands.SetConstants(BRIGHT_SLOT_PASS_CONSTANTS, ssao);

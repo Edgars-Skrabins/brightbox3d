@@ -32,7 +32,7 @@ namespace BrightBox3D::RHI
         virtual std::unique_ptr<Sampler> CreateSampler(const SamplerDesc& desc) = 0;
         virtual std::unique_ptr<Shader> CreateShader(const ShaderDesc& desc, std::string& error) = 0;
         virtual std::unique_ptr<Pipeline> CreatePipeline(const PipelineDesc& desc, std::string& error) = 0;
-        virtual std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, bool vsync) = 0;
+        virtual std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, PresentMode presentMode) = 0;
 
         virtual CommandList& BeginFrame() = 0;
         virtual void EndFrame(const std::vector<Swapchain*>& present) = 0;

@@ -13,14 +13,14 @@ namespace BrightBox3D::RHI
         constexpr const char* SwapchainDebugName = "Swapchain";
     }
 
-    MetalSwapchain::MetalSwapchain(id<MTLDevice> device, Platform::Window& window, bool vsync) : m_window(window)
+    MetalSwapchain::MetalSwapchain(id<MTLDevice> device, Platform::Window& window, PresentMode presentMode) : m_window(window)
     {
         NSView* view = (__bridge NSView*)window.GetNativeView();
         m_layer = [CAMetalLayer layer];
         m_layer.device = device;
         m_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         m_layer.framebufferOnly = NO;
-        m_layer.displaySyncEnabled = vsync;
+        m_layer.displaySyncEnabled = presentMode == PresentMode::VSync;
         m_layer.maximumDrawableCount = MaxDrawableCount;
         NSWindow* nsWindow = (__bridge NSWindow*)window.GetNativeHandle();
         m_layer.contentsScale = nsWindow.backingScaleFactor;

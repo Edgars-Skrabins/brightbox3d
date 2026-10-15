@@ -136,7 +136,7 @@ namespace BrightBox3D::Rendering
 
         float splits[CascadeCount];
         ComputeSplits(view, splits);
-        RHI::Pipeline* pipeline = GetMeshPipeline(ShaderProgram::ShadowDepth, RHI::CullMode::None, {}, ShadowMapFormat, true, {}, false, 0, ShadowSlopeBias);
+        RHI::Pipeline* pipeline = GetMeshPipeline(ShaderProgram::ShadowDepth, RHI::CullMode::None, {}, ShadowMapFormat, DepthWrite::On, {}, DepthClip::Off, 0, ShadowSlopeBias);
         for (uint32_t cascade = 0; cascade < CascadeCount; ++cascade)
         {
             float sliceNear = cascade == 0 ? view.nearPlane : splits[cascade - 1];

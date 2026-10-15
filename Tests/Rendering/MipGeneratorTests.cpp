@@ -33,7 +33,7 @@ namespace
 TEST(MipGeneratorTests, ChainHalvesEachLevelDownToOnePixel)
 {
     std::vector<uint8_t> wide(8 * 4 * 4, 255);
-    auto mips = MipGenerator::BuildMips8(wide.data(), 8, 4, false, false, true);
+    auto mips = MipGenerator::BuildMips8(wide.data(), 8, 4, MipGenerator::MipEncoding::Linear, MipGenerator::MipChain::Full);
     std::vector<std::pair<uint32_t, uint32_t>> expected = { { 8, 4 }, { 4, 2 }, { 2, 1 }, { 1, 1 } };
     EXPECT_EQ(Sizes(mips), expected);
     for (const TextureMip& mip : mips)
@@ -43,13 +43,13 @@ TEST(MipGeneratorTests, ChainHalvesEachLevelDownToOnePixel)
 
     std::vector<uint8_t> odd(5 * 3 * 4, 255);
     expected = { { 5, 3 }, { 2, 1 }, { 1, 1 } };
-    EXPECT_EQ(Sizes(MipGenerator::BuildMips8(odd.data(), 5, 3, false, false, true)), expected);
+    EXPECT_EQ(Sizes(MipGenerator::BuildMips8(odd.data(), 5, 3, MipGenerator::MipEncoding::Linear, MipGenerator::MipChain::Full)), expected);
 }
 
 TEST(MipGeneratorTests, DisabledGenerationKeepsOnlyTheSourcePixels)
 {
     std::vector<uint8_t> pixels = Pixels({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 });
-    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, true, false, false);
+    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, MipGenerator::MipEncoding::Srgb, MipGenerator::MipChain::BaseOnly);
     ASSERT_EQ(mips.size(), 1u);
     EXPECT_EQ(mips[0].pixels, pixels);
 }
@@ -57,7 +57,7 @@ TEST(MipGeneratorTests, DisabledGenerationKeepsOnlyTheSourcePixels)
 TEST(MipGeneratorTests, LinearTexelsAverageWithRounding)
 {
     std::vector<uint8_t> pixels = Pixels({ 0, 10, 200, 0, 255, 20, 200, 255, 0, 30, 100, 0, 255, 40, 100, 255 });
-    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, false, false, true);
+    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, MipGenerator::MipEncoding::Linear, MipGenerator::MipChain::Full);
     ASSERT_EQ(mips.size(), 2u);
     const std::vector<uint8_t>& average = mips[1].pixels;
     EXPECT_EQ(average[0], 128);
@@ -69,7 +69,7 @@ TEST(MipGeneratorTests, LinearTexelsAverageWithRounding)
 TEST(MipGeneratorTests, SrgbTexelsAverageInLinearSpace)
 {
     std::vector<uint8_t> pixels = Pixels({ 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255 });
-    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, true, false, true);
+    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 2, MipGenerator::MipEncoding::Srgb, MipGenerator::MipChain::Full);
     uint8_t expected = static_cast<uint8_t>(Math::LinearToSrgb(0.5f) * 255.0f + 0.5f);
     EXPECT_EQ(expected, 188);
     EXPECT_EQ(mips[1].pixels[0], expected);
@@ -80,7 +80,7 @@ TEST(MipGeneratorTests, SrgbTexelsAverageInLinearSpace)
 TEST(MipGeneratorTests, NormalMapAveragesAreRenormalized)
 {
     std::vector<uint8_t> pixels = Pixels({ 255, 128, 128, 255, 128, 128, 255, 255 });
-    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 1, false, true, true);
+    auto mips = MipGenerator::BuildMips8(pixels.data(), 2, 1, MipGenerator::MipEncoding::NormalMap, MipGenerator::MipChain::Full);
     ASSERT_EQ(mips.size(), 2u);
     const std::vector<uint8_t>& normal = mips[1].pixels;
     EXPECT_EQ(normal[0], 218);
@@ -94,7 +94,7 @@ TEST(MipGeneratorTests, NormalMapAveragesAreRenormalized)
 TEST(MipGeneratorTests, FloatTexelsAverageExactly)
 {
     std::vector<float> pixels = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, -1.0f, 0.0f, 10.0f, 0.5f, 3.0f, 4.0f, 0.0f, 1.5f };
-    auto mips = MipGenerator::BuildMipsFloat(pixels.data(), 2, 2, true);
+    auto mips = MipGenerator::BuildMipsFloat(pixels.data(), 2, 2, MipGenerator::MipChain::Full);
     ASSERT_EQ(mips.size(), 2u);
     ASSERT_EQ(mips[1].pixels.size(), 4 * sizeof(float));
     float average[4];

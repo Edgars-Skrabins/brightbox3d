@@ -302,9 +302,9 @@ namespace BrightBox3D::RHI
                 return pipeline;
             }
 
-            std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, bool vsync) override
+            std::unique_ptr<Swapchain> CreateSwapchain(Platform::Window& window, PresentMode presentMode) override
             {
-                return std::make_unique<DX11Swapchain>(m_device.Get(), m_factory.Get(), window, vsync);
+                return std::make_unique<DX11Swapchain>(m_device.Get(), m_factory.Get(), window, presentMode);
             }
 
             CommandList& BeginFrame() override

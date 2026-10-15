@@ -11,6 +11,11 @@ namespace BrightBox3D::Rendering
 {
     namespace
     {
+        MipGenerator::MipChain MipChainFor(const TextureImportSettings& settings)
+        {
+            return settings.generateMips ? MipGenerator::MipChain::Full : MipGenerator::MipChain::BaseOnly;
+        }
+
         constexpr int RequestedChannels = 4;
 
         bool LoadHdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture, std::string& error)
@@ -24,7 +29,7 @@ namespace BrightBox3D::Rendering
                 error = stbi_failure_reason();
                 return false;
             }
-            texture.SetData(TexturePixelFormat::RGBA32Float, MipGenerator::BuildMipsFloat(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), settings.generateMips), settings.filter, settings.wrap, false);
+            texture.SetData(TexturePixelFormat::RGBA32Float, MipGenerator::BuildMipsFloat(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), MipChainFor(settings)), settings.filter, settings.wrap, false);
             stbi_image_free(pixels);
             return true;
         }
@@ -42,7 +47,7 @@ namespace BrightBox3D::Rendering
             }
             bool normalMap = settings.normalMap;
             bool srgb = settings.srgb && !normalMap;
-            texture.SetData(srgb ? TexturePixelFormat::RGBA8Srgb : TexturePixelFormat::RGBA8, MipGenerator::BuildMips8(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), srgb, normalMap, settings.generateMips), settings.filter, settings.wrap, normalMap);
+            texture.SetData(srgb ? TexturePixelFormat::RGBA8Srgb : TexturePixelFormat::RGBA8, MipGenerator::BuildMips8(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), normalMap ? MipGenerator::MipEncoding::NormalMap : (srgb ? MipGenerator::MipEncoding::Srgb : MipGenerator::MipEncoding::Linear), MipChainFor(settings)), settings.filter, settings.wrap, normalMap);
             stbi_image_free(pixels);
             return true;
         }

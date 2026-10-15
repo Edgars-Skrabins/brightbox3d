@@ -8,7 +8,7 @@ namespace BrightBox3D::Runtime
 {
     namespace
     {
-        constexpr bool VSync = true;
+        constexpr RHI::PresentMode WindowPresentMode = RHI::PresentMode::VSync;
     }
 
     std::unique_ptr<RenderContext> RenderContext::Create(Platform::Window* window, const std::filesystem::path& shaderDirectory)
@@ -22,7 +22,7 @@ namespace BrightBox3D::Runtime
         context->m_device = std::move(device);
         if (window)
         {
-            context->m_swapchain = context->m_device->CreateSwapchain(*window, VSync);
+            context->m_swapchain = context->m_device->CreateSwapchain(*window, WindowPresentMode);
         }
         context->m_shaders = std::make_unique<Rendering::ShaderLibrary>(*context->m_device, shaderDirectory);
         context->m_resources = std::make_unique<Rendering::GpuResourceCache>(*context->m_device);
