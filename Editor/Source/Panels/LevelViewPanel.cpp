@@ -47,6 +47,16 @@ namespace BrightBox3D::Editor
         constexpr const char* DebugModeKey = "debugMode";
         constexpr const char* GridKey = "grid";
 
+        std::vector<const char*> LabelPointers(const std::vector<std::string>& labels)
+        {
+            std::vector<const char*> pointers;
+            for (const std::string& label : labels)
+            {
+                pointers.push_back(label.c_str());
+            }
+            return pointers;
+        }
+
         std::vector<std::string> DebugModeNames()
         {
             std::vector<std::string> names;
@@ -171,9 +181,10 @@ namespace BrightBox3D::Editor
         Editor::DrawToolbar(LevelViewToolbar);
         ImGui::SameLine();
         static const std::vector<std::string> modeNames = DebugModeNames();
+        static const std::vector<const char*> modeLabels = LabelPointers(modeNames);
         ImGui::SetNextItemWidth(DebugModeComboWidth);
         int mode = static_cast<int>(m_debugMode);
-        if (ImGui::Combo("##debugmode", &mode, [](void* data, int index) { return (*static_cast<const std::vector<std::string>*>(data))[index].c_str(); }, const_cast<std::vector<std::string>*>(&modeNames), static_cast<int>(modeNames.size())))
+        if (ImGui::Combo("##debugmode", &mode, modeLabels.data(), static_cast<int>(modeLabels.size())))
         {
             m_debugMode = static_cast<Rendering::RenderDebugMode>(mode);
         }

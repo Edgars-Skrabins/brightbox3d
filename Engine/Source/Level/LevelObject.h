@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace BrightBox3D::Level
@@ -70,8 +71,10 @@ namespace BrightBox3D::Level
         void RemoveComponent(LevelObjectComponent* component);
         bool MoveComponent(LevelObjectComponent* component, int index);
         const std::vector<std::unique_ptr<LevelObjectComponent>>& GetComponents() const { return m_components; }
-        LevelObjectComponent* GetComponent(const Reflection::TypeInfo& type) const;
-        LevelObjectComponent* FindComponentByLocalId(const Core::Guid& localId) const;
+        LevelObjectComponent* GetComponent(const Reflection::TypeInfo& type);
+        const LevelObjectComponent* GetComponent(const Reflection::TypeInfo& type) const;
+        LevelObjectComponent* FindComponentByLocalId(const Core::Guid& localId);
+        const LevelObjectComponent* FindComponentByLocalId(const Core::Guid& localId) const;
 
         template <typename T>
         T* AddComponent()
@@ -80,67 +83,35 @@ namespace BrightBox3D::Level
         }
 
         template <typename T>
-        T* GetComponent() const
-        {
-            if constexpr (std::is_same_v<T, Transform>)
-            {
-                return const_cast<Transform*>(&m_transform);
-            }
-            else
-            {
-                return static_cast<T*>(GetComponent(T::StaticType()));
-            }
-        }
+        T* GetComponent() { return FindComponent<T>(*this); }
 
         template <typename T>
-        std::vector<T*> GetComponents() const
-        {
-            std::vector<T*> result;
-            for (const auto& component : m_components)
-            {
-                if (component->IsA<T>() && !component->IsPendingDestroy())
-                {
-                    result.push_back(static_cast<T*>(component.get()));
-                }
-            }
-            return result;
-        }
+        const T* GetComponent() const { return FindComponent<T>(*this); }
 
         template <typename T>
-        T* GetComponentInChildren() const
-        {
-            if (T* component = GetComponent<T>())
-            {
-                return component;
-            }
-            for (LevelObject* child : m_children)
-            {
-                if (T* component = child->GetComponentInChildren<T>())
-                {
-                    return component;
-                }
-            }
-            return nullptr;
-        }
+        std::vector<T*> GetComponents() { return FindComponents<T>(*this); }
 
         template <typename T>
-        T* GetComponentInParent() const
-        {
-            for (const LevelObject* object = this; object; object = object->m_parent)
-            {
-                if (T* component = object->GetComponent<T>())
-                {
-                    return component;
-                }
-            }
-            return nullptr;
-        }
+        std::vector<const T*> GetComponents() const { return FindComponents<T>(*this); }
+
+        template <typename T>
+        T* GetComponentInChildren() { return FindComponentInChildren<T>(*this); }
+
+        template <typename T>
+        const T* GetComponentInChildren() const { return FindComponentInChildren<T>(*this); }
+
+        template <typename T>
+        T* GetComponentInParent() { return FindComponentInParent<T>(*this); }
+
+        template <typename T>
+        const T* GetComponentInParent() const { return FindComponentInParent<T>(*this); }
 
         void Destroy();
 
         const LevelObjectLink& GetLink() const { return m_state.link; }
         bool IsLinked() const { return m_state.link.asset.IsValid() || m_state.link.sourceId.IsValid(); }
         LevelObject* GetLinkRoot();
+        const LevelObject* GetLinkRoot() const;
         void SetLink(const LevelObjectLink& link) { m_state.link = link; }
         void ClearLink() { m_state.link = {}; }
 
@@ -155,6 +126,73 @@ namespace BrightBox3D::Level
 
     private:
         friend class Level;
+
+        template <typename T, typename Self>
+        using MatchConst = std::conditional_t<std::is_const_v<Self>, const T, T>;
+
+        template <typename T, typename Self>
+        static MatchConst<T, Self>* FindComponent(Self& self)
+        {
+            if constexpr (std::is_same_v<T, Transform>)
+            {
+                return &self.m_transform;
+            }
+            else
+            {
+                return static_cast<MatchConst<T, Self>*>(self.GetComponent(T::StaticType()));
+            }
+        }
+
+        template <typename T, typename Self>
+        static std::vector<MatchConst<T, Self>*> FindComponents(Self& self)
+        {
+            std::vector<MatchConst<T, Self>*> result;
+            for (const auto& component : self.m_components)
+            {
+                if (component->template IsA<T>() && !component->IsPendingDestroy())
+                {
+                    result.push_back(static_cast<T*>(component.get()));
+                }
+            }
+            return result;
+        }
+
+        template <typename T, typename Self>
+        static MatchConst<T, Self>* FindComponentInChildren(Self& self)
+        {
+            if (MatchConst<T, Self>* component = FindComponent<T>(self))
+            {
+                return component;
+            }
+            for (LevelObject* child : self.m_children)
+            {
+                if (MatchConst<T, Self>* component = FindComponentInChildren<T>(static_cast<MatchConst<LevelObject, Self>&>(*child)))
+                {
+                    return component;
+                }
+            }
+            return nullptr;
+        }
+
+        template <typename T, typename Self>
+        static MatchConst<T, Self>* FindComponentInParent(Self& self)
+        {
+            for (MatchConst<LevelObject, Self>* object = &self; object; object = object->m_parent)
+            {
+                if (MatchConst<T, Self>* component = FindComponent<T>(*object))
+                {
+                    return component;
+                }
+            }
+            return nullptr;
+        }
+
+        template <typename Self>
+        static MatchConst<LevelObjectComponent, Self>* FindComponentOfType(Self& self, const Reflection::TypeInfo& type);
+        template <typename Self>
+        static MatchConst<LevelObjectComponent, Self>* FindComponentWithLocalId(Self& self, const Core::Guid& localId);
+        template <typename Self>
+        static MatchConst<LevelObject, Self>* FindLinkRoot(Self& self);
 
         void AttachComponent(std::unique_ptr<LevelObjectComponent> component, int index = -1);
         std::unique_ptr<LevelObjectComponent> DetachComponent(LevelObjectComponent* component);

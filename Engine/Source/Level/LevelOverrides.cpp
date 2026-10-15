@@ -242,7 +242,7 @@ namespace BrightBox3D::Level
     {
         out.SetArray();
         LevelObjectLibrary& library = LevelObjectLibrary::Get();
-        for (LevelObject* object : LevelObjectLinking::CollectLinked(const_cast<LevelObject&>(linkRoot)))
+        for (const LevelObject* object : LevelObjectLinking::CollectLinked(linkRoot))
         {
             LevelObject* prototype = library.FindPrototypeNode(linkRoot.GetLink().asset, object->GetLink().sourceId);
             if (!prototype)
@@ -292,7 +292,7 @@ namespace BrightBox3D::Level
 
     bool LevelSerializer::IsPropertyOverridden(const LevelObject& object, const LevelObjectComponent* component, const std::string& property)
     {
-        LevelObject* linkRoot = const_cast<LevelObject&>(object).GetLinkRoot();
+        const LevelObject* linkRoot = object.GetLinkRoot();
         if (!linkRoot)
         {
             return false;

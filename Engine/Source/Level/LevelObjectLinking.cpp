@@ -116,13 +116,14 @@ namespace BrightBox3D::Level
         {
             return false;
         }
-        return const_cast<LevelObject&>(object).GetLinkRoot() == &linkRoot;
+        return object.GetLinkRoot() == &linkRoot;
     }
 
-    void LevelObjectLinking::CollectLinkedSubtree(LevelObject& linkRoot, LevelObject& object, std::vector<LevelObject*>& linked, std::vector<std::pair<LevelObject*, LevelObject*>>& foreign)
+    template <typename Object>
+    void LevelObjectLinking::CollectLinkedSubtree(Object& linkRoot, Object& object, std::vector<Object*>& linked, std::vector<std::pair<Object*, Object*>>& foreign)
     {
         linked.push_back(&object);
-        for (LevelObject* child : object.GetChildren())
+        for (Object* child : object.GetChildren())
         {
             if (IsInSameLink(*child, linkRoot))
             {
@@ -135,13 +136,19 @@ namespace BrightBox3D::Level
         }
     }
 
-    std::vector<LevelObject*> LevelObjectLinking::CollectLinked(LevelObject& linkRoot)
+    template <typename Object>
+    std::vector<Object*> LevelObjectLinking::CollectLinked(Object& linkRoot)
     {
-        std::vector<LevelObject*> linked;
-        std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
+        std::vector<Object*> linked;
+        std::vector<std::pair<Object*, Object*>> foreign;
         CollectLinkedSubtree(linkRoot, linkRoot, linked, foreign);
         return linked;
     }
+
+    template void LevelObjectLinking::CollectLinkedSubtree<LevelObject>(LevelObject&, LevelObject&, std::vector<LevelObject*>&, std::vector<std::pair<LevelObject*, LevelObject*>>&);
+    template void LevelObjectLinking::CollectLinkedSubtree<const LevelObject>(const LevelObject&, const LevelObject&, std::vector<const LevelObject*>&, std::vector<std::pair<const LevelObject*, const LevelObject*>>&);
+    template std::vector<LevelObject*> LevelObjectLinking::CollectLinked<LevelObject>(LevelObject&);
+    template std::vector<const LevelObject*> LevelObjectLinking::CollectLinked<const LevelObject>(const LevelObject&);
 
     LevelObjectLinking::SourceIndex LevelObjectLinking::IndexBySource(LevelObject& root)
     {

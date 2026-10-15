@@ -58,9 +58,9 @@ namespace BrightBox3D::Level
 
         JsonValue WriteForeignChildren(const LevelObject& root, JsonAllocator& allocator)
         {
-            std::vector<LevelObject*> linked;
-            std::vector<std::pair<LevelObject*, LevelObject*>> foreign;
-            LevelObjectLinking::CollectLinkedSubtree(const_cast<LevelObject&>(root), const_cast<LevelObject&>(root), linked, foreign);
+            std::vector<const LevelObject*> linked;
+            std::vector<std::pair<const LevelObject*, const LevelObject*>> foreign;
+            LevelObjectLinking::CollectLinkedSubtree(root, root, linked, foreign);
             JsonValue children(rapidjson::kArrayType);
             for (auto& [attachTo, child] : foreign)
             {

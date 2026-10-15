@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <type_traits>
 
 using namespace BrightBox3D;
 using BrightBox3D::Level::LevelObject;
@@ -84,6 +85,22 @@ TEST(LevelTests, TransformPropertiesUseTheirDisplayNames)
     EXPECT_EQ(type.FindProperty("m_localRotation")->displayName, "Rotation");
     EXPECT_EQ(type.FindProperty("m_localScale")->displayName, "Scale");
     EXPECT_EQ(TestPlayer::StaticType().FindProperty("m_lives")->displayName, "Lives");
+}
+
+TEST(LevelTests, ConstObjectsHandOutConstComponentsAndLinks)
+{
+    RuntimeLevel level;
+    LevelObject* object = level.CreateObject(LevelObject::StaticType());
+    auto* component = object->AddComponent<RecordingComponent>();
+    const LevelObject& view = *object;
+    static_assert(std::is_same_v<decltype(view.GetComponent<Level::Transform>()), const Level::Transform*>);
+    static_assert(std::is_same_v<decltype(view.GetComponent<RecordingComponent>()), const RecordingComponent*>);
+    static_assert(std::is_same_v<decltype(view.GetComponents<RecordingComponent>()), std::vector<const RecordingComponent*>>);
+    static_assert(std::is_same_v<decltype(view.GetLinkRoot()), const LevelObject*>);
+    EXPECT_EQ(view.GetComponent<Level::Transform>(), &object->GetTransform());
+    EXPECT_EQ(view.GetComponent<RecordingComponent>(), component);
+    EXPECT_EQ(view.FindComponentByLocalId(component->GetLocalId()), component);
+    EXPECT_EQ(view.GetLinkRoot(), nullptr);
 }
 
 TEST(LevelTests, TransformHierarchyComposesAndKeepsWorld)

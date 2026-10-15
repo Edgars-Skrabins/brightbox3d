@@ -275,13 +275,14 @@ namespace BrightBox3D::Level
         return true;
     }
 
-    LevelObjectComponent* LevelObject::GetComponent(const Reflection::TypeInfo& type) const
+    template <typename Self>
+    LevelObject::MatchConst<LevelObjectComponent, Self>* LevelObject::FindComponentOfType(Self& self, const Reflection::TypeInfo& type)
     {
-        if (m_transform.IsA(type))
+        if (self.m_transform.IsA(type))
         {
-            return const_cast<Transform*>(&m_transform);
+            return &self.m_transform;
         }
-        for (const auto& component : m_components)
+        for (const auto& component : self.m_components)
         {
             if (component->IsA(type) && !component->IsPendingDestroy())
             {
@@ -291,13 +292,14 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    LevelObjectComponent* LevelObject::FindComponentByLocalId(const Core::Guid& localId) const
+    template <typename Self>
+    LevelObject::MatchConst<LevelObjectComponent, Self>* LevelObject::FindComponentWithLocalId(Self& self, const Core::Guid& localId)
     {
-        if (m_transform.m_state.localId == localId)
+        if (self.m_transform.m_state.localId == localId)
         {
-            return const_cast<Transform*>(&m_transform);
+            return &self.m_transform;
         }
-        for (const auto& component : m_components)
+        for (const auto& component : self.m_components)
         {
             if (component->m_state.localId == localId)
             {
@@ -305,6 +307,26 @@ namespace BrightBox3D::Level
             }
         }
         return nullptr;
+    }
+
+    LevelObjectComponent* LevelObject::GetComponent(const Reflection::TypeInfo& type)
+    {
+        return FindComponentOfType(*this, type);
+    }
+
+    const LevelObjectComponent* LevelObject::GetComponent(const Reflection::TypeInfo& type) const
+    {
+        return FindComponentOfType(*this, type);
+    }
+
+    LevelObjectComponent* LevelObject::FindComponentByLocalId(const Core::Guid& localId)
+    {
+        return FindComponentWithLocalId(*this, localId);
+    }
+
+    const LevelObjectComponent* LevelObject::FindComponentByLocalId(const Core::Guid& localId) const
+    {
+        return FindComponentWithLocalId(*this, localId);
     }
 
     void LevelObject::Destroy()
@@ -315,9 +337,10 @@ namespace BrightBox3D::Level
         }
     }
 
-    LevelObject* LevelObject::GetLinkRoot()
+    template <typename Self>
+    LevelObject::MatchConst<LevelObject, Self>* LevelObject::FindLinkRoot(Self& self)
     {
-        for (LevelObject* object = this; object; object = object->m_parent)
+        for (MatchConst<LevelObject, Self>* object = &self; object; object = object->m_parent)
         {
             if (object->m_state.link.isRoot)
             {
@@ -329,6 +352,16 @@ namespace BrightBox3D::Level
             }
         }
         return nullptr;
+    }
+
+    LevelObject* LevelObject::GetLinkRoot()
+    {
+        return FindLinkRoot(*this);
+    }
+
+    const LevelObject* LevelObject::GetLinkRoot() const
+    {
+        return FindLinkRoot(*this);
     }
 
     void LevelObject::SetMissingType(const std::string& typeName, const std::string& data)
