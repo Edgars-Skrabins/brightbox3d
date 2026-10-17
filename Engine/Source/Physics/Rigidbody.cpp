@@ -1,20 +1,11 @@
 #include "Physics/Rigidbody.h"
 
 #include "Level/Level.h"
-#include "Physics/Colliders.h"
 #include "Physics/PhysicsWorld.h"
 
 namespace BrightBox3D::Physics
 {
     void Rigidbody::OnPropertiesChanged()
-    {
-        if (PhysicsWorld* world = PhysicsWorld::Get(GetLevel()))
-        {
-            world->MarkDirty(*GetOwner());
-        }
-    }
-
-    void Collider::OnPropertiesChanged()
     {
         if (PhysicsWorld* world = PhysicsWorld::Get(GetLevel()))
         {

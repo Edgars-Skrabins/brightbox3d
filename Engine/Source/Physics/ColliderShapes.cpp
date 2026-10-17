@@ -4,11 +4,10 @@
 #include "Core/Log.h"
 #include "Geometry/ModelAsset.h"
 #include "Level/LevelObject.h"
-#include "Physics/Colliders.h"
+#include "Physics/Collider.h"
 #include "Physics/JoltConversions.h"
 
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
@@ -26,7 +25,7 @@ namespace BrightBox3D::Physics
         constexpr float MinimumShapeExtent = 0.001f;
         constexpr float UnitScaleTolerance = 1.0e-6f;
 
-        JPH::RefConst<JPH::Shape> CreateBoxShape(const BoxCollider& box)
+        JPH::RefConst<JPH::Shape> CreateBoxShape(const Collider& box)
         {
             JPH::Vec3 half = ToJolt(box.GetSize() * 0.5f).Abs();
             half = JPH::Vec3::sMax(half, JPH::Vec3::sReplicate(MinimumShapeExtent));
@@ -34,16 +33,9 @@ namespace BrightBox3D::Physics
             return new JPH::BoxShape(half, radius);
         }
 
-        JPH::RefConst<JPH::Shape> CreateSphereShape(const SphereCollider& sphere)
+        JPH::RefConst<JPH::Shape> CreateSphereShape(const Collider& sphere)
         {
-            return new JPH::SphereShape(std::max(sphere.GetRadius(), MinimumShapeExtent));
-        }
-
-        JPH::RefConst<JPH::Shape> CreateCapsuleShape(const CapsuleCollider& capsule)
-        {
-            float radius = std::max(capsule.GetRadius(), MinimumShapeExtent);
-            float halfHeight = std::max(capsule.GetHeight() * 0.5f - radius, MinimumShapeExtent);
-            return new JPH::CapsuleShape(halfHeight, radius);
+            return new JPH::SphereShape(std::max(sphere.GetDiameter() * 0.5f, MinimumShapeExtent));
         }
 
         JPH::RefConst<JPH::Shape> CreateConvexHullShape(const Geometry::MeshData& data)
@@ -88,14 +80,15 @@ namespace BrightBox3D::Physics
             return result.Get();
         }
 
-        JPH::RefConst<JPH::Shape> CreateMeshShape(const MeshCollider& mesh, MotionType motion)
+        JPH::RefConst<JPH::Shape> CreateMeshShape(const Collider& mesh, MotionType motion)
         {
-            auto model = mesh.GetModel().Load();
+            ColliderMesh source = mesh.ResolveMesh();
+            auto model = source.model.Load();
             if (!model)
             {
                 Assets::ReportLoadFailure(model.GetError());
             }
-            const Geometry::MeshData* data = model ? model->GetMesh(mesh.GetMeshIndex()) : nullptr;
+            const Geometry::MeshData* data = model ? model->GetMesh(source.meshIndex) : nullptr;
             if (!data || data->vertices.empty())
             {
                 return nullptr;
@@ -104,26 +97,20 @@ namespace BrightBox3D::Physics
             {
                 Core::Log::Warning(Core::Text(Core::EngineText::ConvexHullFallback, mesh.GetOwner()->GetName()));
             }
-            return mesh.IsConvex() || motion == MotionType::Dynamic ? CreateConvexHullShape(*data) : CreateTriangleMeshShape(*data);
+            JPH::RefConst<JPH::Shape> shape = mesh.IsConvex() || motion == MotionType::Dynamic ? CreateConvexHullShape(*data) : CreateTriangleMeshShape(*data);
+            return ApplyScale(shape, mesh.GetSize());
         }
 
         JPH::RefConst<JPH::Shape> CreateLocalShape(const Collider& collider, MotionType motion)
         {
-            if (auto* box = Reflection::Cast<BoxCollider>(&collider))
+            switch (collider.GetShape())
             {
-                return CreateBoxShape(*box);
-            }
-            if (auto* sphere = Reflection::Cast<SphereCollider>(&collider))
-            {
-                return CreateSphereShape(*sphere);
-            }
-            if (auto* capsule = Reflection::Cast<CapsuleCollider>(&collider))
-            {
-                return CreateCapsuleShape(*capsule);
-            }
-            if (auto* mesh = Reflection::Cast<MeshCollider>(&collider))
-            {
-                return CreateMeshShape(*mesh, motion);
+            case ColliderShape::Box:
+                return CreateBoxShape(collider);
+            case ColliderShape::Sphere:
+                return CreateSphereShape(collider);
+            case ColliderShape::Mesh:
+                return CreateMeshShape(collider, motion);
             }
             return nullptr;
         }

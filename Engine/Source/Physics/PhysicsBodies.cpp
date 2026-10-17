@@ -1,8 +1,8 @@
 #include "Physics/PhysicsWorldImplementation.h"
 
 #include "Level/Level.h"
+#include "Physics/Collider.h"
 #include "Physics/ColliderShapes.h"
-#include "Physics/Colliders.h"
 #include "Physics/JoltConversions.h"
 #include "Physics/JoltRuntime.h"
 

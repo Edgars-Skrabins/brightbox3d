@@ -98,7 +98,7 @@ namespace BrightBox3D::Core
             { "ModelHasNoMeshes", "the file contains no meshes", 0 },
             { "UfbxError", "ufbx: {}", 1 },
             { "CorruptCookedModel", "corrupt cooked model", 0 },
-            { "ConvexHullFallback", "Dynamic bodies need convex MeshColliders; using a convex hull for '{}'", 1 },
+            { "ConvexHullFallback", "Dynamic bodies need convex mesh colliders; using a convex hull for '{}'", 1 },
             { "ConvexHullFailed", "Convex hull creation failed: {}", 1 },
             { "MeshColliderFailed", "Mesh collider creation failed: {}", 1 },
             { "StreamingFailed", "Streaming failed: {} {} could not be loaded: {}", 3 },

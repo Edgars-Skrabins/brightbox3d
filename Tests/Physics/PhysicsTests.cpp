@@ -1,6 +1,6 @@
 #include "Common/TestUtilities.h"
 #include "Level/Level.h"
-#include "Physics/Colliders.h"
+#include "Physics/Collider.h"
 #include "Physics/PhysicsTestTypes.h"
 #include "Physics/PhysicsWorld.h"
 #include "Physics/Rigidbody.h"
@@ -18,7 +18,7 @@ namespace
         LevelObject* ground = *level.CreateObject(LevelObject::StaticType());
         ground->SetName("Ground");
         ground->GetTransform().SetLocalPosition({ 0.0f, -0.5f, 0.0f });
-        ground->AddComponent<BoxCollider>()->SetSize({ 40.0f, 1.0f, 40.0f });
+        ground->AddComponent<Collider>()->SetSize({ 40.0f, 1.0f, 40.0f });
         return ground;
     }
 
@@ -27,7 +27,7 @@ namespace
         LevelObject* box = *level.CreateObject(LevelObject::StaticType());
         box->SetName("Box");
         box->GetTransform().SetLocalPosition(position);
-        EXPECT_TRUE(Tests::Succeeded(box->AddComponent<BoxCollider>()));
+        EXPECT_TRUE(Tests::Succeeded(box->AddComponent<Collider>()));
         EXPECT_TRUE(Tests::Succeeded(box->AddComponent<Rigidbody>()));
         return box;
     }
@@ -68,13 +68,15 @@ TEST(PhysicsTests, TriggersReportEnterAndExit)
     Level::Level level;
     LevelObject* zone = *level.CreateObject(LevelObject::StaticType());
     zone->GetTransform().SetLocalPosition({ 0.0f, 3.0f, 0.0f });
-    auto* trigger = *zone->AddComponent<BoxCollider>();
+    auto* trigger = *zone->AddComponent<Collider>();
     trigger->SetSize({ 4.0f, 1.0f, 4.0f });
     trigger->SetTrigger(true);
     auto* zoneRecorder = *zone->AddComponent<Tests::CollisionRecorder>();
     LevelObject* ball = *level.CreateObject(LevelObject::StaticType());
     ball->GetTransform().SetLocalPosition({ 0.0f, 6.0f, 0.0f });
-    ball->AddComponent<SphereCollider>()->SetRadius(0.25f);
+    auto* ballCollider = *ball->AddComponent<Collider>();
+    ballCollider->SetShape(ColliderShape::Sphere);
+    ballCollider->SetDiameter(0.5f);
     EXPECT_TRUE(Tests::Succeeded(ball->AddComponent<Rigidbody>()));
     level.BeginPlay();
     Simulate(level, 2.5f);
@@ -91,7 +93,7 @@ TEST(PhysicsTests, RaycastsHitCollidersWithNormals)
     LevelObject* ground = MakeGround(level);
     LevelObject* wall = *level.CreateObject(LevelObject::StaticType());
     wall->GetTransform().SetLocalPosition({ 0.0f, 1.0f, 5.0f });
-    wall->AddComponent<BoxCollider>()->SetSize({ 4.0f, 2.0f, 0.5f });
+    wall->AddComponent<Collider>()->SetSize({ 4.0f, 2.0f, 0.5f });
     level.BeginPlay();
     RaycastHit hit;
     ASSERT_TRUE(PhysicsWorld::Raycast(&level, { 0.0f, 10.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, 100.0f, hit));

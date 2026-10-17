@@ -3,7 +3,7 @@
 #include "EditorPreferences.h"
 #include "Framework/Camera.h"
 #include "Geometry/ModelAsset.h"
-#include "Physics/Colliders.h"
+#include "Physics/Collider.h"
 #include "Rendering/DebugDraw.h"
 #include "Rendering/Light.h"
 #include "Rendering/MeshRenderer.h"
@@ -17,6 +17,7 @@ namespace BrightBox3D::Editor::SelectionOverlay
     {
         constexpr int LightRangeSegments = 48;
         constexpr int ColliderSegments = 32;
+        constexpr size_t TriangleIndexCount = 3;
         constexpr int DirectionalSegments = 24;
         constexpr float DirectionalLength = 2.0f;
         constexpr float DirectionalRadius = 0.4f;
@@ -75,19 +76,27 @@ namespace BrightBox3D::Editor::SelectionOverlay
             }
         }
 
-        void DrawCapsule(Level::LevelObject& node, const Physics::CapsuleCollider& capsule, const Math::Vector3& center, const Math::Vector3& scale, const Math::Color& color)
+        void DrawMeshWireframe(const Physics::Collider& collider, const Math::Matrix4& world, const Math::Color& color)
         {
-            const Level::Transform& transform = node.GetTransform();
-            float radius = capsule.GetRadius() * std::max(scale.x, scale.z);
-            float half = std::max(capsule.GetHeight() * 0.5f * scale.y - radius, 0.0f);
-            Math::Vector3 up = transform.GetUp();
-            Rendering::DebugDraw::Circle(center + up * half, up, radius, color, ColliderSegments, DepthTested);
-            Rendering::DebugDraw::Circle(center - up * half, up, radius, color, ColliderSegments, DepthTested);
-            Math::Vector3 right = transform.GetRight() * radius;
-            Math::Vector3 forward = transform.GetForward() * radius;
-            for (const Math::Vector3& side : { right, -right, forward, -forward })
+            Physics::ColliderMesh source = collider.ResolveMesh();
+            auto model = source.model.Load();
+            const Geometry::MeshData* mesh = model ? model->GetMesh(source.meshIndex) : nullptr;
+            if (!mesh)
             {
-                Rendering::DebugDraw::Line(center + up * half + side, center - up * half + side, color, 0.0f, DepthTested);
+                return;
+            }
+            Math::Matrix4 transform = Math::Matrix4::Scale(collider.GetSize()) * Math::Matrix4::Translation(collider.GetCenter()) * world;
+            for (size_t i = 0; i + 2 < mesh->indices.size(); i += TriangleIndexCount)
+            {
+                Math::Vector3 corners[TriangleIndexCount];
+                for (size_t corner = 0; corner < TriangleIndexCount; ++corner)
+                {
+                    corners[corner] = transform.TransformPoint(mesh->vertices[mesh->indices[i + corner]].position);
+                }
+                for (size_t edge = 0; edge < TriangleIndexCount; ++edge)
+                {
+                    Rendering::DebugDraw::Line(corners[edge], corners[(edge + 1) % TriangleIndexCount], color, 0.0f, DepthTested);
+                }
             }
         }
 
@@ -98,17 +107,17 @@ namespace BrightBox3D::Editor::SelectionOverlay
             Math::Vector3 center = world.TransformPoint(collider.GetCenter());
             Math::Vector3 scale = node.GetTransform().GetLossyScale();
             float uniform = std::max(scale.x, std::max(scale.y, scale.z));
-            if (auto* box = Reflection::Cast<Physics::BoxCollider>(&collider))
+            switch (collider.GetShape())
             {
-                Rendering::DebugDraw::WireBox(Math::Matrix4::Translation(collider.GetCenter()) * world, box->GetSize() * 0.5f, color, 0.0f, DepthTested);
-            }
-            else if (auto* sphere = Reflection::Cast<Physics::SphereCollider>(&collider))
-            {
-                DrawAxisCircles(center, sphere->GetRadius() * uniform, color, ColliderSegments);
-            }
-            else if (auto* capsule = Reflection::Cast<Physics::CapsuleCollider>(&collider))
-            {
-                DrawCapsule(node, *capsule, center, scale, color);
+            case Physics::ColliderShape::Box:
+                Rendering::DebugDraw::WireBox(Math::Matrix4::Translation(collider.GetCenter()) * world, collider.GetSize() * 0.5f, color, 0.0f, DepthTested);
+                break;
+            case Physics::ColliderShape::Sphere:
+                DrawAxisCircles(center, collider.GetDiameter() * 0.5f * uniform, color, ColliderSegments);
+                break;
+            case Physics::ColliderShape::Mesh:
+                DrawMeshWireframe(collider, world, color);
+                break;
             }
         }
 

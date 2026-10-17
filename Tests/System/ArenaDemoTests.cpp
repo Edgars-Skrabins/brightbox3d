@@ -9,7 +9,7 @@
 #include "GameBuilder.h"
 #include "HotReload.h"
 #include "Level/LevelSerializer.h"
-#include "Physics/Colliders.h"
+#include "Physics/Collider.h"
 #include "Physics/Rigidbody.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/BuiltinAssets.h"
@@ -67,9 +67,9 @@ namespace
         Level::Level authoring;
         LevelObject* hero = *authoring.CreateObject(playerType);
         hero->SetName("Player");
-        auto* capsule = *hero->AddComponent<Physics::CapsuleCollider>();
-        capsule->SetSize(0.4f, 1.8f);
-        capsule->SetCenter({ 0.0f, 0.9f, 0.0f });
+        auto* body = *hero->AddComponent<Physics::Collider>();
+        body->SetSize({ 0.8f, 1.8f, 0.8f });
+        body->SetCenter({ 0.0f, 0.9f, 0.0f });
         hero->AddComponent<Physics::Rigidbody>()->SetMotionType(Physics::MotionType::Kinematic);
         AddPrimitive(authoring, Rendering::BuiltinAssets::Capsule(), "Body", { 0.0f, 0.9f, 0.0f }, { 0.8f, 0.9f, 0.8f }, FindAsset("Materials/Hero.material"), hero);
         auto* camera = *authoring.CreateObject<Framework::Camera>(nullptr, hero);
@@ -100,7 +100,7 @@ namespace
         Core::Guid metalMaterial = FindAsset("Materials/Metal.material");
         level.DestroyObjectImmediate(level.FindObjectByName("Ground"));
         LevelObject* floor = AddPrimitive(level, Rendering::BuiltinAssets::Plane(), "Floor", { 0, 0, 0 }, { 3, 1, 3 }, floorMaterial);
-        auto* floorCollider = *floor->AddComponent<Physics::BoxCollider>();
+        auto* floorCollider = *floor->AddComponent<Physics::Collider>();
         floorCollider->SetSize({ 10.0f, 0.2f, 10.0f });
         floorCollider->SetCenter({ 0.0f, -0.1f, 0.0f });
         for (int i = 0; i < 4; ++i)
@@ -109,18 +109,18 @@ namespace
             Math::Vector3 position(std::sin(angle) * 15.0f, 1.5f, std::cos(angle) * 15.0f);
             LevelObject* wall = AddPrimitive(level, Rendering::BuiltinAssets::Cube(), "Wall", position, { 30.0f, 3.0f, 0.5f }, metalMaterial);
             wall->GetTransform().SetLocalEulerAngles({ 0.0f, angle * Math::RadiansToDegrees, 0.0f });
-            EXPECT_TRUE(Tests::Succeeded(wall->AddComponent<Physics::BoxCollider>()));
+            EXPECT_TRUE(Tests::Succeeded(wall->AddComponent<Physics::Collider>()));
         }
         for (int i = 0; i < 12; ++i)
         {
             Math::Vector3 position(-4.0f + static_cast<float>(i % 4) * 2.2f, 1.0f + static_cast<float>(i / 4) * 1.6f, 5.0f + static_cast<float>(i % 3) * 0.4f);
             LevelObject* crate = AddPrimitive(level, Rendering::BuiltinAssets::Cube(), "Crate", position, { 1, 1, 1 }, crateMaterial);
             crate->GetTransform().SetLocalEulerAngles({ 0.0f, static_cast<float>(i * 17), 0.0f });
-            EXPECT_TRUE(Tests::Succeeded(crate->AddComponent<Physics::BoxCollider>()));
+            EXPECT_TRUE(Tests::Succeeded(crate->AddComponent<Physics::Collider>()));
             crate->AddComponent<Physics::Rigidbody>()->SetMass(2.0f);
         }
         LevelObject* orb = AddPrimitive(level, Rendering::BuiltinAssets::Sphere(), "Orb", { 4.0f, 1.2f, 2.0f }, { 1.4f, 1.4f, 1.4f }, metalMaterial);
-        EXPECT_TRUE(Tests::Succeeded(orb->AddComponent<Physics::SphereCollider>()));
+        (*orb->AddComponent<Physics::Collider>())->SetShape(Physics::ColliderShape::Sphere);
         LevelObject* lamp = *level.CreateObject(LevelObject::StaticType());
         lamp->SetName("Lamp");
         lamp->GetTransform().SetLocalPosition({ 3.0f, 2.5f, 1.0f });
