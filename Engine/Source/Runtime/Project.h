@@ -15,10 +15,10 @@ namespace BrightBox3D::Runtime
     public:
         static constexpr const char* FileName = ProjectLayout::ProjectFileName;
 
-        static bool Create(const std::filesystem::path& directory, const std::string& name, std::string& error);
+        static Core::Result<void> Create(const std::filesystem::path& directory, const std::string& name);
         static bool IsProjectDirectory(const std::filesystem::path& directory);
 
-        bool Open(const std::filesystem::path& directory, std::string& error);
+        Core::Result<void> Open(const std::filesystem::path& directory);
         bool Save() const;
         bool IsOpen() const { return !m_root.empty(); }
 

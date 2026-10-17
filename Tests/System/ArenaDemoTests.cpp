@@ -176,13 +176,13 @@ protected:
     void CreateProject()
     {
         m_root = Tests::MakeTempDirectory("ArenaDemo");
-        std::string error;
-        ASSERT_TRUE(Runtime::Project::Create(m_root, "ArenaDemo", error)) << error;
+        ASSERT_TRUE(Tests::Succeeded(Runtime::Project::Create(m_root, "ArenaDemo")));
         for (const char* folder : CopiedFolders)
         {
             CopyFolder(SampleRoot / folder, m_root / folder);
         }
         m_context = std::make_unique<Editor::EditorContext>();
+        std::string error;
         ASSERT_TRUE(m_context->GetProjectService().OpenProject(m_root, error)) << error;
     }
 

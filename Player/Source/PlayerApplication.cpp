@@ -50,11 +50,10 @@ namespace BrightBox3D::Player
 
     bool PlayerApplication::OpenProject()
     {
-        std::string error;
         Runtime::Project project;
-        if (!project.Open(m_options.project, error))
+        if (Core::Result<void> opened = project.Open(m_options.project); !opened)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotOpenProject, error));
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotOpenProject, opened.GetError().GetText()));
             return false;
         }
         m_manifest.AssignFromProject(project);
@@ -68,11 +67,10 @@ namespace BrightBox3D::Player
 
     bool PlayerApplication::OpenPackagedGame()
     {
-        std::string error;
         m_root = Core::FileSystem::ExecutableDirectory();
-        if (!m_manifest.Load(Runtime::BuildLayout::GetManifestPath(m_root), error))
+        if (Core::Result<void> loaded = m_manifest.Load(Runtime::BuildLayout::GetManifestPath(m_root)); !loaded)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotReadManifest, Runtime::GameManifest::FileName, error));
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerCannotReadManifest, Runtime::GameManifest::FileName, loaded.GetError().GetText()));
             return false;
         }
         m_modulePath = Runtime::BuildLayout::GetGameModulePath(m_root, m_manifest.gameModule);
@@ -101,11 +99,10 @@ namespace BrightBox3D::Player
         {
             return;
         }
-        std::string error;
         std::filesystem::path shadow = std::filesystem::temp_directory_path() / Core::EngineName / (ShadowModulePrefix + m_manifest.gameModule);
-        if (!m_module.Load(m_modulePath, m_manifest.gameModule, shadow, error))
+        if (Core::Result<void> loaded = m_module.Load(m_modulePath, m_manifest.gameModule, shadow); !loaded)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::PlayerModuleLoadFailed, error));
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerModuleLoadFailed, loaded.GetError().GetText()));
         }
     }
 

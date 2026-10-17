@@ -29,24 +29,28 @@ namespace BrightBox3D::Core
         Unload();
     }
 
-    bool SharedLibrary::Load(const std::filesystem::path& path)
+    Result<void> SharedLibrary::Load(const std::filesystem::path& path)
     {
         Unload();
 #if defined(_WIN32)
         m_handle = LoadLibraryW(path.wstring().c_str());
         if (!m_handle)
         {
-            m_lastError = Text(EngineText::LoadLibraryFailed, GetLastError());
+            return Error(EngineText::LoadLibraryFailed, GetLastError());
         }
 #else
         m_handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!m_handle)
         {
             const char* error = dlerror();
-            m_lastError = error ? error : Text(EngineText::DlopenFailed);
+            if (!error)
+            {
+                return Error(EngineText::DlopenFailed);
+            }
+            return Error(EngineText::DlopenError, std::string(error));
         }
 #endif
-        return m_handle != nullptr;
+        return {};
     }
 
     void SharedLibrary::Unload()

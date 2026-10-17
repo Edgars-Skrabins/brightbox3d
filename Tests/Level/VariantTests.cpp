@@ -179,9 +179,8 @@ TEST(VariantTests, OldLevelObjectFilesBecomeVariants)
     ASSERT_TRUE(Serialization::SaveJsonFile(assets / "Old.levelobject.meta", meta));
 
     Runtime::Project fake;
-    std::string error;
-    Runtime::Project::Create(project.Root(), "Variants", error);
-    ASSERT_TRUE(fake.Open(project.Root(), error)) << error;
+    ASSERT_TRUE(Tests::Succeeded(Runtime::Project::Create(project.Root(), "Variants")));
+    ASSERT_TRUE(Tests::Succeeded(fake.Open(project.Root())));
     EXPECT_EQ(Runtime::MigrateLegacyLevelObjectAssets(fake), 1);
     EXPECT_FALSE(std::filesystem::exists(assets / "Old.levelobject"));
     EXPECT_TRUE(std::filesystem::exists(assets / "Old.variant"));

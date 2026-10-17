@@ -11,8 +11,9 @@ namespace BrightBox3D::Editor
     bool ProjectService::OpenProject(const std::filesystem::path& directory, std::string& error)
     {
         CloseProject();
-        if (!m_project.Open(directory, error))
+        if (Core::Result<void> opened = m_project.Open(directory); !opened)
         {
+            error = opened.GetError().GetText();
             return false;
         }
         Runtime::Project::SetCurrent(&m_project);

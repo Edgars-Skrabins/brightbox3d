@@ -17,7 +17,7 @@ namespace BrightBox3D::Runtime
         }
     }
 
-    bool GameModule::LoadCopy(const std::filesystem::path& library, std::string& error)
+    Core::Result<void> GameModule::LoadCopy(const std::filesystem::path& library)
     {
         std::error_code ec;
         std::filesystem::create_directories(m_shadowDirectory, ec);
@@ -26,40 +26,36 @@ namespace BrightBox3D::Runtime
         std::filesystem::copy_file(library, copy, std::filesystem::copy_options::overwrite_existing, ec);
         if (ec)
         {
-            error = Core::Text(Core::EngineText::ModuleCopyFailed, ec.message());
-            return false;
+            return Core::Error(Core::EngineText::ModuleCopyFailed, ec.message());
         }
-        bool loaded = m_library.Load(copy);
-        if (!loaded)
+        if (Core::Result<void> loaded = m_library.Load(copy); !loaded)
         {
-            error = m_library.LastError();
             std::filesystem::remove(copy, ec);
-            return false;
+            return loaded;
         }
         if (!m_loadedCopy.empty() && m_loadedCopy != copy)
         {
             std::filesystem::remove(m_loadedCopy, ec);
         }
         m_loadedCopy = copy;
-        return true;
+        return {};
     }
 
-    bool GameModule::Load(const std::filesystem::path& library, const std::string& name, const std::filesystem::path& shadowDirectory, std::string& error)
+    Core::Result<void> GameModule::Load(const std::filesystem::path& library, const std::string& name, const std::filesystem::path& shadowDirectory)
     {
         m_name = name;
         m_shadowDirectory = shadowDirectory;
         if (!std::filesystem::exists(library))
         {
-            error = Core::Text(Core::EngineText::ModuleMissing, library.generic_string());
-            return false;
+            return Core::Error(Core::EngineText::ModuleMissing, library.generic_string());
         }
-        if (!LoadCopy(library, error))
+        if (Core::Result<void> loaded = LoadCopy(library); !loaded)
         {
-            return false;
+            return loaded;
         }
         size_t count = Reflection::TypeRegistry::GetFromModule(m_name).size();
         Core::Log::Info(Core::Text(Core::EngineText::GameModuleLoaded, m_name, count));
-        return true;
+        return {};
     }
 
     void GameModule::ExtractModuleObjects(Level::ReplacementBatch& batch)
@@ -77,14 +73,14 @@ namespace BrightBox3D::Runtime
 
     void GameModule::RestorePreviousModule(const std::filesystem::path& previous)
     {
-        bool restored = m_library.Load(previous);
+        Core::Result<void> restored = m_library.Load(previous);
         if (restored)
         {
             m_loadedCopy = previous;
             Core::Log::Error(Core::Text(Core::EngineText::ModuleRestored));
             return;
         }
-        Core::Log::Error(Core::Text(Core::EngineText::ModuleRestoreFailed, m_library.LastError()));
+        Core::Log::Error(Core::Text(Core::EngineText::ModuleRestoreFailed, restored.GetError().GetText()));
         std::error_code ec;
         std::filesystem::remove(previous, ec);
         m_loadedCopy.clear();
@@ -102,18 +98,17 @@ namespace BrightBox3D::Runtime
         Level::ObjectReplacer::Restore(batch);
     }
 
-    bool GameModule::Reload(const std::filesystem::path& library, std::string& error)
+    Core::Result<void> GameModule::Reload(const std::filesystem::path& library)
     {
         if (!std::filesystem::exists(library))
         {
-            error = Core::Text(Core::EngineText::ModuleMissing, library.generic_string());
-            return false;
+            return Core::Error(Core::EngineText::ModuleMissing, library.generic_string());
         }
         Level::ReplacementBatch batch;
         ExtractModuleObjects(batch);
         std::filesystem::path previous = m_loadedCopy;
         m_library.Unload();
-        bool loaded = LoadCopy(library, error);
+        Core::Result<void> loaded = LoadCopy(library);
         if (!loaded && !previous.empty())
         {
             RestorePreviousModule(previous);

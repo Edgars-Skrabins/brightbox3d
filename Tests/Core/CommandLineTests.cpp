@@ -27,7 +27,7 @@ namespace
         { "--verbose", &TestOptions::verbose },
     };
 
-    std::optional<TestOptions> Parse(std::vector<std::string> arguments, std::string& error)
+    Core::Result<TestOptions> Parse(std::vector<std::string> arguments)
     {
         arguments.insert(arguments.begin(), "Tool");
         std::vector<char*> argv;
@@ -35,15 +35,14 @@ namespace
         {
             argv.push_back(argument.data());
         }
-        return Core::ParseCommandLine<TestOptions>(static_cast<int>(argv.size()), argv.data(), TestCommandLine, error);
+        return Core::ParseCommandLine<TestOptions>(static_cast<int>(argv.size()), argv.data(), TestCommandLine);
     }
 }
 
 TEST(CommandLineTests, ParsesEveryValueType)
 {
-    std::string error;
-    std::optional<TestOptions> options = Parse({ "Project", "--output", "out/shot.png", "--count", "42", "--name", "Crate", "--verbose" }, error);
-    ASSERT_TRUE(options) << error;
+    Core::Result<TestOptions> options = Parse({ "Project", "--output", "out/shot.png", "--count", "42", "--name", "Crate", "--verbose" });
+    ASSERT_TRUE(options) << options.GetError().GetText();
     EXPECT_EQ(options->input, std::filesystem::path("Project"));
     EXPECT_EQ(options->output, std::filesystem::path("out/shot.png"));
     EXPECT_EQ(options->count, 42);
@@ -53,8 +52,7 @@ TEST(CommandLineTests, ParsesEveryValueType)
 
 TEST(CommandLineTests, DefaultsStayWhenOptionsAreMissing)
 {
-    std::string error;
-    std::optional<TestOptions> options = Parse({}, error);
+    Core::Result<TestOptions> options = Parse({});
     ASSERT_TRUE(options);
     EXPECT_TRUE(options->input.empty());
     EXPECT_EQ(options->count, -1);
@@ -63,30 +61,34 @@ TEST(CommandLineTests, DefaultsStayWhenOptionsAreMissing)
 
 TEST(CommandLineTests, MissingValueIsAnError)
 {
-    std::string error;
-    EXPECT_FALSE(Parse({ "--count" }, error));
-    EXPECT_NE(error.find("--count"), std::string::npos);
+    Core::Result<TestOptions> options = Parse({ "--count" });
+    ASSERT_FALSE(options);
+    EXPECT_EQ(options.GetError().GetId(), Core::EngineText::CommandLineMissingValue);
+    EXPECT_NE(options.GetError().GetText().find("--count"), std::string::npos);
 }
 
 TEST(CommandLineTests, InvalidNumberIsAnError)
 {
-    std::string error;
-    EXPECT_FALSE(Parse({ "--count", "12abc" }, error));
-    EXPECT_NE(error.find("12abc"), std::string::npos);
+    Core::Result<TestOptions> options = Parse({ "--count", "12abc" });
+    ASSERT_FALSE(options);
+    EXPECT_EQ(options.GetError().GetId(), Core::EngineText::CommandLineInvalidNumber);
+    EXPECT_NE(options.GetError().GetText().find("12abc"), std::string::npos);
 }
 
 TEST(CommandLineTests, UnknownFlagIsAnError)
 {
-    std::string error;
-    EXPECT_FALSE(Parse({ "--colour", "red" }, error));
-    EXPECT_NE(error.find("--colour"), std::string::npos);
+    Core::Result<TestOptions> options = Parse({ "--colour", "red" });
+    ASSERT_FALSE(options);
+    EXPECT_EQ(options.GetError().GetId(), Core::EngineText::CommandLineUnknownOption);
+    EXPECT_NE(options.GetError().GetText().find("--colour"), std::string::npos);
 }
 
 TEST(CommandLineTests, SecondPositionalArgumentIsAnError)
 {
-    std::string error;
-    EXPECT_FALSE(Parse({ "First", "Second" }, error));
-    EXPECT_NE(error.find("Second"), std::string::npos);
+    Core::Result<TestOptions> options = Parse({ "First", "Second" });
+    ASSERT_FALSE(options);
+    EXPECT_EQ(options.GetError().GetId(), Core::EngineText::CommandLineExtraArgument);
+    EXPECT_NE(options.GetError().GetText().find("Second"), std::string::npos);
 }
 
 TEST(CommandLineTests, UsageListsEveryOptionFromTheTable)

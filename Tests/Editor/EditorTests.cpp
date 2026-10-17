@@ -29,8 +29,8 @@ namespace
         void SetUp() override
         {
             m_root = Tests::MakeTempDirectory("Editor");
+            ASSERT_TRUE(Tests::Succeeded(Runtime::Project::Create(m_root, "EditorTest")));
             std::string error;
-            ASSERT_TRUE(Runtime::Project::Create(m_root, "EditorTest", error)) << error;
             ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;
         }
 
@@ -393,9 +393,9 @@ public:
     std::filesystem::path corrupt = m_root / "Binaries" / ("Corrupt" + reload.GetModulePath().extension().string());
     WriteFile(corrupt, "not a library");
     Core::Log::Clear();
-    std::string error;
-    EXPECT_FALSE(module.Reload(corrupt, error));
-    EXPECT_FALSE(error.empty());
+    Core::Result<void> reloaded = module.Reload(corrupt);
+    ASSERT_FALSE(reloaded);
+    EXPECT_FALSE(reloaded.GetError().GetText().empty());
 
     bool reportedRestore = false;
     Core::Log::ForEach([&](const Core::LogEntry& entry)

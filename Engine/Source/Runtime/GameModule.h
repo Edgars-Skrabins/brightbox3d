@@ -19,8 +19,8 @@ namespace BrightBox3D::Runtime
         GameModule() = default;
         ~GameModule();
 
-        bool Load(const std::filesystem::path& library, const std::string& name, const std::filesystem::path& shadowDirectory, std::string& error);
-        bool Reload(const std::filesystem::path& library, std::string& error);
+        Core::Result<void> Load(const std::filesystem::path& library, const std::string& name, const std::filesystem::path& shadowDirectory);
+        Core::Result<void> Reload(const std::filesystem::path& library);
         void Unload();
         bool IsLoaded() const { return m_library.IsLoaded(); }
         const std::string& GetName() const { return m_name; }
@@ -28,7 +28,7 @@ namespace BrightBox3D::Runtime
         const std::filesystem::path& GetLoadedCopy() const { return m_loadedCopy; }
 
     private:
-        bool LoadCopy(const std::filesystem::path& library, std::string& error);
+        Core::Result<void> LoadCopy(const std::filesystem::path& library);
         void ExtractModuleObjects(Level::ReplacementBatch& batch);
         void RestorePreviousModule(const std::filesystem::path& previous);
 

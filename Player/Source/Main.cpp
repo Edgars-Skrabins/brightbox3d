@@ -3,18 +3,16 @@
 #include "PlayerApplication.h"
 #include "PlayerCommandLine.h"
 
-#include <optional>
 #include <string>
 
 using namespace BrightBox3D;
 
 int main(int argc, char** argv)
 {
-    std::string commandLineError;
-    std::optional<Player::PlayerOptions> options = Core::ParseCommandLine<Player::PlayerOptions>(argc, argv, Player::PlayerCommandLine, commandLineError);
+    Core::Result<Player::PlayerOptions> options = Core::ParseCommandLine<Player::PlayerOptions>(argc, argv, Player::PlayerCommandLine);
     if (!options)
     {
-        Core::Log::Error(commandLineError);
+        Core::Log::Error(options.GetError().GetText());
         Core::Log::Info(Core::CommandLineUsage<Player::PlayerOptions>(std::filesystem::path(argv[0]).filename().string(), Player::PlayerCommandLine));
         return 1;
     }

@@ -46,6 +46,7 @@ namespace BrightBox3D::Core
             { "AssertionFailed", "Assertion failed: {} {}", 2 },
             { "LoadLibraryFailed", "LoadLibrary failed with error {}", 1 },
             { "DlopenFailed", "dlopen failed", 0 },
+            { "DlopenError", "{}", 1 },
             { "CommandLineUnknownOption", "unknown option '{}'", 1 },
             { "CommandLineMissingValue", "option '{}' needs a value", 1 },
             { "CommandLineInvalidNumber", "option '{}' expects a number, got '{}'", 2 },

@@ -96,11 +96,10 @@ namespace BrightBox3D::Editor
 
     bool EditorApplication::Initialize(int argc, char** argv)
     {
-        std::string commandLineError;
-        std::optional<EditorOptions> options = Core::ParseCommandLine<EditorOptions>(argc, argv, EditorCommandLine, commandLineError);
+        Core::Result<EditorOptions> options = Core::ParseCommandLine<EditorOptions>(argc, argv, EditorCommandLine);
         if (!options)
         {
-            Core::Log::Error(commandLineError);
+            Core::Log::Error(options.GetError().GetText());
             Core::Log::Info(Core::CommandLineUsage<EditorOptions>(std::filesystem::path(argv[0]).filename().string(), EditorCommandLine));
             return false;
         }
@@ -347,10 +346,12 @@ namespace BrightBox3D::Editor
         std::filesystem::path projectPath = m_options.project;
         if (!m_options.createProject.empty())
         {
-            std::string error;
-            if (!Runtime::Project::IsProjectDirectory(m_options.createProject) && !Runtime::Project::Create(m_options.createProject, m_options.createProject.filename().string(), error))
+            if (!Runtime::Project::IsProjectDirectory(m_options.createProject))
             {
-                Core::Log::Error(Text(EditorText::CreateProjectFailed, error));
+                if (Core::Result<void> created = Runtime::Project::Create(m_options.createProject, m_options.createProject.filename().string()); !created)
+                {
+                    Core::Log::Error(Text(EditorText::CreateProjectFailed, created.GetError().GetText()));
+                }
             }
             projectPath = m_options.createProject;
         }

@@ -19,8 +19,8 @@ TEST(LevelFileFormatTests, SampleCollectionsRewriteToTheSameJson)
     std::filesystem::copy(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / "Assets", root / "Assets", std::filesystem::copy_options::recursive);
     std::filesystem::copy_file(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / Runtime::Project::FileName, root / Runtime::Project::FileName);
     Runtime::Project project;
+    ASSERT_TRUE(Tests::Succeeded(project.Open(root)));
     std::string error;
-    ASSERT_TRUE(project.Open(root, error)) << error;
     ASSERT_TRUE(Assets::AssetDatabase::Get().Open(root));
 
     std::unique_ptr<Level::Level> level = Level::LevelSerializer::LoadLevel(project.GetStartupLevel(), &error);

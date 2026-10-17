@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Result.h"
+
 #include <charconv>
 #include <filesystem>
 #include <optional>
@@ -21,10 +23,6 @@ namespace BrightBox3D::Core
 
     namespace CommandLineText
     {
-        std::string UnknownOption(std::string_view option);
-        std::string MissingValue(std::string_view option);
-        std::string InvalidNumber(std::string_view option, std::string_view value);
-        std::string ExtraArgument(std::string_view argument);
         std::string Usage(std::string_view program, std::string_view options);
         std::string_view ValueName(bool isNumber, bool isPath);
     }
@@ -54,7 +52,7 @@ namespace BrightBox3D::Core
     }
 
     template <typename Options>
-    std::optional<Options> ParseCommandLine(int argc, char** argv, std::span<const CommandLineOption<Options>> table, std::string& error)
+    Result<Options> ParseCommandLine(int argc, char** argv, std::span<const CommandLineOption<Options>> table)
     {
         Options options;
         bool positionalUsed = false;
@@ -73,8 +71,7 @@ namespace BrightBox3D::Core
             }
             if (!match)
             {
-                error = argument.starts_with("--") ? CommandLineText::UnknownOption(argument) : CommandLineText::ExtraArgument(argument);
-                return std::nullopt;
+                return Error(argument.starts_with("--") ? EngineText::CommandLineUnknownOption : EngineText::CommandLineExtraArgument, argument);
             }
             if (IsPositional(*match))
             {
@@ -89,8 +86,7 @@ namespace BrightBox3D::Core
             }
             if (index + 1 >= argc)
             {
-                error = CommandLineText::MissingValue(argument);
-                return std::nullopt;
+                return Error(EngineText::CommandLineMissingValue, argument);
             }
             std::string_view value = argv[++index];
             if (int Options::* const* number = std::get_if<int Options::*>(&match->member))
@@ -99,8 +95,7 @@ namespace BrightBox3D::Core
                 auto [end, code] = std::from_chars(value.data(), value.data() + value.size(), parsed);
                 if (code != std::errc() || end != value.data() + value.size())
                 {
-                    error = CommandLineText::InvalidNumber(argument, value);
-                    return std::nullopt;
+                    return Error(EngineText::CommandLineInvalidNumber, argument, value);
                 }
                 options.**number = parsed;
                 continue;

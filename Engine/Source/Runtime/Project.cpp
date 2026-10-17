@@ -71,45 +71,40 @@ namespace BrightBox3D::Runtime
         return Serialization::SaveJsonFile(path, document);
     }
 
-    bool Project::Create(const std::filesystem::path& directory, const std::string& name, std::string& error)
+    Core::Result<void> Project::Create(const std::filesystem::path& directory, const std::string& name)
     {
         if (std::filesystem::exists(directory / FileName))
         {
-            error = Core::Text(Core::EngineText::ProjectExists);
-            return false;
+            return Core::Error(Core::EngineText::ProjectExists);
         }
         if (!Core::FileSystem::EnsureDirectory(directory / ProjectLayout::AssetsFolder) || !Core::FileSystem::EnsureDirectory(directory / ProjectLayout::SourceFolder))
         {
-            error = Core::Text(Core::EngineText::ProjectFoldersFailed);
-            return false;
+            return Core::Error(Core::EngineText::ProjectFoldersFailed);
         }
         ProjectSettings settings;
         settings.name = name;
         settings.gameModule = SanitizeModuleName(name);
         if (!WriteSettings(directory / FileName, settings))
         {
-            error = Core::Text(Core::EngineText::ProjectWriteFailed);
-            return false;
+            return Core::Error(Core::EngineText::ProjectWriteFailed);
         }
         if (std::optional<std::string> gitIgnore = ProjectTemplates::GitIgnore())
         {
             Core::FileSystem::WriteText(directory / ProjectLayout::GitIgnoreFileName, *gitIgnore);
         }
-        return true;
+        return {};
     }
 
-    bool Project::Open(const std::filesystem::path& directory, std::string& error)
+    Core::Result<void> Project::Open(const std::filesystem::path& directory)
     {
         Serialization::JsonDocument document;
         if (Core::Result<void> loaded = Serialization::LoadJsonFile(directory / FileName, document); !loaded)
         {
-            error = loaded.GetError().GetText();
-            return false;
+            return loaded;
         }
         if (!document.IsObject())
         {
-            error = Core::Text(Core::EngineText::ProjectInvalid);
-            return false;
+            return Core::Error(Core::EngineText::ProjectInvalid);
         }
         std::error_code ec;
         m_root = std::filesystem::weakly_canonical(directory, ec);
@@ -136,7 +131,7 @@ namespace BrightBox3D::Runtime
         {
             m_legacyGameMode.CopyFrom(*gameMode, m_legacyGameMode.GetAllocator());
         }
-        return true;
+        return {};
     }
 
     bool Project::Save() const

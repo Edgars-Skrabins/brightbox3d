@@ -176,14 +176,13 @@ namespace BrightBox3D::Editor
         std::filesystem::path module = GetModulePath();
         if (std::filesystem::exists(module))
         {
-            std::string error;
-            if (m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory(), error))
+            if (Core::Result<void> loaded = m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory()))
             {
                 m_statusText = Text(EditorText::GameCodeLoaded);
             }
             else
             {
-                Core::Log::Error(Text(EditorText::GameModuleLoadFailed, error));
+                Core::Log::Error(Text(EditorText::GameModuleLoadFailed, loaded.GetError().GetText()));
                 m_statusText = Text(EditorText::GameCodeLoadFailed);
             }
         }
@@ -383,13 +382,13 @@ namespace BrightBox3D::Editor
             }
             return;
         }
-        bool loaded = m_module.IsLoaded() ? m_module.Reload(module, error)
-                                          : m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory(), error);
+        Core::Result<void> loaded = m_module.IsLoaded() ? m_module.Reload(module)
+                                                        : m_module.Load(module, m_context.GetProjectService().GetProject().GetGameModuleName(), m_context.GetProjectService().GetProject().GetHotReloadCacheDirectory());
         if (!loaded)
         {
             m_state = CompileState::Failed;
             m_statusText = Text(EditorText::ReloadFailed);
-            Core::Log::Error(Text(EditorText::GameModuleReloadFailed, error));
+            Core::Log::Error(Text(EditorText::GameModuleReloadFailed, loaded.GetError().GetText()));
             if (OnCompileFailed)
             {
                 OnCompileFailed();

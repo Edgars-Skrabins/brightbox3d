@@ -15,21 +15,19 @@ namespace BrightBox3D::Runtime
         fixedTimeStep = project.GetFixedTimeStep();
     }
 
-    bool GameManifest::Load(const std::filesystem::path& path, std::string& error)
+    Core::Result<void> GameManifest::Load(const std::filesystem::path& path)
     {
         Serialization::JsonDocument document;
         if (Core::Result<void> loaded = Serialization::LoadJsonFile(path, document); !loaded)
         {
-            error = loaded.GetError().GetText();
-            return false;
+            return loaded;
         }
         if (!document.IsObject())
         {
-            error = Core::Text(Core::EngineText::ManifestInvalid);
-            return false;
+            return Core::Error(Core::EngineText::ManifestInvalid);
         }
         Serialization::DeserializeProperties(*this, document);
-        return true;
+        return {};
     }
 
     bool GameManifest::Save(const std::filesystem::path& path) const

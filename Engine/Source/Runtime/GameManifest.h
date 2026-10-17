@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "Reflection/EngineObject.h"
 
 #include <filesystem>
@@ -31,7 +32,7 @@ namespace BrightBox3D::Runtime
         float fixedTimeStep = 1.0f / 60.0f;
 
         void AssignFromProject(const Project& project);
-        bool Load(const std::filesystem::path& path, std::string& error);
+        Core::Result<void> Load(const std::filesystem::path& path);
         bool Save(const std::filesystem::path& path) const;
     };
 }

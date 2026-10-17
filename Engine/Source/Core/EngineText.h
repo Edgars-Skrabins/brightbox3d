@@ -49,6 +49,7 @@ namespace BrightBox3D::Core
         AssertionFailed,
         LoadLibraryFailed,
         DlopenFailed,
+        DlopenError,
         CommandLineUnknownOption,
         CommandLineMissingValue,
         CommandLineInvalidNumber,

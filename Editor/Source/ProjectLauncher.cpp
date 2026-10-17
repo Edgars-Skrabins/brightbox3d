@@ -82,19 +82,17 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        std::string error;
         if (m_name.empty())
         {
             m_error = Text(EditorText::EnterProjectName);
+            return;
         }
-        else if (Runtime::Project::Create(target, m_name, error))
+        if (Core::Result<void> created = Runtime::Project::Create(target, m_name); !created)
         {
-            toOpen = target.generic_string();
+            m_error = created.GetError().GetText();
+            return;
         }
-        else
-        {
-            m_error = error;
-        }
+        toOpen = target.generic_string();
     }
 
     void ProjectLauncher::DrawOpenProject(std::optional<std::filesystem::path>& toOpen)
