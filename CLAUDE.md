@@ -72,6 +72,11 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
   - Never pass strings as metadata. Categories are `constexpr Reflection::Category` values and display names are `constexpr Reflection::DisplayName` values (`.displayName = DisplayNames::Position`), both in each module's `Categories.h`. Without a display name, the member name is prettified.
   - CMake generates `.gen.cpp` files; never edit them.
 - **No strings in typed APIs:** use enums and types so the IDE lists what's possible.
+- **No flag parameters:** a `bool` option is an enum (`TransformSpace`, `SelectionMode`, `FieldAccess`, ...). A position that may mean "append" is `std::optional<size_t>`; indices are `size_t`.
+- **Errors:**
+  - A function that can fail returns `Core::Result<T>` (`Core/Result.h`): a value or a typed `Core::Error` (`Core/Error.h`, an `EngineText` id plus its arguments). Editor code returns `Core::Result<T, EditorError>` (`EditorText` ids). Never use `std::string& error` out-parameters.
+  - A function never logs its own failure. The caller decides, logging `GetError().GetText()` once or wrapping it as an argument of its own error.
+  - Asset loads report with `Assets::ReportLoadFailure`, which stays silent when the asset is unset or missing (`Assets::IsAbsentAsset`).
 - **Editor text:** no user-visible string literal in editor code. Add an entry to `Editor/Source/EditorText.h/.cpp` and use `Text(EditorText::X)` or `Text(EditorText::X, args...)` (`std::format` placeholders). ImGui `##` IDs and persistence keys are the only other strings. Window titles come from `EditorWindow` (`WindowTitle`).
 - **Commands:** every toolbar button, menu item and shortcut is a command. Add a `CommandId`, register it in `Editor/Source/EditorCommands.cpp`, and draw it with `CommandButton`, `CommandMenuItem` or `DrawToolbar`. Panels dispatch their own scope with `CommandRegistry::Get().DispatchShortcuts(scope)`.
 - **Editor colors:** never hard-code a color. Add an entry to `EditorColor` / `ColorInfos` in `Editor/Source/EditorPreferences.*` and read it with `EditorColorVec4` / `EditorColorU32`. Theme-wide ImGui colors are derived in `Editor/Source/Theme.cpp`.
@@ -116,7 +121,7 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 | `AssetTypeStyle` | `Editor/Source/Panels/Assets/AssetTypeStyle.h` | Icon and color per `Assets::AssetType`, and the icon-plus-name row label |
 | `AssetActions` | `Editor/Source/Panels/Assets/AssetActions.h` | Asset operations shared by the Assets layouts and commands (open, rename, move by drop, copy path) |
 | `IconButton`, `DrawCenteredIcon` | `Editor/Source/Theme.h` | Square icon buttons and centered glyphs at any size |
-| `TestUtilities` | `Tests/Common/TestUtilities.h` | `MakeTempDirectory`, `TestOutputPath` (reads `BRIGHT_TEST_OUTPUT`), `CreateTestRenderContext` |
+| `TestUtilities` | `Tests/Common/TestUtilities.h` | `MakeTempDirectory`, `TestOutputPath` (reads `BRIGHT_TEST_OUTPUT`), `CreateTestRenderContext`, `Succeeded(result)` (asserts a `Core::Result` and prints its error) |
 
 ## Workflow rules
 
