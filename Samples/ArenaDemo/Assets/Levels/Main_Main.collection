@@ -51,14 +51,19 @@
                     }
                 }, {
                     "id": "699acaa489652a764b8425e38257f152",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, -0.1, 0.0],
+                        "m_size": [10.0, 0.2, 10.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [10.0, 0.2, 10.0]
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
@@ -85,14 +90,19 @@
                     }
                 }, {
                     "id": "dcca03f01b3e91d40824620e7d9fe629",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
@@ -119,14 +129,19 @@
                     }
                 }, {
                     "id": "c9a18d1190e0f2fdce5a0d180ad9dc3d",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
@@ -153,14 +168,19 @@
                     }
                 }, {
                     "id": "4e8ee71d7a8d7a2fa8e7c478fdfc7d93",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
@@ -187,14 +207,19 @@
                     }
                 }, {
                     "id": "45f133b9e3def34911ff74f061447b68",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
@@ -221,14 +246,19 @@
                     }
                 }, {
                     "id": "fe08af47c3a75511d7258db7da8874de",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "b3c15e475a7267834c2bdf3bc2534201",
@@ -268,14 +298,19 @@
                     }
                 }, {
                     "id": "0316d8685794862c503a39a0d317af29",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "bc5363416870c417f616597523e87dba",
@@ -315,14 +350,19 @@
                     }
                 }, {
                     "id": "aca421d8ec85661a0eba837ce8ed7977",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "16095d9b161ee0f895bc9fe54b84222b",
@@ -362,14 +402,19 @@
                     }
                 }, {
                     "id": "1b97b1151c7d17a2a62ef1fde3f6d339",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "06ced9d1a09ddd99683e1948f3a6527e",
@@ -409,14 +454,19 @@
                     }
                 }, {
                     "id": "f64ae995103879639c6477487b7d9ee9",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "99448967b787c4997b57019b23a70fe7",
@@ -456,14 +506,19 @@
                     }
                 }, {
                     "id": "ea85576ee9b9eae598bfb03cb5772735",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "41d1a6966fea822191ae7e57b2b761a1",
@@ -503,14 +558,19 @@
                     }
                 }, {
                     "id": "781420ed2576ebd45ebf6e6ba1a0ce7e",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "813a9b07caeef90dacd5823da2689835",
@@ -550,14 +610,19 @@
                     }
                 }, {
                     "id": "63d4708cc8149b8cb998fc4000b38811",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "f23a2dc2a1fd5ff3880b37c141b20957",
@@ -597,14 +662,19 @@
                     }
                 }, {
                     "id": "ffc22e7d98925733922dfc482c3d433e",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "c02857474223b42e7183d2df3272fca7",
@@ -644,14 +714,19 @@
                     }
                 }, {
                     "id": "656564d9f6162a4a6c28f89c5262e7fd",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "d1ff39463fc55456b7f53817b16ac626",
@@ -691,14 +766,19 @@
                     }
                 }, {
                     "id": "70c7d52d09ca206a4e7ca4b22cdd6a9a",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "dcf3c17c02ea922f6b4af2a9b709506a",
@@ -738,14 +818,19 @@
                     }
                 }, {
                     "id": "8f3268b262addb92397f0bcdc4850f4a",
-                    "$type": "BoxCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Box",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_size": [1.0, 1.0, 1.0]
+                        "m_restitution": 0.0
                     }
                 }, {
                     "id": "56bc38df514696d7194a00f364fba789",
@@ -785,14 +870,19 @@
                     }
                 }, {
                     "id": "263d657ec5587e7853ef47e7b2313a79",
-                    "$type": "SphereCollider",
+                    "$type": "Collider",
                     "enabled": true,
                     "properties": {
+                        "m_shape": "Sphere",
                         "m_isTrigger": false,
                         "m_center": [0.0, 0.0, 0.0],
+                        "m_size": [1.0, 1.0, 1.0],
+                        "m_diameter": 1.0,
+                        "m_model": null,
+                        "m_meshIndex": 0,
+                        "m_convex": false,
                         "m_friction": 0.5,
-                        "m_restitution": 0.0,
-                        "m_radius": 0.5
+                        "m_restitution": 0.0
                     }
                 }],
             "children": []
