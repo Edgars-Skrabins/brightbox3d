@@ -42,15 +42,14 @@ namespace BrightBox3D::Rendering
         auto source = m_sources.find(file);
         if (source == m_sources.end())
         {
-            std::string text;
-            std::string error;
-            if (!RHI::ShaderCompiler::Preprocess(m_directory / file, text, error))
+            Core::Result<std::string> text = RHI::ShaderCompiler::Preprocess(m_directory / file);
+            if (!text)
             {
-                Core::Log::Error(Core::Text(Core::EngineText::ShaderLoadFailed, file, error));
+                Core::Log::Error(Core::Text(Core::EngineText::ShaderLoadFailed, file, text.GetError().GetText()));
                 m_shaders[key] = nullptr;
                 return nullptr;
             }
-            source = m_sources.emplace(file, std::move(text)).first;
+            source = m_sources.emplace(file, std::move(*text)).first;
         }
 
         RHI::ShaderDesc desc;
@@ -59,14 +58,15 @@ namespace BrightBox3D::Rendering
         desc.stage = stage;
         desc.defines = defines;
         desc.debugName = file + ":" + entryPoint;
-        std::string error;
-        std::unique_ptr<RHI::Shader> shader = m_device.CreateShader(desc, error);
+        Core::Result<std::unique_ptr<RHI::Shader>> shader = m_device.CreateShader(desc);
         if (!shader)
         {
-            Core::Log::Write(Core::LogLevel::Error, Core::Text(Core::EngineText::ShaderCompileFailed, desc.debugName, error), Core::LogSource::Engine, Core::LogCategory::Shader, (m_directory / file).generic_string(), 0);
+            Core::Log::Write(Core::LogLevel::Error, Core::Text(Core::EngineText::ShaderCompileFailed, desc.debugName, shader.GetError().GetText()), Core::LogSource::Engine, Core::LogCategory::Shader, (m_directory / file).generic_string(), 0);
+            m_shaders[key] = nullptr;
+            return nullptr;
         }
-        RHI::Shader* raw = shader.get();
-        m_shaders[key] = std::move(shader);
+        RHI::Shader* raw = shader.GetValue().get();
+        m_shaders[key] = std::move(*shader);
         return raw;
     }
 
@@ -82,16 +82,17 @@ namespace BrightBox3D::Rendering
             m_pipelines[key] = nullptr;
             return nullptr;
         }
-        std::string error;
         RHI::PipelineDesc named = desc;
         named.debugName = GetShaderProgramInfo(key.program).name;
-        std::unique_ptr<RHI::Pipeline> pipeline = m_device.CreatePipeline(named, error);
+        Core::Result<std::unique_ptr<RHI::Pipeline>> pipeline = m_device.CreatePipeline(named);
         if (!pipeline)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::PipelineFailed, named.debugName, error));
+            Core::Log::Error(Core::Text(Core::EngineText::PipelineFailed, named.debugName, pipeline.GetError().GetText()));
+            m_pipelines[key] = nullptr;
+            return nullptr;
         }
-        RHI::Pipeline* raw = pipeline.get();
-        m_pipelines[key] = std::move(pipeline);
+        RHI::Pipeline* raw = pipeline.GetValue().get();
+        m_pipelines[key] = std::move(*pipeline);
         return raw;
     }
 

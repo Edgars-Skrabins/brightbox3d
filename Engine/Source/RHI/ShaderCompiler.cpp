@@ -26,12 +26,11 @@ namespace BrightBox3D::RHI
         constexpr const char* IncludeDirective = "#include";
         constexpr const char* PragmaOnceDirective = "#pragma once";
 
-        bool PreprocessRecursive(const std::string& source, const std::filesystem::path& directory, std::set<std::string>& included, std::string& output, std::string& error, int depth)
+        Core::Result<void> PreprocessRecursive(const std::string& source, const std::filesystem::path& directory, std::set<std::string>& included, std::string& output, int depth)
         {
             if (depth > MaxIncludeDepth)
             {
-                error = Core::Text(Core::EngineText::ShaderIncludeDepth);
-                return false;
+                return Core::Error(Core::EngineText::ShaderIncludeDepth);
             }
             std::istringstream stream(source);
             std::string line;
@@ -44,8 +43,7 @@ namespace BrightBox3D::RHI
                     size_t close = trimmed.rfind('"');
                     if (open == std::string::npos || close <= open)
                     {
-                        error = Core::Text(Core::EngineText::ShaderMalformedInclude, trimmed);
-                        return false;
+                        return Core::Error(Core::EngineText::ShaderMalformedInclude, trimmed);
                     }
                     std::string name = trimmed.substr(open + 1, close - open - 1);
                     std::filesystem::path path = directory / name;
@@ -58,12 +56,11 @@ namespace BrightBox3D::RHI
                     auto text = Core::FileSystem::ReadText(path);
                     if (!text)
                     {
-                        error = Core::Text(Core::EngineText::ShaderIncludeMissing, key);
-                        return false;
+                        return Core::Error(Core::EngineText::ShaderIncludeMissing, key);
                     }
-                    if (!PreprocessRecursive(*text, path.parent_path(), included, output, error, depth + 1))
+                    if (Core::Result<void> nested = PreprocessRecursive(*text, path.parent_path(), included, output, depth + 1); !nested)
                     {
-                        return false;
+                        return nested;
                     }
                     output += "\n";
                     continue;
@@ -76,26 +73,29 @@ namespace BrightBox3D::RHI
                 output += line;
                 output += "\n";
             }
-            return true;
+            return {};
         }
     }
 
-    bool ShaderCompiler::Preprocess(const std::filesystem::path& file, std::string& output, std::string& error)
+    Core::Result<std::string> ShaderCompiler::Preprocess(const std::filesystem::path& file)
     {
         auto text = Core::FileSystem::ReadText(file);
         if (!text)
         {
-            error = Core::Text(Core::EngineText::ShaderFileMissing, file.generic_string());
-            return false;
+            return Core::Error(Core::EngineText::ShaderFileMissing, file.generic_string());
         }
-        return PreprocessSource(*text, file.parent_path(), output, error);
+        return PreprocessSource(*text, file.parent_path());
     }
 
-    bool ShaderCompiler::PreprocessSource(const std::string& source, const std::filesystem::path& includeDirectory, std::string& output, std::string& error)
+    Core::Result<std::string> ShaderCompiler::PreprocessSource(const std::string& source, const std::filesystem::path& includeDirectory)
     {
         std::set<std::string> included;
-        output.clear();
-        return PreprocessRecursive(source, includeDirectory, included, output, error, 0);
+        std::string output;
+        if (Core::Result<void> processed = PreprocessRecursive(source, includeDirectory, included, output, 0); !processed)
+        {
+            return processed.GetError();
+        }
+        return output;
     }
 
     std::string ShaderCompiler::BuildDefinePreamble(const std::vector<std::pair<std::string, std::string>>& defines)
@@ -109,12 +109,11 @@ namespace BrightBox3D::RHI
     }
 
 #if defined(__APPLE__)
-    ShaderCompileResult ShaderCompiler::CompileToMetal(const ShaderDesc& desc)
+    Core::Result<MetalShaderSource> ShaderCompiler::CompileToMetal(const ShaderDesc& desc)
     {
         static std::once_flag initializeFlag;
         std::call_once(initializeFlag, [] { glslang::InitializeProcess(); });
 
-        ShaderCompileResult result;
         EShLanguage language = desc.stage == ShaderStage::Vertex ? EShLangVertex : EShLangFragment;
         glslang::TShader shader(language);
         std::string source = "#pragma pack_matrix(row_major)\n" + desc.source;
@@ -136,16 +135,14 @@ namespace BrightBox3D::RHI
         EShMessages messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules | EShMsgReadHlsl | EShMsgHlslOffsets);
         if (!shader.parse(GetDefaultResources(), 100, false, messages))
         {
-            result.error = std::string(shader.getInfoLog()) + shader.getInfoDebugLog();
-            return result;
+            return Core::Error(Core::EngineText::GlslangError, std::string(shader.getInfoLog()) + shader.getInfoDebugLog());
         }
 
         glslang::TProgram program;
         program.addShader(&shader);
         if (!program.link(messages))
         {
-            result.error = std::string(program.getInfoLog()) + program.getInfoDebugLog();
-            return result;
+            return Core::Error(Core::EngineText::GlslangError, std::string(program.getInfoLog()) + program.getInfoDebugLog());
         }
 
         std::vector<uint32_t> spirv;
@@ -176,23 +173,21 @@ namespace BrightBox3D::RHI
                 compiler.set_decoration(resource.id, spv::DecorationBinding, binding >= SamplerBindingShift ? binding - SamplerBindingShift : binding);
             }
 
-            result.metalSource = compiler.compile();
+            MetalShaderSource metal;
+            metal.source = compiler.compile();
             spv::ExecutionModel model = desc.stage == ShaderStage::Vertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment;
-            result.metalEntryPoint = compiler.get_cleansed_entry_point_name(desc.entryPoint, model);
-            result.success = true;
+            metal.entryPoint = compiler.get_cleansed_entry_point_name(desc.entryPoint, model);
+            return metal;
         }
         catch (const std::exception& exception)
         {
-            result.error = Core::Text(Core::EngineText::SpirvCrossError, exception.what());
+            return Core::Error(Core::EngineText::SpirvCrossError, exception.what());
         }
-        return result;
     }
 #else
-    ShaderCompileResult ShaderCompiler::CompileToMetal(const ShaderDesc& desc)
+    Core::Result<MetalShaderSource> ShaderCompiler::CompileToMetal(const ShaderDesc& desc)
     {
-        ShaderCompileResult result;
-        result.error = Core::Text(Core::EngineText::MetalOnlyOnApple);
-        return result;
+        return Core::Error(Core::EngineText::MetalOnlyOnApple);
     }
 #endif
 }

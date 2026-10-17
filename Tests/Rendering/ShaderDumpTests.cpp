@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 
+using namespace BrightBox3D;
 using namespace BrightBox3D::RHI;
 
 TEST(ShaderDumpTests, DumpMetal)
@@ -15,14 +16,13 @@ TEST(ShaderDumpTests, DumpMetal)
     {
         GTEST_SKIP();
     }
-    std::string source;
-    std::string error;
-    ASSERT_TRUE(ShaderCompiler::Preprocess(std::string(BRIGHT_ENGINE_CONTENT_DIR "/Shaders/") + file, source, error)) << error;
+    Core::Result<std::string> source = ShaderCompiler::Preprocess(std::string(BRIGHT_ENGINE_CONTENT_DIR "/Shaders/") + file);
+    ASSERT_TRUE(source) << source.GetError().GetText();
     ShaderDesc desc;
-    desc.source = source;
+    desc.source = *source;
     desc.entryPoint = entry;
     desc.stage = std::getenv("BRIGHT_DUMP_VERTEX") ? ShaderStage::Vertex : ShaderStage::Pixel;
-    ShaderCompileResult result = ShaderCompiler::CompileToMetal(desc);
-    ASSERT_TRUE(result.success) << result.error;
-    std::cout << result.metalSource << std::endl;
+    Core::Result<MetalShaderSource> result = ShaderCompiler::CompileToMetal(desc);
+    ASSERT_TRUE(result) << result.GetError().GetText();
+    std::cout << result->source << std::endl;
 }

@@ -202,7 +202,7 @@ namespace BrightBox3D::RHI
                 return std::make_unique<DX11Sampler>(desc, state);
             }
 
-            std::unique_ptr<Shader> CreateShader(const ShaderDesc& desc, std::string& error) override
+            Core::Result<std::unique_ptr<Shader>> CreateShader(const ShaderDesc& desc) override
             {
                 std::vector<std::string> defineStorage;
                 std::vector<D3D_SHADER_MACRO> macros;
@@ -224,8 +224,11 @@ namespace BrightBox3D::RHI
                 HRESULT result = D3DCompile(desc.source.data(), desc.source.size(), desc.debugName.c_str(), macros.data(), nullptr, desc.entryPoint.c_str(), target, flags, 0, &bytecode, &errors);
                 if (FAILED(result))
                 {
-                    error = errors ? std::string(static_cast<const char*>(errors->GetBufferPointer()), errors->GetBufferSize()) : std::string(Core::Text(Core::EngineText::D3DCompileFailed));
-                    return nullptr;
+                    if (!errors)
+                    {
+                        return Core::Error(Core::EngineText::D3DCompileFailed);
+                    }
+                    return Core::Error(Core::EngineText::D3DCompileError, std::string(static_cast<const char*>(errors->GetBufferPointer()), errors->GetBufferSize()));
                 }
                 auto shader = std::make_unique<DX11Shader>(desc.stage, bytecode);
                 if (desc.stage == ShaderStage::Vertex)
@@ -239,7 +242,7 @@ namespace BrightBox3D::RHI
                 return shader;
             }
 
-            std::unique_ptr<Pipeline> CreatePipeline(const PipelineDesc& desc, std::string& error) override
+            Core::Result<std::unique_ptr<Pipeline>> CreatePipeline(const PipelineDesc& desc) override
             {
                 auto pipeline = std::make_unique<DX11Pipeline>(desc);
                 auto* vertex = static_cast<DX11Shader*>(desc.vertexShader);
@@ -261,8 +264,7 @@ namespace BrightBox3D::RHI
                     }
                     if (FAILED(m_device->CreateInputLayout(elements.data(), static_cast<UINT>(elements.size()), vertex->bytecode->GetBufferPointer(), vertex->bytecode->GetBufferSize(), &pipeline->inputLayout)))
                     {
-                        error = Core::Text(Core::EngineText::InputLayoutFailed, desc.debugName);
-                        return nullptr;
+                        return Core::Error(Core::EngineText::InputLayoutFailed, desc.debugName);
                     }
                 }
 

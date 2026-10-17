@@ -161,28 +161,25 @@ namespace BrightBox3D::RHI
                 return std::make_unique<MetalSampler>(m_device, desc);
             }
 
-            std::unique_ptr<Shader> CreateShader(const ShaderDesc& desc, std::string& error) override
+            Core::Result<std::unique_ptr<Shader>> CreateShader(const ShaderDesc& desc) override
             {
-                ShaderCompileResult compiled = ShaderCompiler::CompileToMetal(desc);
-                if (!compiled.success)
+                Core::Result<MetalShaderSource> compiled = ShaderCompiler::CompileToMetal(desc);
+                if (!compiled)
                 {
-                    error = compiled.error;
-                    return nullptr;
+                    return compiled.GetError();
                 }
                 NSError* nsError = nil;
                 MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
                 options.mathMode = MTLMathModeFast;
-                id<MTLLibrary> library = [m_device newLibraryWithSource:ToNSString(compiled.metalSource) options:options error:&nsError];
+                id<MTLLibrary> library = [m_device newLibraryWithSource:ToNSString(compiled->source) options:options error:&nsError];
                 if (!library)
                 {
-                    error = Core::Text(Core::EngineText::MslCompileFailed, ErrorText(nsError), compiled.metalSource);
-                    return nullptr;
+                    return Core::Error(Core::EngineText::MslCompileFailed, ErrorText(nsError), compiled->source);
                 }
-                id<MTLFunction> function = [library newFunctionWithName:ToNSString(compiled.metalEntryPoint)];
+                id<MTLFunction> function = [library newFunctionWithName:ToNSString(compiled->entryPoint)];
                 if (!function)
                 {
-                    error = Core::Text(Core::EngineText::EntryPointMissing, compiled.metalEntryPoint);
-                    return nullptr;
+                    return Core::Error(Core::EngineText::EntryPointMissing, compiled->entryPoint);
                 }
                 if (!desc.debugName.empty())
                 {
@@ -191,14 +188,13 @@ namespace BrightBox3D::RHI
                 return std::make_unique<MetalShader>(desc.stage, function);
             }
 
-            std::unique_ptr<Pipeline> CreatePipeline(const PipelineDesc& desc, std::string& error) override
+            Core::Result<std::unique_ptr<Pipeline>> CreatePipeline(const PipelineDesc& desc) override
             {
                 NSError* nsError = nil;
                 id<MTLRenderPipelineState> state = [m_device newRenderPipelineStateWithDescriptor:BuildPipelineDescriptor(desc) error:&nsError];
                 if (!state)
                 {
-                    error = Core::Text(Core::EngineText::PipelineCreateFailed, desc.debugName, ErrorText(nsError));
-                    return nullptr;
+                    return Core::Error(Core::EngineText::PipelineCreateFailed, desc.debugName, ErrorText(nsError));
                 }
                 return std::make_unique<MetalPipeline>(desc, state, CreateDepthState(desc));
             }

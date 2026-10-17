@@ -89,13 +89,12 @@ TEST(RHITests, RendersTriangleWithConstantsAndReadsBack)
     std::unique_ptr<Device> device = Device::Create();
     ASSERT_NE(device, nullptr);
 
-    std::string error;
     ShaderDesc vertexDesc{ TriangleShader, "VSMain", ShaderStage::Vertex, {}, "TriangleVS" };
     ShaderDesc pixelDesc{ TriangleShader, "PSMain", ShaderStage::Pixel, {}, "TrianglePS" };
-    auto vertexShader = device->CreateShader(vertexDesc, error);
-    ASSERT_NE(vertexShader, nullptr) << error;
-    auto pixelShader = device->CreateShader(pixelDesc, error);
-    ASSERT_NE(pixelShader, nullptr) << error;
+    auto vertexShader = device->CreateShader(vertexDesc);
+    ASSERT_TRUE(vertexShader) << vertexShader.GetError().GetText();
+    auto pixelShader = device->CreateShader(pixelDesc);
+    ASSERT_TRUE(pixelShader) << pixelShader.GetError().GetText();
 
     TextureDesc targetDesc;
     targetDesc.width = 64;
@@ -109,14 +108,14 @@ TEST(RHITests, RendersTriangleWithConstantsAndReadsBack)
     auto depth = device->CreateTexture(depthDesc);
 
     PipelineDesc pipelineDesc;
-    pipelineDesc.vertexShader = vertexShader.get();
-    pipelineDesc.pixelShader = pixelShader.get();
+    pipelineDesc.vertexShader = vertexShader.GetValue().get();
+    pipelineDesc.pixelShader = pixelShader.GetValue().get();
     pipelineDesc.vertexLayout = MakeLayout();
     pipelineDesc.rasterizer.cullMode = CullMode::Back;
     pipelineDesc.colorFormats = { Format::RGBA8Unorm };
     pipelineDesc.depthFormat = Format::Depth32Float;
-    auto pipeline = device->CreatePipeline(pipelineDesc, error);
-    ASSERT_NE(pipeline, nullptr) << error;
+    auto pipeline = device->CreatePipeline(pipelineDesc);
+    ASSERT_TRUE(pipeline) << pipeline.GetError().GetText();
 
     Vertex vertices[] = {
         { { -0.5f, -0.5f, 0.5f }, { 1, 1, 1, 1 }, { 0, 1 } },
@@ -138,7 +137,7 @@ TEST(RHITests, RendersTriangleWithConstantsAndReadsBack)
     pass.colors.push_back({ target.get(), 0, 0, LoadAction::Clear, { 0.0f, 0.0f, 1.0f, 1.0f } });
     pass.depth.texture = depth.get();
     commands.BeginRenderPass(pass);
-    commands.SetPipeline(pipeline.get());
+    commands.SetPipeline(pipeline.GetValue().get());
     commands.SetVertexBuffer(0, vertexBuffer.get());
     commands.SetConstants(0, params);
     commands.Draw(3);
@@ -162,11 +161,10 @@ TEST(RHITests, SamplesTexturesWithRemappedBindings)
 {
     std::unique_ptr<Device> device = Device::Create();
     ASSERT_NE(device, nullptr);
-    std::string error;
-    auto vertexShader = device->CreateShader({ TriangleShader, "VSMain", ShaderStage::Vertex, {}, "VS" }, error);
-    ASSERT_NE(vertexShader, nullptr) << error;
-    auto pixelShader = device->CreateShader({ TriangleShader, "PSTextured", ShaderStage::Pixel, {}, "PS" }, error);
-    ASSERT_NE(pixelShader, nullptr) << error;
+    auto vertexShader = device->CreateShader({ TriangleShader, "VSMain", ShaderStage::Vertex, {}, "VS" });
+    ASSERT_TRUE(vertexShader) << vertexShader.GetError().GetText();
+    auto pixelShader = device->CreateShader({ TriangleShader, "PSTextured", ShaderStage::Pixel, {}, "PS" });
+    ASSERT_TRUE(pixelShader) << pixelShader.GetError().GetText();
 
     TextureDesc targetDesc;
     targetDesc.width = 32;
@@ -189,14 +187,14 @@ TEST(RHITests, SamplesTexturesWithRemappedBindings)
     auto sampler = device->CreateSampler(samplerDesc);
 
     PipelineDesc pipelineDesc;
-    pipelineDesc.vertexShader = vertexShader.get();
-    pipelineDesc.pixelShader = pixelShader.get();
+    pipelineDesc.vertexShader = vertexShader.GetValue().get();
+    pipelineDesc.pixelShader = pixelShader.GetValue().get();
     pipelineDesc.vertexLayout = MakeLayout();
     pipelineDesc.rasterizer.cullMode = CullMode::None;
     pipelineDesc.depthStencil.depthTest = false;
     pipelineDesc.colorFormats = { Format::RGBA8Unorm };
-    auto pipeline = device->CreatePipeline(pipelineDesc, error);
-    ASSERT_NE(pipeline, nullptr) << error;
+    auto pipeline = device->CreatePipeline(pipelineDesc);
+    ASSERT_TRUE(pipeline) << pipeline.GetError().GetText();
 
     Vertex quad[] = {
         { { -1, -1, 0 }, { 1, 1, 1, 1 }, { 0, 1 } },
@@ -212,7 +210,7 @@ TEST(RHITests, SamplesTexturesWithRemappedBindings)
     RenderPassDesc pass;
     pass.colors.push_back({ target.get(), 0, 0, LoadAction::Clear, { 0, 0, 0, 1 } });
     commands.BeginRenderPass(pass);
-    commands.SetPipeline(pipeline.get());
+    commands.SetPipeline(pipeline.GetValue().get());
     commands.SetVertexData(0, quad, sizeof(quad));
     commands.SetIndexData(indices, sizeof(indices), IndexFormat::UInt16);
     commands.SetConstants(0, params);

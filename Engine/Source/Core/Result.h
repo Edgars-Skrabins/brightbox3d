@@ -17,7 +17,12 @@ namespace BrightBox3D::Core
     class [[nodiscard]] Result
     {
     public:
-        Result(T value) : m_state(std::in_place_index<0>, std::move(value)) {}
+        template <typename U = T>
+            requires(std::is_constructible_v<T, U &&> && !std::is_same_v<std::remove_cvref_t<U>, E> && !std::is_same_v<std::remove_cvref_t<U>, Result>)
+        Result(U&& value) : m_state(std::in_place_index<0>, std::forward<U>(value))
+        {
+        }
+
         Result(E error) : m_state(std::in_place_index<1>, std::move(error)) {}
 
         bool HasValue() const { return m_state.index() == 0; }

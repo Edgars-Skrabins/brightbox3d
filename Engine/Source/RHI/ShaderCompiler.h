@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Result.h"
 #include "RHI/Types.h"
 
 #include <cstdint>
@@ -9,20 +10,18 @@
 
 namespace BrightBox3D::RHI
 {
-    struct ShaderCompileResult
+    struct MetalShaderSource
     {
-        bool success = false;
-        std::string error;
-        std::string metalSource;
-        std::string metalEntryPoint;
+        std::string source;
+        std::string entryPoint;
     };
 
     class ShaderCompiler
     {
     public:
-        static bool Preprocess(const std::filesystem::path& file, std::string& output, std::string& error);
-        static bool PreprocessSource(const std::string& source, const std::filesystem::path& includeDirectory, std::string& output, std::string& error);
+        static Core::Result<std::string> Preprocess(const std::filesystem::path& file);
+        static Core::Result<std::string> PreprocessSource(const std::string& source, const std::filesystem::path& includeDirectory);
         static std::string BuildDefinePreamble(const std::vector<std::pair<std::string, std::string>>& defines);
-        static ShaderCompileResult CompileToMetal(const ShaderDesc& desc);
+        static Core::Result<MetalShaderSource> CompileToMetal(const ShaderDesc& desc);
     };
 }
