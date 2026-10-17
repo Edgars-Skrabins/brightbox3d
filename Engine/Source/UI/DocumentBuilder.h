@@ -2,6 +2,7 @@
 
 #include "Assets/AssetType.h"
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "UI/Element.h"
 #include "UI/Markup.h"
 
@@ -28,12 +29,12 @@ namespace BrightBox3D::UI
     public:
         DocumentBuilder(Document& document, StyleSheet& styles, std::vector<std::unique_ptr<WidgetController>>& controllers, std::unordered_set<Core::Guid>& dependencies);
 
-        std::unique_ptr<Element> Build(const pugi::xml_node& node, std::string& error);
+        Core::Result<std::unique_ptr<Element>> Build(const pugi::xml_node& node);
 
     private:
         using MarkupValues = std::array<std::optional<std::string>, static_cast<size_t>(MarkupAttribute::Count)>;
 
-        std::unique_ptr<Element> BuildElement(const pugi::xml_node& node, int depth, std::string& error);
+        Core::Result<std::unique_ptr<Element>> BuildElement(const pugi::xml_node& node, int depth);
         void LoadStyleElement(const pugi::xml_node& node);
         bool LoadStyleSheet(const std::string& reference);
         void ReadAttributes(const pugi::xml_node& from, MarkupValues& values) const;

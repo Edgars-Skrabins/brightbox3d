@@ -34,9 +34,9 @@ namespace BrightBox3D::UI
     {
     }
 
-    std::unique_ptr<Element> DocumentBuilder::Build(const pugi::xml_node& node, std::string& error)
+    Core::Result<std::unique_ptr<Element>> DocumentBuilder::Build(const pugi::xml_node& node)
     {
-        return BuildElement(node, 0, error);
+        return BuildElement(node, 0);
     }
 
     Core::Guid DocumentBuilder::ResolveAsset(const std::string& reference, Assets::AssetType expectedType)
@@ -62,10 +62,9 @@ namespace BrightBox3D::UI
             return false;
         }
         StyleSheet sheet;
-        std::string error;
-        if (!sheet.Parse(asset->GetText(), error))
+        if (Core::Result<void> parsed = sheet.Parse(asset->GetText()); !parsed)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::StyleSheetFailed, reference, error));
+            Core::Log::Error(Core::Text(Core::EngineText::StyleSheetFailed, reference, parsed.GetError().GetText()));
             return false;
         }
         LogStyleWarnings(reference, sheet.GetWarnings());
@@ -81,20 +80,20 @@ namespace BrightBox3D::UI
             return;
         }
         StyleSheet sheet;
-        std::string error;
-        if (sheet.Parse(node.child_value(), error))
+        if (Core::Result<void> parsed = sheet.Parse(node.child_value()); !parsed)
         {
-            LogStyleWarnings(node.name(), sheet.GetWarnings());
-            m_styles.Append(sheet);
+            Core::Log::Error(Core::Text(Core::EngineText::StyleSheetFailed, node.name(), parsed.GetError().GetText()));
+            return;
         }
+        LogStyleWarnings(node.name(), sheet.GetWarnings());
+        m_styles.Append(sheet);
     }
 
-    std::unique_ptr<Element> DocumentBuilder::BuildElement(const pugi::xml_node& node, int depth, std::string& error)
+    Core::Result<std::unique_ptr<Element>> DocumentBuilder::BuildElement(const pugi::xml_node& node, int depth)
     {
         if (depth > MaxNestingDepth)
         {
-            error = Core::Text(Core::EngineText::UINestingTooDeep);
-            return nullptr;
+            return Core::Error(Core::EngineText::UINestingTooDeep);
         }
         std::optional<MarkupElement> markup = FindMarkupElement(node.name());
         if (markup == MarkupElement::Style)
@@ -148,13 +147,14 @@ namespace BrightBox3D::UI
             {
                 continue;
             }
-            if (auto built = BuildElement(child, depth + 1, error))
+            Core::Result<std::unique_ptr<Element>> built = BuildElement(child, depth + 1);
+            if (!built)
             {
-                element->AddChild(std::move(built));
+                return built;
             }
-            if (!error.empty())
+            if (*built)
             {
-                return nullptr;
+                element->AddChild(std::move(*built));
             }
         }
         return element;

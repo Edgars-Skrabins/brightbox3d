@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Result.h"
 #include "Reflection/EngineObject.h"
 
 #include <array>
@@ -60,7 +61,7 @@ namespace BrightBox3D::UI
         Write
     };
 
-    BoundProperty ResolveBinding(const std::string& path, const BindingRoots& roots, BindingAccess access, std::string& error);
+    Core::Result<BoundProperty> ResolveBinding(const std::string& path, const BindingRoots& roots, BindingAccess access);
 
     struct TextTemplate
     {
@@ -76,6 +77,6 @@ namespace BrightBox3D::UI
         static TextTemplate Parse(const std::string& text);
         bool HasBindings() const;
         bool IsSingleBinding() const { return segments.size() == 1 && segments[0].isPath; }
-        std::string Evaluate(const BindingRoots& roots, std::string& error) const;
+        Core::Result<std::string> Evaluate(const BindingRoots& roots) const;
     };
 }

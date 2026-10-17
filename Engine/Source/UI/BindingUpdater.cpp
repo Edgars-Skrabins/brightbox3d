@@ -6,13 +6,12 @@
 
 namespace BrightBox3D::UI
 {
-    void BindingUpdater::ReportError(std::string& error)
+    void BindingUpdater::ReportError(const Core::Error& error)
     {
-        if (!error.empty() && m_reportedErrors.insert(error).second)
+        if (m_reportedErrors.insert(error.GetText()).second)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::UIBindingError, error));
+            Core::Log::Error(Core::Text(Core::EngineText::UIBindingError, error.GetText()));
         }
-        error.clear();
     }
 
     template <typename Apply>
@@ -23,11 +22,14 @@ namespace BrightBox3D::UI
         {
             return;
         }
-        std::string error;
-        BoundProperty bound = ResolveBinding(binding->segments[0].text, m_roots, access, error);
-        ReportError(error);
+        Core::Result<BoundProperty> bound = ResolveBinding(binding->segments[0].text, m_roots, access);
+        if (!bound)
+        {
+            ReportError(bound.GetError());
+            return;
+        }
         float number = 0.0f;
-        if (bound && bound.ReadNumber(number))
+        if (*bound && bound->ReadNumber(number))
         {
             apply(number);
         }
@@ -41,20 +43,26 @@ namespace BrightBox3D::UI
         {
             return;
         }
-        std::string error;
         if (textField && text->IsSingleBinding())
         {
-            BoundProperty bound = ResolveBinding(text->segments[0].text, m_roots, BindingAccess::Write, error);
-            if (bound)
+            Core::Result<BoundProperty> bound = ResolveBinding(text->segments[0].text, m_roots, BindingAccess::Write);
+            if (!bound)
             {
-                element.SetText(bound.Format(text->segments[0].decimals));
+                ReportError(bound.GetError());
             }
+            else if (*bound)
+            {
+                element.SetText(bound->Format(text->segments[0].decimals));
+            }
+            return;
         }
-        else
+        Core::Result<std::string> evaluated = text->Evaluate(m_roots);
+        if (!evaluated)
         {
-            element.SetText(text->Evaluate(m_roots, error));
+            ReportError(evaluated.GetError());
+            return;
         }
-        ReportError(error);
+        element.SetText(*evaluated);
     }
 
     void BindingUpdater::UpdateNumbers(Element& element)
@@ -108,9 +116,13 @@ namespace BrightBox3D::UI
         {
             return;
         }
-        std::string error;
-        BoundProperty bound = ResolveBinding(binding->segments[0].text, m_roots, BindingAccess::Write, error);
-        ReportError(error);
+        Core::Result<BoundProperty> result = ResolveBinding(binding->segments[0].text, m_roots, BindingAccess::Write);
+        if (!result)
+        {
+            ReportError(result.GetError());
+            return;
+        }
+        const BoundProperty& bound = *result;
         if (!bound)
         {
             return;

@@ -2,6 +2,7 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Core/EngineText.h"
+#include "Core/Log.h"
 #include "UI/DocumentBuilder.h"
 #include "UI/DocumentPainter.h"
 #include "UI/LayoutSync.h"
@@ -34,8 +35,10 @@ Image { width: 64px; height: 64px; }
 
     Document::Document()
     {
-        std::string error;
-        m_styles.Parse(DefaultStyleSheet, error);
+        if (Core::Result<void> parsed = m_styles.Parse(DefaultStyleSheet); !parsed)
+        {
+            Core::Log::Error(parsed.GetError().GetText());
+        }
     }
 
     Document::~Document()
@@ -48,38 +51,37 @@ Image { width: 64px; height: 64px; }
         m_root.reset();
     }
 
-    bool Document::LoadFromText(const std::string& markup, std::string& error)
+    Core::Result<void> Document::LoadFromText(const std::string& markup)
     {
         pugi::xml_document document;
         pugi::xml_parse_result result = document.load_string(markup.c_str());
         if (!result)
         {
-            error = Core::Text(Core::EngineText::UIXmlError, result.description(), result.offset);
-            return false;
+            return Core::Error(Core::EngineText::UIXmlError, result.description(), result.offset);
         }
         DocumentBuilder builder(*this, m_styles, m_controllers, m_dependencies);
-        m_root = builder.Build(document.document_element(), error);
+        Core::Result<std::unique_ptr<Element>> root = builder.Build(document.document_element());
+        if (!root)
+        {
+            return root.GetError();
+        }
+        m_root = std::move(*root);
         if (!m_root)
         {
-            if (error.empty())
-            {
-                error = Core::Text(Core::EngineText::UIEmptyScreen);
-            }
-            return false;
+            return Core::Error(Core::EngineText::UIEmptyScreen);
         }
-        return true;
+        return {};
     }
 
-    bool Document::LoadScreen(const Core::Guid& screen, std::string& error)
+    Core::Result<void> Document::LoadScreen(const Core::Guid& screen)
     {
         m_dependencies.insert(screen);
         auto asset = Assets::AssetDatabase::Get().Load<ScreenAsset>(screen);
         if (!asset)
         {
-            error = Core::Text(Core::EngineText::UIScreenNotFound);
-            return false;
+            return Core::Error(Core::EngineText::UIScreenNotFound);
         }
-        return LoadFromText(asset->GetText(), error);
+        return LoadFromText(asset->GetText());
     }
 
     void Document::Update(const BindingRoots& roots, const UIInput& input, float width, float height, float deltaTime)

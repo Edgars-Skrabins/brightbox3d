@@ -5,6 +5,7 @@
 
 #include <string>
 
+using namespace BrightBox3D;
 using namespace BrightBox3D::UI;
 
 TEST(MarkupTests, EveryElementAndAttributeNameIsFound)
@@ -26,8 +27,7 @@ TEST(MarkupTests, EveryElementAndAttributeNameIsFound)
 TEST(MarkupTests, AttributesAreParsedOnceIntoTypedFields)
 {
     Document document;
-    std::string error;
-    ASSERT_TRUE(document.LoadFromText(R"(
+    Core::Result<void> loaded = document.LoadFromText(R"(
         <Screen>
             <TextField id="field" placeholder="Name" />
             <Slider name="volume" min="2" max="8" value="5" />
@@ -35,7 +35,8 @@ TEST(MarkupTests, AttributesAreParsedOnceIntoTypedFields)
             <Label name="hidden" visible="false" text="Hi" />
             <Label name="bound" text="Health {Player.m_health}" visible="{Player.m_visible}" />
             <Button name="go" onClick="{Player.Go}">Go</Button>
-        </Screen>)", error)) << error;
+        </Screen>)");
+    ASSERT_TRUE(loaded) << loaded.GetError().GetText();
 
     EXPECT_EQ(document.Find("field")->GetPlaceholder(), "Name");
     Element* volume = document.Find("volume");

@@ -41,8 +41,7 @@ namespace
 TEST(UITests, StyleSheetParsesSelectorsAndSpecificity)
 {
     StyleSheet sheet;
-    std::string error;
-    ASSERT_TRUE(sheet.Parse("Button, .primary:hover { color: #ff0000; } /* c */ .a .b { width: 50%; }", error));
+    ASSERT_TRUE(sheet.Parse("Button, .primary:hover { color: #ff0000; } /* c */ .a .b { width: 50%; }"));
     ASSERT_EQ(sheet.GetRules().size(), 2u);
     EXPECT_EQ(sheet.GetRules()[0].selectors.size(), 2u);
     EXPECT_EQ(sheet.GetRules()[0].selectors[1].specificity, 20);
@@ -58,8 +57,8 @@ TEST(UITests, BindingsLayoutInputAndRendering)
     Level::Level level;
     auto* player = static_cast<Tests::UITestPlayer*>(level.CreateObject(Tests::UITestPlayer::StaticType()));
     Document document;
-    std::string error;
-    ASSERT_TRUE(document.LoadFromText(HudMarkup, error)) << error;
+    Core::Result<void> loaded = document.LoadFromText(HudMarkup);
+    ASSERT_TRUE(loaded) << loaded.GetError().GetText();
     BindingRoots roots;
     roots.level = &level;
     roots.Set(BindingRoot::Player, player);

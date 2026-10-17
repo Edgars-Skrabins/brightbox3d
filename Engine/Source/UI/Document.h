@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "UI/Binding.h"
 #include "UI/BindingUpdater.h"
 #include "UI/DocumentInput.h"
@@ -36,8 +37,8 @@ namespace BrightBox3D::UI
         Document(const Document&) = delete;
         Document& operator=(const Document&) = delete;
 
-        bool LoadScreen(const Core::Guid& screen, std::string& error);
-        bool LoadFromText(const std::string& markup, std::string& error);
+        Core::Result<void> LoadScreen(const Core::Guid& screen);
+        Core::Result<void> LoadFromText(const std::string& markup);
         void Update(const BindingRoots& roots, const UIInput& input, float width, float height, float deltaTime);
         void Draw(DrawList& drawList, RHI::Device& device, Rendering::GpuResourceCache& resources) const;
 

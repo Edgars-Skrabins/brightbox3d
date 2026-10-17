@@ -192,25 +192,23 @@ namespace BrightBox3D::UI
         return false;
     }
 
-    BoundProperty ResolveBinding(const std::string& path, const BindingRoots& roots, BindingAccess access, std::string& error)
+    Core::Result<BoundProperty> ResolveBinding(const std::string& path, const BindingRoots& roots, BindingAccess access)
     {
         std::vector<std::string> segments = Core::Split(Core::Trim(path), '.');
         if (segments.size() < 2)
         {
-            error = Core::Text(Core::EngineText::BindingNeedsRootAndProperty, path, BindingRootList());
-            return {};
+            return Core::Error(Core::EngineText::BindingNeedsRootAndProperty, path, BindingRootList());
         }
         BindingRoot root;
         if (!FindBindingRoot(segments[0], root))
         {
-            error = Core::Text(Core::EngineText::BindingUnknownSource, segments[0], BindingRootList());
-            return {};
+            return Core::Error(Core::EngineText::BindingUnknownSource, segments[0], BindingRootList());
         }
         Reflection::EngineObject* current = roots.Get(root);
         Level::LevelObject* owner = Reflection::Cast<Level::LevelObject>(current);
         if (!current)
         {
-            return {};
+            return BoundProperty{};
         }
         for (size_t i = 1; i < segments.size(); ++i)
         {
@@ -220,20 +218,17 @@ namespace BrightBox3D::UI
             {
                 if (!property->IsUIProperty())
                 {
-                    error = Core::Text(Core::EngineText::BindingNotUIProperty, path);
-                    return {};
+                    return Core::Error(Core::EngineText::BindingNotUIProperty, path);
                 }
                 if (access == BindingAccess::Write && !property->HasFlag(PropertyFlagUIWrite))
                 {
-                    error = Core::Text(Core::EngineText::BindingReadOnly, path);
-                    return {};
+                    return Core::Error(Core::EngineText::BindingReadOnly, path);
                 }
-                return { current, property };
+                return BoundProperty{ current, property };
             }
             if (!owner)
             {
-                error = Core::Text(Core::EngineText::BindingCannotResolve, segment, path);
-                return {};
+                return Core::Error(Core::EngineText::BindingCannotResolve, segment, path);
             }
             Reflection::EngineObject* next = nullptr;
             for (const auto& component : owner->GetComponents())
@@ -254,14 +249,12 @@ namespace BrightBox3D::UI
             }
             if (!next)
             {
-                error = Core::Text(Core::EngineText::BindingNotPropertyOrComponent, segment, path);
-                return {};
+                return Core::Error(Core::EngineText::BindingNotPropertyOrComponent, segment, path);
             }
             current = next;
             owner = nullptr;
         }
-        error = Core::Text(Core::EngineText::BindingNoProperty, path);
-        return {};
+        return Core::Error(Core::EngineText::BindingNoProperty, path);
     }
 
     TextTemplate TextTemplate::Parse(const std::string& text)
@@ -314,7 +307,7 @@ namespace BrightBox3D::UI
         return false;
     }
 
-    std::string TextTemplate::Evaluate(const BindingRoots& roots, std::string& error) const
+    Core::Result<std::string> TextTemplate::Evaluate(const BindingRoots& roots) const
     {
         std::string result;
         for (const Segment& segment : segments)
@@ -324,8 +317,12 @@ namespace BrightBox3D::UI
                 result += segment.text;
                 continue;
             }
-            BoundProperty bound = ResolveBinding(segment.text, roots, BindingAccess::Read, error);
-            result += bound ? bound.Format(segment.decimals) : "";
+            Core::Result<BoundProperty> bound = ResolveBinding(segment.text, roots, BindingAccess::Read);
+            if (!bound)
+            {
+                return bound.GetError();
+            }
+            result += *bound ? bound->Format(segment.decimals) : "";
         }
         return result;
     }

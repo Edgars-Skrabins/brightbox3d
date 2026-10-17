@@ -25,7 +25,7 @@ namespace BrightBox3D::UI
         void UpdateVisibility(Element& element);
         template <typename Apply>
         void ReadNumber(Element& element, BindingTarget target, BindingAccess access, Apply apply);
-        void ReportError(std::string& error);
+        void ReportError(const Core::Error& error);
 
         BindingRoots m_roots;
         std::unordered_set<std::string> m_reportedErrors;

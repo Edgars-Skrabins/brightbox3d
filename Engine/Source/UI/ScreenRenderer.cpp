@@ -92,15 +92,14 @@ namespace BrightBox3D::UI
         if (!entry.document && !entry.failed)
         {
             auto document = std::make_unique<Document>();
-            std::string error;
-            if (document->LoadScreen(screen, error))
+            if (Core::Result<void> loaded = document->LoadScreen(screen))
             {
                 entry.document = std::move(document);
             }
             else
             {
                 entry.failed = true;
-                Core::Log::Error(Core::Text(Core::EngineText::UIScreenLoadFailed, error));
+                Core::Log::Error(Core::Text(Core::EngineText::UIScreenLoadFailed, loaded.GetError().GetText()));
             }
         }
         if (!entry.document)

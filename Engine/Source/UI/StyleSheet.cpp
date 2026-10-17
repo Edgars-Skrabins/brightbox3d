@@ -105,7 +105,7 @@ namespace BrightBox3D::UI
         }
     }
 
-    bool StyleSheet::Parse(std::string_view source, std::string& error)
+    Core::Result<void> StyleSheet::Parse(std::string_view source)
     {
         std::string text = StripComments(source);
         size_t position = 0;
@@ -120,8 +120,7 @@ namespace BrightBox3D::UI
             size_t close = text.find('}', open);
             if (close == std::string::npos)
             {
-                error = Core::Text(Core::EngineText::CssMissingBrace);
-                return false;
+                return Core::Error(Core::EngineText::CssMissingBrace);
             }
             StyleRule rule;
             rule.order = order++;
@@ -152,7 +151,7 @@ namespace BrightBox3D::UI
             }
             position = close + 1;
         }
-        return true;
+        return {};
     }
 
     void StyleSheet::Append(const StyleSheet& other)

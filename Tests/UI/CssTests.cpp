@@ -87,8 +87,7 @@ TEST(CssTests, UnknownPropertyAndKeywordAreReported)
 TEST(CssTests, UnknownPseudoClassIsReported)
 {
     StyleSheet sheet;
-    std::string error;
-    ASSERT_TRUE(sheet.Parse("Button:wobble { color: red; } Button:hover { color: blue; }", error));
+    ASSERT_TRUE(sheet.Parse("Button:wobble { color: red; } Button:hover { color: blue; }"));
     ASSERT_EQ(sheet.GetWarnings().size(), 1u);
     EXPECT_NE(sheet.GetWarnings()[0].find("wobble"), std::string::npos);
     EXPECT_EQ(sheet.GetRules()[1].selectors[0].parts[0].pseudo, std::vector<PseudoClass>{ PseudoClass::Hover });

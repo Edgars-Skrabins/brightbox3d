@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Result.h"
 #include "UI/Style.h"
 
 #include <string>
@@ -11,7 +12,7 @@ namespace BrightBox3D::UI
     class StyleSheet
     {
     public:
-        bool Parse(std::string_view text, std::string& error);
+        Core::Result<void> Parse(std::string_view text);
         const std::vector<StyleRule>& GetRules() const { return m_rules; }
         const std::vector<std::string>& GetWarnings() const { return m_warnings; }
         void Append(const StyleSheet& other);
