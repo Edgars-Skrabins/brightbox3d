@@ -39,10 +39,10 @@ namespace BrightBox3D::Editor
         std::vector<ObjectLocation> locations;
         for (Level::LevelObject* object : objects)
         {
-            locations.push_back(LocateObject(m_context, *object, true));
+            locations.push_back(LocateObject(m_context, *object, LocationSnapshot::Capture));
             levels.MarkDirty(*object);
         }
-        m_stack.Push(std::make_unique<ExistenceCommand>(name, std::move(locations), true));
+        m_stack.Push(std::make_unique<ExistenceCommand>(name, std::move(locations), ExistenceChange::Created));
         levels.BumpLevelRevision();
     }
 
@@ -56,17 +56,17 @@ namespace BrightBox3D::Editor
         std::vector<ObjectLocation> locations;
         for (Level::LevelObject* object : objects)
         {
-            locations.push_back(LocateObject(m_context, *object, true));
+            locations.push_back(LocateObject(m_context, *object, LocationSnapshot::Capture));
             levels.MarkDirty(*object);
         }
-        m_stack.Push(std::make_unique<ExistenceCommand>(Text(EditorText::Delete), std::move(locations), false));
+        m_stack.Push(std::make_unique<ExistenceCommand>(Text(EditorText::Delete), std::move(locations), ExistenceChange::Deleted));
     }
 
     void UndoService::RecordReparent(const Level::LevelObject& object, const ObjectLocation& from)
     {
         if (!m_context.GetLevelService().IsPlaying())
         {
-            m_stack.Push(std::make_unique<ReparentCommand>(object.GetId(), from, LocateObject(m_context, object, false)));
+            m_stack.Push(std::make_unique<ReparentCommand>(object.GetId(), from, LocateObject(m_context, object, LocationSnapshot::Skip)));
         }
     }
 
@@ -91,7 +91,7 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        m_stack.Push(std::make_unique<ObjectChangeCommand>(name, LocateObject(m_context, *object, false), beforeDocument, afterDocument));
+        m_stack.Push(std::make_unique<ObjectChangeCommand>(name, LocateObject(m_context, *object, LocationSnapshot::Skip), beforeDocument, afterDocument));
         levels.MarkDirty(*object);
     }
 }

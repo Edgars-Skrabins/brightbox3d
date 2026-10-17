@@ -39,7 +39,7 @@ namespace BrightBox3D::Editor::AssetsBottomBar
         return ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y * 2.0f + ImGui::GetStyle().CellPadding.y;
     }
 
-    void Draw(EditorApplication& application, bool showSizeSlider)
+    void Draw(EditorApplication& application, SizeSlider slider)
     {
         ImGui::Separator();
         SelectionService& selection = application.GetContext().GetSelectionService();
@@ -47,7 +47,7 @@ namespace BrightBox3D::Editor::AssetsBottomBar
         float rowEnd = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
         ImGui::AlignTextToFramePadding();
         ImGui::TextDisabled("%s", record ? AssetActions::DisplayPath(*record).c_str() : "");
-        if (!showSizeSlider)
+        if (slider == SizeSlider::Hidden)
         {
             return;
         }

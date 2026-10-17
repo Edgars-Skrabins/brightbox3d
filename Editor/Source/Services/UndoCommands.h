@@ -17,6 +17,18 @@ namespace BrightBox3D::Level
 
 namespace BrightBox3D::Editor
 {
+    enum class LocationSnapshot
+    {
+        Skip,
+        Capture
+    };
+
+    enum class ExistenceChange
+    {
+        Created,
+        Deleted
+    };
+
     struct ObjectLocation
     {
         Core::Guid id;
@@ -26,7 +38,7 @@ namespace BrightBox3D::Editor
         std::shared_ptr<Serialization::JsonDocument> snapshot;
     };
 
-    ObjectLocation LocateObject(EditorContext& context, const Level::LevelObject& object, bool withSnapshot);
+    ObjectLocation LocateObject(EditorContext& context, const Level::LevelObject& object, LocationSnapshot snapshot);
 
     class ObjectChangeCommand : public UndoCommand
     {
@@ -49,10 +61,10 @@ namespace BrightBox3D::Editor
     class ExistenceCommand : public UndoCommand
     {
     public:
-        ExistenceCommand(std::string name, std::vector<ObjectLocation> objects, bool created) : m_name(std::move(name)), m_objects(std::move(objects)), m_created(created) {}
+        ExistenceCommand(std::string name, std::vector<ObjectLocation> objects, ExistenceChange change) : m_name(std::move(name)), m_objects(std::move(objects)), m_change(change) {}
 
-        void Undo(EditorContext& context) override { m_created ? Remove(context) : Restore(context); }
-        void Redo(EditorContext& context) override { m_created ? Restore(context) : Remove(context); }
+        void Undo(EditorContext& context) override { m_change == ExistenceChange::Created ? Remove(context) : Restore(context); }
+        void Redo(EditorContext& context) override { m_change == ExistenceChange::Created ? Restore(context) : Remove(context); }
         std::string GetName() const override { return m_name; }
 
     private:
@@ -61,7 +73,7 @@ namespace BrightBox3D::Editor
 
         std::string m_name;
         std::vector<ObjectLocation> m_objects;
-        bool m_created;
+        ExistenceChange m_change;
     };
 
     class ReparentCommand : public UndoCommand

@@ -280,7 +280,7 @@ namespace BrightBox3D::Editor
             Core::Log::Warning(Text(EditorText::CannotMoveInstanceChild, TypeName<Level::LevelObject>(), TypeName<Level::LevelObject>()));
             return;
         }
-        ObjectLocation from = LocateObject(m_context, object, false);
+        ObjectLocation from = LocateObject(m_context, object, LocationSnapshot::Skip);
         m_context.GetLevelService().MarkDirty(object);
         if (parent)
         {

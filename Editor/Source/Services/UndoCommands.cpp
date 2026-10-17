@@ -4,14 +4,14 @@
 
 namespace BrightBox3D::Editor
 {
-    ObjectLocation LocateObject(EditorContext& context, const Level::LevelObject& object, bool withSnapshot)
+    ObjectLocation LocateObject(EditorContext& context, const Level::LevelObject& object, LocationSnapshot snapshot)
     {
         ObjectLocation location;
         location.id = object.GetId();
         location.parent = object.GetParent() ? object.GetParent()->GetId() : Core::Guid{};
         location.collection = context.GetLevelService().GetCollectionIndex(object.GetCollection());
         location.sibling = object.GetSiblingIndex();
-        if (withSnapshot)
+        if (snapshot == LocationSnapshot::Capture)
         {
             location.snapshot = std::make_shared<Serialization::JsonDocument>();
             ObjectEditService::Snapshot(object, *location.snapshot);

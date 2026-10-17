@@ -311,6 +311,6 @@ namespace BrightBox3D::Editor
         }
         AssetsDropZone::Draw(m_application, m_state, CurrentFolder());
         ImGui::EndChild();
-        AssetsBottomBar::Draw(m_application, true);
+        AssetsBottomBar::Draw(m_application, SizeSlider::Shown);
     }
 }
