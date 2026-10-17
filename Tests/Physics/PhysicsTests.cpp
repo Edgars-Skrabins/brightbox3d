@@ -1,3 +1,4 @@
+#include "Common/TestUtilities.h"
 #include "Level/Level.h"
 #include "Physics/Colliders.h"
 #include "Physics/PhysicsTestTypes.h"
@@ -14,7 +15,7 @@ namespace
 {
     LevelObject* MakeGround(Level::Level& level)
     {
-        LevelObject* ground = level.CreateObject(LevelObject::StaticType());
+        LevelObject* ground = *level.CreateObject(LevelObject::StaticType());
         ground->SetName("Ground");
         ground->GetTransform().SetLocalPosition({ 0.0f, -0.5f, 0.0f });
         ground->AddComponent<BoxCollider>()->SetSize({ 40.0f, 1.0f, 40.0f });
@@ -23,11 +24,11 @@ namespace
 
     LevelObject* MakeBox(Level::Level& level, const Math::Vector3& position)
     {
-        LevelObject* box = level.CreateObject(LevelObject::StaticType());
+        LevelObject* box = *level.CreateObject(LevelObject::StaticType());
         box->SetName("Box");
         box->GetTransform().SetLocalPosition(position);
-        box->AddComponent<BoxCollider>();
-        box->AddComponent<Rigidbody>();
+        EXPECT_TRUE(Tests::Succeeded(box->AddComponent<BoxCollider>()));
+        EXPECT_TRUE(Tests::Succeeded(box->AddComponent<Rigidbody>()));
         return box;
     }
 
@@ -46,7 +47,7 @@ TEST(PhysicsTests, BodiesFallAndRestOnStaticColliders)
     Level::Level level;
     MakeGround(level);
     LevelObject* box = MakeBox(level, { 0.0f, 5.0f, 0.0f });
-    auto* recorder = box->AddComponent<Tests::CollisionRecorder>();
+    auto* recorder = *box->AddComponent<Tests::CollisionRecorder>();
     level.BeginPlay();
     ASSERT_NE(PhysicsWorld::Get(&level), nullptr);
     EXPECT_TRUE(PhysicsWorld::Get(&level)->IsRunning());
@@ -65,16 +66,16 @@ TEST(PhysicsTests, BodiesFallAndRestOnStaticColliders)
 TEST(PhysicsTests, TriggersReportEnterAndExit)
 {
     Level::Level level;
-    LevelObject* zone = level.CreateObject(LevelObject::StaticType());
+    LevelObject* zone = *level.CreateObject(LevelObject::StaticType());
     zone->GetTransform().SetLocalPosition({ 0.0f, 3.0f, 0.0f });
-    auto* trigger = zone->AddComponent<BoxCollider>();
+    auto* trigger = *zone->AddComponent<BoxCollider>();
     trigger->SetSize({ 4.0f, 1.0f, 4.0f });
     trigger->SetTrigger(true);
-    auto* zoneRecorder = zone->AddComponent<Tests::CollisionRecorder>();
-    LevelObject* ball = level.CreateObject(LevelObject::StaticType());
+    auto* zoneRecorder = *zone->AddComponent<Tests::CollisionRecorder>();
+    LevelObject* ball = *level.CreateObject(LevelObject::StaticType());
     ball->GetTransform().SetLocalPosition({ 0.0f, 6.0f, 0.0f });
     ball->AddComponent<SphereCollider>()->SetRadius(0.25f);
-    ball->AddComponent<Rigidbody>();
+    EXPECT_TRUE(Tests::Succeeded(ball->AddComponent<Rigidbody>()));
     level.BeginPlay();
     Simulate(level, 2.5f);
     EXPECT_GE(zoneRecorder->triggerEnter, 1);
@@ -88,7 +89,7 @@ TEST(PhysicsTests, RaycastsHitCollidersWithNormals)
 {
     Level::Level level;
     LevelObject* ground = MakeGround(level);
-    LevelObject* wall = level.CreateObject(LevelObject::StaticType());
+    LevelObject* wall = *level.CreateObject(LevelObject::StaticType());
     wall->GetTransform().SetLocalPosition({ 0.0f, 1.0f, 5.0f });
     wall->AddComponent<BoxCollider>()->SetSize({ 4.0f, 2.0f, 0.5f });
     level.BeginPlay();

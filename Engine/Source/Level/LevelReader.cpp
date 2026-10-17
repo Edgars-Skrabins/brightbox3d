@@ -67,9 +67,9 @@ namespace BrightBox3D::Level
             }
         }
 
-        LevelObject* AdoptMissingLinkedNode(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const Core::Guid& asset)
+        LevelObject* AdoptMissingLinkedNode(Level& level, LevelCollection* collection, LevelObject* parent, const JsonValue& node, const Core::Guid& asset, const Core::Error& error)
         {
-            Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString()));
+            Core::Log::Warning(Core::Text(Core::EngineText::LinkedAssetMissing, LevelObject::StaticType().GetName(), asset.ToString(), error.GetText()));
             std::unique_ptr<LevelObject> placeholder = std::make_unique<LevelObject>();
             placeholder->SetName(GetString(node, LevelFileSchema::Name, Core::Text(Core::EngineText::MissingNamed, LevelObject::StaticType().GetName())));
             placeholder->SetMissingType(LevelFileSchema::MissingLevelObjectType, Serialization::WriteJson(node, Serialization::JsonFormat::Compact));
@@ -98,11 +98,12 @@ namespace BrightBox3D::Level
         {
             Core::Guid asset = Core::Guid::Parse(GetString(node, LevelFileSchema::LevelObjectAsset));
             LevelObjectLibrary::Get().GetPrototype(asset);
-            LevelObject* root = LevelReader::InstantiateAsset(level, asset, collection, parent, id, Initialization::Deferred, TemplateAccess::Allow);
-            if (!root)
+            Core::Result<LevelObject*> instantiated = LevelReader::InstantiateAsset(level, asset, collection, parent, id, Initialization::Deferred, TemplateAccess::Allow);
+            if (!instantiated)
             {
-                return AdoptMissingLinkedNode(level, collection, parent, node, asset);
+                return AdoptMissingLinkedNode(level, collection, parent, node, asset, instantiated.GetError());
             }
+            LevelObject* root = *instantiated;
             root->SetName(GetString(node, LevelFileSchema::Name, root->GetName()));
             root->SetActive(GetBool(node, LevelFileSchema::Active, root->IsActiveSelf()));
             ReadTransform(*root, node);
@@ -238,43 +239,55 @@ namespace BrightBox3D::Level
         return raw;
     }
 
-    const JsonValue* LevelReader::FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates)
+    Core::Result<const JsonValue*> LevelReader::FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates)
     {
         Core::Result<std::shared_ptr<Assets::Asset>> loaded = Assets::AssetDatabase::Get().LoadAsset(asset);
         if (!loaded)
         {
-            Assets::ReportLoadFailure(loaded.GetError());
-            return nullptr;
+            return loaded.GetError();
         }
         holder = std::move(*loaded);
+        const JsonValue* root = nullptr;
         if (auto* variant = Reflection::Cast<LevelObjectVariantAsset>(holder.get()))
         {
-            return variant->GetRoot();
+            root = variant->GetRoot();
         }
-        auto* templateAsset = Reflection::Cast<LevelObjectTemplateAsset>(holder.get());
-        if (templateAsset && templates == TemplateAccess::Allow)
+        else if (auto* templateAsset = Reflection::Cast<LevelObjectTemplateAsset>(holder.get()))
         {
-            return templateAsset->GetRoot();
+            if (templates == TemplateAccess::Refuse)
+            {
+                return Core::Error(Core::EngineText::TemplateNotPlaceable, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate));
+            }
+            root = templateAsset->GetRoot();
         }
-        if (templateAsset)
+        else
         {
-            Core::Log::Error(Core::Text(Core::EngineText::TemplateNotPlaceable, Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate)));
+            return Core::Error(Core::EngineText::NotLevelObjectAsset, holder->GetPath(), Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), Assets::AssetTypeName(Assets::AssetType::LevelObjectTemplate));
         }
-        return nullptr;
-    }
-
-    LevelObject* LevelReader::InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization, TemplateAccess templates)
-    {
-        std::shared_ptr<Assets::Asset> holder;
-        const JsonValue* root = FindAssetRoot(asset, holder, templates);
         if (!root)
         {
-            return nullptr;
+            return Core::Error(Core::EngineText::LevelObjectAssetUnreadable, Assets::AssetTypeName(holder->GetAssetType()), asset.ToString());
+        }
+        return root;
+    }
+
+    Core::Result<LevelObject*> LevelReader::InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization, TemplateAccess templates)
+    {
+        std::shared_ptr<Assets::Asset> holder;
+        Core::Result<const JsonValue*> root = FindAssetRoot(asset, holder, templates);
+        if (!root)
+        {
+            return root.GetError();
         }
         ReadContext context;
         context.asset = asset;
         context.derivedRoot = instanceId.IsValid() ? instanceId : Core::Guid::Generate();
-        return InitializeIfRequested(level, ReadNode(level, collection, parent, *root, context, true), initialization);
+        LevelObject* object = InitializeIfRequested(level, ReadNode(level, collection, parent, **root, context, true), initialization);
+        if (!object)
+        {
+            return Core::Error(Core::EngineText::LevelObjectAssetUnreadable, Assets::AssetTypeName(holder->GetAssetType()), asset.ToString());
+        }
+        return object;
     }
 
     void LevelReader::TagForEditing(LevelObject& node)
@@ -301,7 +314,7 @@ namespace BrightBox3D::Level
         return InitializeIfRequested(level, LevelReader::ReadNode(level, collection, parent, root, context, false), initialization);
     }
 
-    LevelObject* LevelSerializer::Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization)
+    Core::Result<LevelObject*> LevelSerializer::Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization)
     {
         LevelObjectLibrary::Get().GetPrototype(variant);
         return LevelReader::InstantiateAsset(level, variant, collection, parent, instanceId, initialization, TemplateAccess::Refuse);

@@ -155,7 +155,7 @@ TEST_F(ProjectFixture, LevelObjectAssetsLinkAndEditInIsolation)
     EXPECT_TRUE(m_context.GetLevelObjectEditService().IsEditingLevelObject());
     LevelObject* root = m_context.GetLevelService().GetEditLevel()->GetCollections().front()->GetRoots().front();
     root->SetName("CrateRenamed");
-    LevelObject* child = m_context.GetLevelService().GetEditLevel()->CreateObject(LevelObject::StaticType(), nullptr, root);
+    LevelObject* child = *m_context.GetLevelService().GetEditLevel()->CreateObject(LevelObject::StaticType(), nullptr, root);
     child->SetName("Lid");
     m_context.GetLevelService().MarkDirty(*root);
     m_context.GetLevelObjectEditService().CloseLevelObjectEditor(Editor::EditorChanges::Save);
@@ -235,10 +235,10 @@ void Scorer::OnGameUpdate(float deltaTime)
     EXPECT_EQ(type->GetModuleName(), m_context.GetProjectService().GetProject().GetGameModuleName());
 
     Level::Level* level = m_context.GetLevelService().GetEditLevel();
-    LevelObject* parent = level->CreateObject(LevelObject::StaticType());
-    LevelObject* scorer = level->CreateObject(*type);
+    LevelObject* parent = *level->CreateObject(LevelObject::StaticType());
+    LevelObject* scorer = *level->CreateObject(*type);
     Core::Guid id = scorer->GetId();
-    LevelObject* child = level->CreateObject(LevelObject::StaticType(), nullptr, scorer);
+    LevelObject* child = *level->CreateObject(LevelObject::StaticType(), nullptr, scorer);
     Core::Guid childId = child->GetId();
     scorer->SetParent(parent);
     scorer->GetTransform().SetLocalPosition({ 4, 5, 6 });

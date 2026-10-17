@@ -268,7 +268,7 @@ namespace BrightBox3D::Editor
             { "PlayModeWindowTitle", "{} - PlayMode", 1 },
             { "CreatedVariant", "Created {} '{}'", 2 },
             { "CreatedVariantFromTemplate", "Created {} '{}' from a {}", 3 },
-            { "CannotOpenAssetForEditing", "Cannot open asset for editing", 0 },
+            { "CannotOpenAssetForEditing", "Cannot open asset for editing: {}", 1 },
             { "Saved", "Saved '{}'", 1 },
             { "OpenLevelFailed", "Failed to open level: {}", 1 },
             { "OpenedLevel", "Opened level '{}'", 1 },

@@ -62,12 +62,21 @@ namespace BrightBox3D::Level
         static std::vector<Level*> GetAllLevels();
 
         LevelCollection* GetRuntimeCollection();
-        LevelObject* Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent = nullptr);
+        Core::Result<LevelObject*> Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent = nullptr);
 
         template <typename T>
-        T* Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent = nullptr)
+        Core::Result<T*> Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent = nullptr)
         {
-            return Reflection::Cast<T>(Spawn(variant, position, rotation, parent));
+            Core::Result<LevelObject*> spawned = Spawn(variant, position, rotation, parent);
+            if (!spawned)
+            {
+                return spawned.GetError();
+            }
+            if (T* typed = Reflection::Cast<T>(*spawned))
+            {
+                return typed;
+            }
+            return Core::Error(Core::EngineText::NotLevelObjectType, spawned->GetName(), T::StaticType().GetName());
         }
 
         const std::string& GetName() const { return m_name; }
@@ -82,15 +91,20 @@ namespace BrightBox3D::Level
         LevelCollection* GetDefaultCollection();
         const std::vector<std::unique_ptr<LevelCollection>>& GetCollections() const { return m_collections; }
 
-        LevelObject* CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection = nullptr, LevelObject* parent = nullptr, const Core::Guid& id = {}, Initialization initialization = Initialization::Immediate);
+        Core::Result<LevelObject*> CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection = nullptr, LevelObject* parent = nullptr, const Core::Guid& id = {}, Initialization initialization = Initialization::Immediate);
         LevelObject* AdoptObject(std::unique_ptr<LevelObject> object, LevelCollection* collection, LevelObject* parent, Initialization initialization);
         void InitializeObject(LevelObject& object);
         void InitializeHierarchy(LevelObject& root);
 
         template <typename T>
-        T* CreateObject(LevelCollection* collection = nullptr, LevelObject* parent = nullptr)
+        Core::Result<T*> CreateObject(LevelCollection* collection = nullptr, LevelObject* parent = nullptr)
         {
-            return static_cast<T*>(CreateObject(T::StaticType(), collection, parent));
+            Core::Result<LevelObject*> created = CreateObject(T::StaticType(), collection, parent);
+            if (!created)
+            {
+                return created.GetError();
+            }
+            return static_cast<T*>(*created);
         }
 
         void DestroyObject(LevelObject* object);

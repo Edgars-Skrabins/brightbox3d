@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "Level/LevelObjectComponent.h"
 #include "Level/Transform.h"
 #include "Reflection/EngineObject.h"
@@ -80,7 +81,7 @@ namespace BrightBox3D::Level
 
         LevelCollection* GetCollection() const { return m_collection; }
 
-        LevelObjectComponent* AddComponent(const Reflection::TypeInfo& type);
+        Core::Result<LevelObjectComponent*> AddComponent(const Reflection::TypeInfo& type);
         void RemoveComponent(LevelObjectComponent* component);
         bool MoveComponent(LevelObjectComponent* component, size_t index);
         const std::vector<std::unique_ptr<LevelObjectComponent>>& GetComponents() const { return m_components; }
@@ -90,9 +91,14 @@ namespace BrightBox3D::Level
         const LevelObjectComponent* FindComponentByLocalId(const Core::Guid& localId) const;
 
         template <typename T>
-        T* AddComponent()
+        Core::Result<T*> AddComponent()
         {
-            return static_cast<T*>(AddComponent(T::StaticType()));
+            Core::Result<LevelObjectComponent*> added = AddComponent(T::StaticType());
+            if (!added)
+            {
+                return added.GetError();
+            }
+            return static_cast<T*>(*added);
         }
 
         template <typename T>

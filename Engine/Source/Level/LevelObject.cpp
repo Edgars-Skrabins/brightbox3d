@@ -197,18 +197,16 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    LevelObjectComponent* LevelObject::AddComponent(const Reflection::TypeInfo& type)
+    Core::Result<LevelObjectComponent*> LevelObject::AddComponent(const Reflection::TypeInfo& type)
     {
         if (!type.IsA(LevelObjectComponent::StaticType()) || type.IsA(Transform::StaticType()))
         {
-            Core::Log::Error(Core::Text(Core::EngineText::NotAComponent, type.GetName()));
-            return nullptr;
+            return Core::Error(Core::EngineText::NotAComponent, type.GetName());
         }
         std::unique_ptr<Reflection::EngineObject> object(type.CreateInstance());
         if (!object)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::ComponentAbstract, type.GetName()));
-            return nullptr;
+            return Core::Error(Core::EngineText::ComponentAbstract, type.GetName());
         }
         std::unique_ptr<LevelObjectComponent> component(static_cast<LevelObjectComponent*>(object.release()));
         component->m_state.localId = Core::Guid::Generate();

@@ -8,18 +8,16 @@
 
 namespace BrightBox3D::Level
 {
-    LevelObject* Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObject* parent, const Core::Guid& id, Initialization initialization)
+    Core::Result<LevelObject*> Level::CreateObject(const Reflection::TypeInfo& type, LevelCollection* collection, LevelObject* parent, const Core::Guid& id, Initialization initialization)
     {
         if (!type.IsA(LevelObject::StaticType()))
         {
-            Core::Log::Error(Core::Text(Core::EngineText::NotLevelObjectType, type.GetName(), LevelObject::StaticType().GetName()));
-            return nullptr;
+            return Core::Error(Core::EngineText::NotLevelObjectType, type.GetName(), LevelObject::StaticType().GetName());
         }
         std::unique_ptr<Reflection::EngineObject> created(type.CreateInstance());
         if (!created)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::TypeAbstract, type.GetName()));
-            return nullptr;
+            return Core::Error(Core::EngineText::TypeAbstract, type.GetName());
         }
         std::unique_ptr<LevelObject> object(static_cast<LevelObject*>(created.release()));
         if (id.IsValid())
@@ -323,16 +321,16 @@ namespace BrightBox3D::Level
         }
     }
 
-    LevelObject* Level::Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent)
+    Core::Result<LevelObject*> Level::Spawn(const Assets::AssetReference<LevelObjectVariantAsset>& variant, const Math::Vector3& position, const Math::Quaternion& rotation, LevelObject* parent)
     {
         LevelCollection* collection = parent ? parent->GetCollection() : (m_isPlaying ? GetRuntimeCollection() : GetDefaultCollection());
-        LevelObject* object = LevelSerializer::Instantiate(*this, variant.guid, collection, parent, {}, Initialization::Deferred);
+        Core::Result<LevelObject*> object = LevelSerializer::Instantiate(*this, variant.guid, collection, parent, {}, Initialization::Deferred);
         if (!object)
         {
-            return nullptr;
+            return object;
         }
         object->GetTransform().SetPositionAndRotation(position, rotation);
-        InitializeHierarchy(*object);
+        InitializeHierarchy(**object);
         return object;
     }
 

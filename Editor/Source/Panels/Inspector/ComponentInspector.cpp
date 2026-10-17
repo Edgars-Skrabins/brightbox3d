@@ -1,6 +1,7 @@
 #include "Panels/Inspector/ComponentInspector.h"
 
 #include "Core/EngineInfo.h"
+#include "Core/Log.h"
 #include "Core/StringUtils.h"
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
@@ -234,9 +235,15 @@ namespace BrightBox3D::Editor
                 {
                     Serialization::JsonDocument before;
                     ObjectEditService::Snapshot(object, before);
-                    object.AddComponent(*type);
-                    m_application.GetContext().GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoAddComponent, type->GetName()));
-                    added = true;
+                    if (Core::Result<Level::LevelObjectComponent*> component = object.AddComponent(*type))
+                    {
+                        m_application.GetContext().GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoAddComponent, type->GetName()));
+                        added = true;
+                    }
+                    else
+                    {
+                        Core::Log::Error(component.GetError().GetText());
+                    }
                     ImGui::CloseCurrentPopup();
                 }
             }

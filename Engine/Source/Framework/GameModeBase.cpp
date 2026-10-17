@@ -83,15 +83,17 @@ namespace BrightBox3D::Framework
         PlayerStart* start = ChoosePlayerStart(controller);
         Math::Vector3 position = start ? start->GetTransform().GetPosition() : Math::Vector3();
         Math::Quaternion rotation = start ? start->GetTransform().GetRotation() : Math::Quaternion();
-        Level::LevelObject* spawned = level->Spawn(m_defaultPlayable, position, rotation);
-        auto* playable = Reflection::Cast<PlayableLevelObject>(spawned);
+        Core::Result<Level::LevelObject*> spawned = level->Spawn(m_defaultPlayable, position, rotation);
+        if (!spawned)
+        {
+            Core::Log::Error(Core::Text(Core::EngineText::PlayableSpawnFailed, spawned.GetError().GetText()));
+            return;
+        }
+        auto* playable = Reflection::Cast<PlayableLevelObject>(*spawned);
         if (!playable)
         {
             Core::Log::Error(Core::Text(Core::EngineText::DefaultPlayableWrongType, Assets::AssetTypeName(Assets::AssetType::LevelObjectVariant), PlayableLevelObject::StaticType().GetName()));
-            if (spawned)
-            {
-                level->DestroyObjectImmediate(spawned);
-            }
+            level->DestroyObjectImmediate(*spawned);
             return;
         }
         controller.Possess(*playable);

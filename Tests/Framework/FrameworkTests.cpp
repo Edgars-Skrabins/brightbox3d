@@ -45,8 +45,8 @@ TEST(FrameworkTests, PossessUnpossessAndSwitchBodies)
 {
     RuntimeLevel level;
     auto* controller = level.CreateEngineObject<Framework::PlayerController>();
-    auto* first = level.CreateObject<TestPlayable>();
-    auto* second = level.CreateObject<TestPlayable>();
+    auto* first = *level.CreateObject<TestPlayable>();
+    auto* second = *level.CreateObject<TestPlayable>();
 
     controller->Possess(*first);
     EXPECT_EQ(controller->GetPlayable(), first);
@@ -138,7 +138,7 @@ TEST(FrameworkTests, HotReloadKeepsGameStateValuesAndPossession)
 TEST(FrameworkTests, CameraAntiAliasingLoadsByNameIntoTheRenderView)
 {
     RuntimeLevel level("Camera");
-    auto* camera = level.CreateObject<Framework::Camera>();
+    auto* camera = *level.CreateObject<Framework::Camera>();
     const Reflection::PropertyInfo* property = Framework::Camera::StaticType().FindProperty("m_antiAliasing");
     ASSERT_NE(property, nullptr);
     ASSERT_NE(property->value.enumInfo, nullptr);

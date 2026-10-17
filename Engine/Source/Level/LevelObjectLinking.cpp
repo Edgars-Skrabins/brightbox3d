@@ -41,11 +41,13 @@ namespace BrightBox3D::Level
         bool MakeEditableAssetCopy(const Core::Guid& asset, EditableAssetCopy& copy)
         {
             copy.level = std::make_unique<Level>(AssetCopyLevelName);
-            copy.root = LevelSerializer::OpenAsset(*copy.level, nullptr, asset);
-            if (!copy.root)
+            Core::Result<LevelObject*> root = LevelSerializer::OpenAsset(*copy.level, nullptr, asset);
+            if (!root)
             {
+                Assets::ReportLoadFailure(root.GetError());
                 return false;
             }
+            copy.root = *root;
             copy.bySource = LevelObjectLinking::IndexBySource(*copy.root);
             return true;
         }

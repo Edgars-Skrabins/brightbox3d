@@ -62,7 +62,7 @@ namespace BrightBox3D::Tests
         void SpawnPlayer(Framework::PlayerController& controller) override
         {
             ++m_spawns;
-            auto* playable = GetLevel()->CreateObject<TestPlayable>();
+            auto* playable = *GetLevel()->CreateObject<TestPlayable>();
             controller.Possess(*playable);
         }
 

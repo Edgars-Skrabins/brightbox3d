@@ -64,7 +64,7 @@ namespace BrightBox3D::Editor
         LevelObject* source = object;
         if (!source)
         {
-            source = scratch.CreateObject(LevelObject::StaticType());
+            source = *scratch.CreateObject(LevelObject::StaticType());
             source->SetName(Assets::NewAssetName(Assets::AssetType::LevelObjectTemplate));
         }
         LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectTemplate);

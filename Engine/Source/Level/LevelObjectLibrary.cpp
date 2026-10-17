@@ -27,15 +27,15 @@ namespace BrightBox3D::Level
         }
         Entry entry;
         entry.level = std::make_unique<Level>(PrototypeLevelName);
-        entry.root = LevelReader::InstantiateAsset(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), Initialization::Deferred, TemplateAccess::Allow);
-        if (!entry.root)
+        Core::Result<LevelObject*> root = LevelReader::InstantiateAsset(*entry.level, asset, nullptr, nullptr, Core::Guid::Generate(), Initialization::Deferred, TemplateAccess::Allow);
+        if (!root)
         {
             return nullptr;
         }
+        entry.root = *root;
         entry.bySource = LevelObjectLinking::IndexBySource(*entry.root);
-        LevelObject* root = entry.root;
         m_entries[asset] = std::move(entry);
-        return root;
+        return *root;
     }
 
     LevelObject* LevelObjectLibrary::FindPrototypeNode(const Core::Guid& asset, const Core::Guid& sourceId)

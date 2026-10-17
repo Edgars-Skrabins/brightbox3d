@@ -22,10 +22,10 @@ namespace
 {
     Level::LevelObject* AddMesh(Level::Level& level, const Core::Guid& model, const Math::Vector3& position, const Math::Vector3& scale)
     {
-        Level::LevelObject* object = level.CreateObject(Level::LevelObject::StaticType());
+        Level::LevelObject* object = *level.CreateObject(Level::LevelObject::StaticType());
         object->GetTransform().SetLocalPosition(position);
         object->GetTransform().SetLocalScale(scale);
-        auto* renderer = object->AddComponent<MeshRenderer>();
+        auto* renderer = *object->AddComponent<MeshRenderer>();
         renderer->SetModel(Assets::AssetReference<ModelAsset>(model));
         return object;
     }
@@ -44,15 +44,15 @@ TEST(RendererTests, RendersLitSceneWithShadows)
     AddMesh(level, BuiltinAssets::Sphere(), { 1.0f, 0.75f, 0.5f }, { 1.5f, 1.5f, 1.5f });
     AddMesh(level, BuiltinAssets::Capsule(), { 0.0f, 1.0f, 2.5f }, { 1, 1, 1 });
 
-    Level::LevelObject* sun = level.CreateObject(Level::LevelObject::StaticType());
+    Level::LevelObject* sun = *level.CreateObject(Level::LevelObject::StaticType());
     sun->GetTransform().SetLocalEulerAngles({ 50.0f, -30.0f, 0.0f });
-    auto* sunLight = sun->AddComponent<Light>();
+    auto* sunLight = *sun->AddComponent<Light>();
     sunLight->SetLightType(LightType::Directional);
     sunLight->SetIntensity(3.0f);
 
-    Level::LevelObject* lamp = level.CreateObject(Level::LevelObject::StaticType());
+    Level::LevelObject* lamp = *level.CreateObject(Level::LevelObject::StaticType());
     lamp->GetTransform().SetLocalPosition({ 2.5f, 1.5f, -1.5f });
-    auto* lampLight = lamp->AddComponent<Light>();
+    auto* lampLight = *lamp->AddComponent<Light>();
     lampLight->SetLightType(LightType::Point);
     lampLight->SetColor({ 1.0f, 0.4f, 0.1f, 1.0f });
     lampLight->SetIntensity(8.0f);
@@ -126,14 +126,14 @@ TEST(RendererTests, PostProcessingAndAntiAliasingModes)
     }
     Level::LevelObject* glow = AddMesh(level, BuiltinAssets::Sphere(), { 0.0f, 2.2f, 1.5f }, { 0.8f, 0.8f, 0.8f });
     (void)glow;
-    Level::LevelObject* sun = level.CreateObject(Level::LevelObject::StaticType());
+    Level::LevelObject* sun = *level.CreateObject(Level::LevelObject::StaticType());
     sun->GetTransform().SetLocalEulerAngles({ 40.0f, 30.0f, 0.0f });
-    auto* light = sun->AddComponent<Light>();
+    auto* light = *sun->AddComponent<Light>();
     light->SetLightType(LightType::Directional);
     light->SetIntensity(3.0f);
-    Level::LevelObject* lamp = level.CreateObject(Level::LevelObject::StaticType());
+    Level::LevelObject* lamp = *level.CreateObject(Level::LevelObject::StaticType());
     lamp->GetTransform().SetLocalPosition({ 0.0f, 2.2f, 0.4f });
-    auto* lampLight = lamp->AddComponent<Light>();
+    auto* lampLight = *lamp->AddComponent<Light>();
     lampLight->SetColor({ 0.3f, 0.6f, 1.0f, 1.0f });
     lampLight->SetIntensity(60.0f);
     lampLight->SetRange(5.0f);

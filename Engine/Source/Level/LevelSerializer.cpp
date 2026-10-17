@@ -38,16 +38,20 @@ namespace BrightBox3D::Level
         return id.IsValid() ? id : FallbackDerivedId;
     }
 
-    LevelObject* LevelSerializer::OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset)
+    Core::Result<LevelObject*> LevelSerializer::OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset)
     {
         std::shared_ptr<Assets::Asset> holder;
-        const JsonValue* root = LevelReader::FindAssetRoot(asset, holder, TemplateAccess::Allow);
+        Core::Result<const JsonValue*> root = LevelReader::FindAssetRoot(asset, holder, TemplateAccess::Allow);
         if (!root)
         {
-            return nullptr;
+            return root.GetError();
         }
-        LevelObject* object = ReadObject(level, collection, nullptr, *root, Initialization::Deferred);
-        if (object && !(object->GetLink().isRoot && object->GetLink().asset.IsValid()))
+        LevelObject* object = ReadObject(level, collection, nullptr, **root, Initialization::Deferred);
+        if (!object)
+        {
+            return Core::Error(Core::EngineText::LevelObjectAssetUnreadable, Assets::AssetTypeName(holder->GetAssetType()), asset.ToString());
+        }
+        if (!(object->GetLink().isRoot && object->GetLink().asset.IsValid()))
         {
             LevelReader::TagForEditing(*object);
         }

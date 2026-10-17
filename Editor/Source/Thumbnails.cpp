@@ -38,8 +38,8 @@ namespace BrightBox3D::Editor
 
         Rendering::MeshRenderer* AddRenderer(Level::Level& preview, const Core::Guid& model, int mesh)
         {
-            Level::LevelObject* object = preview.CreateObject(Level::LevelObject::StaticType());
-            auto* renderer = object->AddComponent<Rendering::MeshRenderer>();
+            Level::LevelObject* object = *preview.CreateObject(Level::LevelObject::StaticType());
+            auto* renderer = *object->AddComponent<Rendering::MeshRenderer>();
             renderer->SetModel(Assets::AssetReference<Geometry::ModelAsset>(model));
             renderer->SetMeshIndex(mesh);
             return renderer;
@@ -71,8 +71,9 @@ namespace BrightBox3D::Editor
 
         std::optional<Math::Bounds> AddVariant(Level::Level& preview, const Core::Guid& asset)
         {
-            if (!Level::LevelSerializer::Instantiate(preview, asset, nullptr, nullptr))
+            if (Core::Result<Level::LevelObject*> instantiated = Level::LevelSerializer::Instantiate(preview, asset, nullptr, nullptr); !instantiated)
             {
+                Assets::ReportLoadFailure(instantiated.GetError());
                 return std::nullopt;
             }
             Math::Bounds bounds;
@@ -104,9 +105,9 @@ namespace BrightBox3D::Editor
 
         void AddSun(Level::Level& preview)
         {
-            Level::LevelObject* sun = preview.CreateObject(Level::LevelObject::StaticType());
+            Level::LevelObject* sun = *preview.CreateObject(Level::LevelObject::StaticType());
             sun->GetTransform().SetLocalEulerAngles(SunAngles);
-            auto* light = sun->AddComponent<Rendering::Light>();
+            auto* light = *sun->AddComponent<Rendering::Light>();
             light->SetLightType(Rendering::LightType::Directional);
             light->SetIntensity(SunIntensity);
             light->SetCastShadows(false);

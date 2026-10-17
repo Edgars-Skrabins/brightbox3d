@@ -24,7 +24,7 @@ TEST(StreamingTests, LoadsAndUnloadsCollectionsDuringPlay)
     Level::LevelCollection* source = authoring.AddCollection("Dungeon");
     for (int i = 0; i < 25; ++i)
     {
-        LevelObject* object = authoring.CreateObject(Tests::TestPlayer::StaticType(), source);
+        LevelObject* object = *authoring.CreateObject(Tests::TestPlayer::StaticType(), source);
         object->GetTransform().SetLocalPosition({ static_cast<float>(i), 0.0f, 0.0f });
     }
     Serialization::JsonDocument document;

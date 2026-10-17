@@ -37,8 +37,8 @@ namespace BrightBox3D::Level
         static Core::Result<Core::Guid> CreateLevelAsset(const std::string& relativePath);
         static std::unique_ptr<Level> CloneLevel(const Level& source);
 
-        static LevelObject* Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId = {}, Initialization initialization = Initialization::Immediate);
-        static LevelObject* OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset);
+        static Core::Result<LevelObject*> Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId = {}, Initialization initialization = Initialization::Immediate);
+        static Core::Result<LevelObject*> OpenAsset(Level& level, LevelCollection* collection, const Core::Guid& asset);
         static bool SaveAsset(const LevelObject& root, const Core::Guid& asset);
         static LevelObject* InstantiateNode(Level& level, const Serialization::JsonValue& root, LevelCollection* collection, LevelObject* parent, Initialization initialization = Initialization::Immediate);
 

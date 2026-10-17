@@ -46,13 +46,13 @@ namespace BrightBox3D::Editor
         }
         auto level = std::make_unique<Level::Level>(record->name);
         Level::LevelCollection* collection = level->AddCollection(record->name);
-        Level::LevelObject* object = Level::LevelSerializer::OpenAsset(*level, collection, asset);
+        Core::Result<Level::LevelObject*> object = Level::LevelSerializer::OpenAsset(*level, collection, asset);
         if (!object)
         {
-            Core::Log::Error(Text(EditorText::CannotOpenAssetForEditing));
+            Core::Log::Error(Text(EditorText::CannotOpenAssetForEditing, object.GetError().GetText()));
             return false;
         }
-        level->InitializeHierarchy(*object);
+        level->InitializeHierarchy(**object);
 
         SelectionService& selection = m_context.GetSelectionService();
         m_stashedSelection = selection.GetSelection();

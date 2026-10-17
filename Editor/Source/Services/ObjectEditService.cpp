@@ -80,11 +80,13 @@ namespace BrightBox3D::Editor
         {
             return nullptr;
         }
-        LevelObject* object = level->CreateObject(type, parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection(), parent);
-        if (!object)
+        Core::Result<LevelObject*> created = level->CreateObject(type, parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection(), parent);
+        if (!created)
         {
+            Core::Log::Error(created.GetError().GetText());
             return nullptr;
         }
+        LevelObject* object = *created;
         object->SetName(name);
         m_context.GetUndoService().RecordCreation({ object }, Text(EditorText::UndoCreate, name));
         m_context.GetSelectionService().Select(object->GetId());
@@ -105,13 +107,13 @@ namespace BrightBox3D::Editor
             return nullptr;
         }
         LevelCollection* collection = parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection();
-        LevelObject* root = level->CreateObject(LevelObject::StaticType(), collection, parent);
+        LevelObject* root = *level->CreateObject(LevelObject::StaticType(), collection, parent);
         root->SetName(name);
         root->GetTransform().SetPosition(position);
         const auto& nodes = asset->GetNodes();
         if (nodes.size() <= 1)
         {
-            auto* renderer = root->AddComponent<Rendering::MeshRenderer>();
+            auto* renderer = *root->AddComponent<Rendering::MeshRenderer>();
             renderer->SetModel(Assets::AssetReference<Geometry::ModelAsset>(model));
             renderer->SetMeshIndex(nodes.empty() ? 0 : std::max(nodes[0].mesh, 0));
         }
@@ -122,14 +124,14 @@ namespace BrightBox3D::Editor
             {
                 const Geometry::ModelNode& node = nodes[i];
                 LevelObject* nodeParent = node.parent >= 0 && created[static_cast<size_t>(node.parent)] ? created[static_cast<size_t>(node.parent)] : root;
-                LevelObject* object = level->CreateObject(LevelObject::StaticType(), collection, nodeParent);
+                LevelObject* object = *level->CreateObject(LevelObject::StaticType(), collection, nodeParent);
                 object->SetName(node.name.empty() ? std::string(Text(EditorText::DefaultNodeName)) : node.name);
                 object->GetTransform().SetLocalPosition(node.position);
                 object->GetTransform().SetLocalRotation({ node.rotation.x, node.rotation.y, node.rotation.z, node.rotation.w });
                 object->GetTransform().SetLocalScale(node.scale);
                 if (node.mesh >= 0)
                 {
-                    auto* renderer = object->AddComponent<Rendering::MeshRenderer>();
+                    auto* renderer = *object->AddComponent<Rendering::MeshRenderer>();
                     renderer->SetModel(Assets::AssetReference<Geometry::ModelAsset>(model));
                     renderer->SetMeshIndex(node.mesh);
                 }
@@ -148,11 +150,13 @@ namespace BrightBox3D::Editor
         {
             return nullptr;
         }
-        LevelObject* object = LevelSerializer::Instantiate(*level, asset, parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection(), parent);
-        if (!object)
+        Core::Result<LevelObject*> instantiated = LevelSerializer::Instantiate(*level, asset, parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection(), parent);
+        if (!instantiated)
         {
+            Core::Log::Error(instantiated.GetError().GetText());
             return nullptr;
         }
+        LevelObject* object = *instantiated;
         object->GetTransform().SetPosition(position);
         m_context.GetUndoService().RecordCreation({ object }, Text(EditorText::UndoPlace, object->GetName()));
         m_context.GetSelectionService().Select(object->GetId());
@@ -166,9 +170,9 @@ namespace BrightBox3D::Editor
         {
             return nullptr;
         }
-        LevelObject* object = level->CreateObject(LevelObject::StaticType(), m_context.GetLevelService().GetActiveCollection());
+        LevelObject* object = *level->CreateObject(LevelObject::StaticType(), m_context.GetLevelService().GetActiveCollection());
         object->SetName(Text(LightName(type)));
-        auto* light = object->AddComponent<Rendering::Light>();
+        auto* light = *object->AddComponent<Rendering::Light>();
         light->SetLightType(type);
         if (type == Rendering::LightType::Directional)
         {

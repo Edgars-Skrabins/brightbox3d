@@ -90,8 +90,8 @@ TEST(LevelTests, TransformPropertiesUseTheirDisplayNames)
 TEST(LevelTests, ConstObjectsHandOutConstComponentsAndLinks)
 {
     RuntimeLevel level;
-    LevelObject* object = level.CreateObject(LevelObject::StaticType());
-    auto* component = object->AddComponent<RecordingComponent>();
+    LevelObject* object = *level.CreateObject(LevelObject::StaticType());
+    auto* component = *object->AddComponent<RecordingComponent>();
     const LevelObject& view = *object;
     static_assert(std::is_same_v<decltype(view.GetComponent<Level::Transform>()), const Level::Transform*>);
     static_assert(std::is_same_v<decltype(view.GetComponent<RecordingComponent>()), const RecordingComponent*>);
@@ -103,11 +103,26 @@ TEST(LevelTests, ConstObjectsHandOutConstComponentsAndLinks)
     EXPECT_EQ(view.GetLinkRoot(), nullptr);
 }
 
+TEST(LevelTests, CreatingWrongTypesReturnsTypedErrors)
+{
+    RuntimeLevel level;
+    Core::Result<LevelObject*> notAnObject = level.CreateObject(RecordingComponent::StaticType());
+    ASSERT_FALSE(notAnObject);
+    EXPECT_EQ(notAnObject.GetError().GetId(), Core::EngineText::NotLevelObjectType);
+    EXPECT_EQ(notAnObject.GetError().GetArguments().front(), RecordingComponent::StaticType().GetName());
+
+    LevelObject* object = *level.CreateObject(LevelObject::StaticType());
+    Core::Result<BrightBox3D::Level::LevelObjectComponent*> transform = object->AddComponent(BrightBox3D::Level::Transform::StaticType());
+    ASSERT_FALSE(transform);
+    EXPECT_EQ(transform.GetError().GetId(), Core::EngineText::NotAComponent);
+    EXPECT_EQ(object->GetComponents().size(), 0u);
+}
+
 TEST(LevelTests, TransformHierarchyComposesAndKeepsWorld)
 {
     RuntimeLevel level;
-    LevelObject* parent = level.CreateObject(LevelObject::StaticType());
-    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, parent);
+    LevelObject* parent = *level.CreateObject(LevelObject::StaticType());
+    LevelObject* child = *level.CreateObject(LevelObject::StaticType(), nullptr, parent);
     parent->GetTransform().SetLocalPosition({ 10.0f, 0.0f, 0.0f });
     parent->GetTransform().SetLocalEulerAngles({ 0.0f, 90.0f, 0.0f });
     child->GetTransform().SetLocalPosition({ 0.0f, 0.0f, 1.0f });
@@ -130,8 +145,8 @@ TEST(LevelTests, LifecycleRunsInOrder)
 {
     LifecycleLog().clear();
     RuntimeLevel level;
-    auto* player = static_cast<TestPlayer*>(level.CreateObject(TestPlayer::StaticType()));
-    auto* component = player->AddComponent<RecordingComponent>();
+    auto* player = static_cast<TestPlayer*>(*level.CreateObject(TestPlayer::StaticType()));
+    auto* component = *player->AddComponent<RecordingComponent>();
     EXPECT_TRUE(Contains(LifecycleLog(), "component:Initialize"));
     EXPECT_FALSE(Contains(LifecycleLog(), "component:Load"));
 
@@ -176,8 +191,8 @@ TEST(LevelTests, DestroyIsDeferredDuringPlay)
 {
     LifecycleLog().clear();
     RuntimeLevel level;
-    LevelObject* parent = level.CreateObject(LevelObject::StaticType());
-    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, parent);
+    LevelObject* parent = *level.CreateObject(LevelObject::StaticType());
+    LevelObject* child = *level.CreateObject(LevelObject::StaticType(), nullptr, parent);
     child->AddComponent<RecordingComponent>()->m_label = "child";
     level.BeginPlay();
     level.Update(0.016f);
@@ -200,7 +215,7 @@ TEST(LevelTests, SpawnDuringPlayLoadsImmediatelyAndStartsNextFrame)
     LifecycleLog().clear();
     RuntimeLevel level;
     level.BeginPlay();
-    LevelObject* spawned = level.CreateObject(LevelObject::StaticType());
+    LevelObject* spawned = *level.CreateObject(LevelObject::StaticType());
     spawned->AddComponent<RecordingComponent>()->m_label = "spawned";
     EXPECT_TRUE(Contains(LifecycleLog(), "component:Load"));
     EXPECT_FALSE(Contains(LifecycleLog(), "spawned:Start"));
@@ -213,14 +228,14 @@ TEST(LevelTests, CollectionRoundTripPreservesEverything)
 {
     RuntimeLevel level;
     LevelCollection* collection = level.GetDefaultCollection();
-    auto* player = static_cast<TestPlayer*>(level.CreateObject(TestPlayer::StaticType()));
+    auto* player = static_cast<TestPlayer*>(*level.CreateObject(TestPlayer::StaticType()));
     player->SetName("Hero");
     player->m_lives = 9;
     player->GetTransform().SetLocalPosition({ 1.0f, 2.0f, 3.0f });
-    auto* component = player->AddComponent<RecordingComponent>();
+    auto* component = *player->AddComponent<RecordingComponent>();
     component->m_power = 4.5f;
     component->SetEnabled(false);
-    LevelObject* child = level.CreateObject(LevelObject::StaticType(), nullptr, player);
+    LevelObject* child = *level.CreateObject(LevelObject::StaticType(), nullptr, player);
     child->SetName("Weapon");
     child->SetActive(false);
 
@@ -332,7 +347,7 @@ namespace
 TEST(ReplacementTests, DestroyedObjectReplacedBeforeUpdateIsRemovedSafely)
 {
     RuntimeLevel level;
-    LevelObject* player = level.CreateObject(TestPlayer::StaticType());
+    LevelObject* player = *level.CreateObject(TestPlayer::StaticType());
     Core::Guid id = player->GetId();
     level.BeginPlay();
     level.Update(0.016f);
@@ -349,8 +364,8 @@ TEST(ReplacementTests, DestroyedObjectReplacedBeforeUpdateIsRemovedSafely)
 TEST(ReplacementTests, DestroyedComponentReplacedBeforeUpdateIsRemovedSafely)
 {
     RuntimeLevel level;
-    LevelObject* object = level.CreateObject(LevelObject::StaticType());
-    RecordingComponent* component = object->AddComponent<RecordingComponent>();
+    LevelObject* object = *level.CreateObject(LevelObject::StaticType());
+    RecordingComponent* component = *object->AddComponent<RecordingComponent>();
     level.BeginPlay();
     level.Update(0.016f);
     object->RemoveComponent(component);
@@ -364,14 +379,14 @@ TEST(ReplacementTests, DestroyedComponentReplacedBeforeUpdateIsRemovedSafely)
 TEST(ReplacementTests, RuntimeStateStructsSurviveReplacementWhole)
 {
     RuntimeLevel level;
-    auto* player = static_cast<TestPlayer*>(level.CreateObject(TestPlayer::StaticType()));
+    auto* player = static_cast<TestPlayer*>(*level.CreateObject(TestPlayer::StaticType()));
     player->SetName("Hero");
     player->SetOwnerId(Core::Guid::Generate());
     player->SetHideInLevelContents(true);
     player->SetLink({ Core::Guid::Generate(), Core::Guid::Generate(), true });
     player->GetTransform().SetLocalPosition({ 1.0f, 2.0f, 3.0f });
     player->m_lives = 7;
-    RecordingComponent* component = player->AddComponent<RecordingComponent>();
+    RecordingComponent* component = *player->AddComponent<RecordingComponent>();
     component->SetEnabled(false);
     level.BeginPlay();
     level.Update(0.016f);
@@ -410,7 +425,7 @@ TEST(ReplacementTests, RuntimeStateStructsSurviveReplacementWhole)
 TEST(ReplacementTests, LevelOwnedEngineObjectsAreReplacedAndReferencesRemapped)
 {
     RuntimeLevel level;
-    LevelObject* player = level.CreateObject(TestPlayer::StaticType());
+    LevelObject* player = *level.CreateObject(TestPlayer::StaticType());
     auto* rules = level.CreateEngineObject<TestRules>();
     ASSERT_NE(rules, nullptr);
     rules->m_score = 12;
@@ -429,7 +444,7 @@ TEST(ReplacementTests, LevelOwnedEngineObjectsAreReplacedAndReferencesRemapped)
 TEST(LevelTests, CloneLevelCopiesForPlayMode)
 {
     RuntimeLevel level;
-    auto* player = static_cast<TestPlayer*>(level.CreateObject(TestPlayer::StaticType()));
+    auto* player = static_cast<TestPlayer*>(*level.CreateObject(TestPlayer::StaticType()));
     player->m_lives = 2;
     std::unique_ptr<RuntimeLevel> copy = LevelSerializer::CloneLevel(level);
     auto* copied = Reflection::Cast<TestPlayer>(copy->FindObject(player->GetId()));
@@ -472,12 +487,12 @@ TEST(LevelObjectLinkTests, InstancesFollowAssetAndKeepOverrides)
     Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
 
     RuntimeLevel authoring;
-    auto* source = static_cast<TestPlayer*>(authoring.CreateObject(TestPlayer::StaticType()));
+    auto* source = static_cast<TestPlayer*>(*authoring.CreateObject(TestPlayer::StaticType()));
     source->SetName("Enemy");
     source->m_lives = 3;
-    auto* sourceComponent = source->AddComponent<RecordingComponent>();
+    auto* sourceComponent = *source->AddComponent<RecordingComponent>();
     sourceComponent->m_power = 1.0f;
-    LevelObject* sourceChild = authoring.CreateObject(LevelObject::StaticType(), nullptr, source);
+    LevelObject* sourceChild = *authoring.CreateObject(LevelObject::StaticType(), nullptr, source);
     sourceChild->SetName("Hat");
 
     Serialization::JsonDocument document;
@@ -486,8 +501,8 @@ TEST(LevelObjectLinkTests, InstancesFollowAssetAndKeepOverrides)
     ASSERT_TRUE(asset.IsValid());
 
     RuntimeLevel level;
-    LevelObject* first = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
-    LevelObject* second = LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
+    LevelObject* first = *LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
+    LevelObject* second = *LevelSerializer::Instantiate(level, asset, nullptr, nullptr);
     ASSERT_NE(first, nullptr);
     ASSERT_NE(second, nullptr);
     EXPECT_NE(first->GetId(), second->GetId());
@@ -543,11 +558,13 @@ TEST(LevelObjectLinkTests, TemplatesCannotBeInstantiated)
 {
     TempProject project;
     RuntimeLevel authoring;
-    LevelObject* source = authoring.CreateObject(LevelObject::StaticType());
+    LevelObject* source = *authoring.CreateObject(LevelObject::StaticType());
     Serialization::JsonDocument document;
     LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectTemplate);
     Core::Guid templateAsset = Assets::AssetDatabase::Get().CreateJsonAsset("Base.template", document);
     ASSERT_TRUE(templateAsset.IsValid());
     RuntimeLevel level;
-    EXPECT_EQ(LevelSerializer::Instantiate(level, templateAsset, nullptr, nullptr), nullptr);
+    Core::Result<LevelObject*> placed = LevelSerializer::Instantiate(level, templateAsset, nullptr, nullptr);
+    ASSERT_FALSE(placed);
+    EXPECT_EQ(placed.GetError().GetId(), Core::EngineText::TemplateNotPlaceable);
 }

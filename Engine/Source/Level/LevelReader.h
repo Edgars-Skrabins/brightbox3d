@@ -31,7 +31,7 @@ namespace BrightBox3D::Level::LevelReader
     };
 
     LevelObject* ReadNode(Level& level, LevelCollection* collection, LevelObject* parent, const Serialization::JsonValue& node, ReadContext& context, bool isAssetRoot);
-    const Serialization::JsonValue* FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates);
-    LevelObject* InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization, TemplateAccess templates);
+    Core::Result<const Serialization::JsonValue*> FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates);
+    Core::Result<LevelObject*> InstantiateAsset(Level& level, const Core::Guid& asset, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId, Initialization initialization, TemplateAccess templates);
     void TagForEditing(LevelObject& node);
 }

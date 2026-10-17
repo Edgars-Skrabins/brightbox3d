@@ -50,7 +50,7 @@ namespace
     Core::Guid CreateTemplate(int lives, float moveSpeed)
     {
         RuntimeLevel authoring;
-        auto* source = static_cast<TestPlayer*>(authoring.CreateObject(TestPlayer::StaticType()));
+        auto* source = static_cast<TestPlayer*>(*authoring.CreateObject(TestPlayer::StaticType()));
         source->SetName("Enemy");
         source->m_lives = lives;
         source->m_moveSpeed = moveSpeed;
@@ -79,7 +79,7 @@ namespace
     void EditAsset(const Core::Guid& asset, const std::function<void(TestPlayer&)>& change)
     {
         RuntimeLevel editing;
-        auto* root = static_cast<TestPlayer*>(LevelSerializer::OpenAsset(editing, nullptr, asset));
+        auto* root = static_cast<TestPlayer*>(*LevelSerializer::OpenAsset(editing, nullptr, asset));
         ASSERT_NE(root, nullptr);
         change(*root);
         ASSERT_TRUE(LevelSerializer::SaveAsset(*root, asset));
@@ -103,7 +103,7 @@ TEST(VariantTests, TemplateEditsReachVariantsExceptOverrides)
     LevelObjectLibrary::Get().Clear();
 
     RuntimeLevel level;
-    auto* placed = static_cast<TestPlayer*>(LevelSerializer::Instantiate(level, variant, nullptr, nullptr));
+    auto* placed = static_cast<TestPlayer*>(*LevelSerializer::Instantiate(level, variant, nullptr, nullptr));
     ASSERT_NE(placed, nullptr);
     EXPECT_EQ(placed->m_lives, 5);
     EXPECT_FLOAT_EQ(placed->m_moveSpeed, 700.0f);
@@ -115,7 +115,7 @@ TEST(VariantTests, VariantEditsReachPlacedInstancesExceptOverrides)
     project.Open();
     Core::Guid variant = CreateVariant(CreateTemplate(3, 600.0f), 5, "Brute.variant");
     RuntimeLevel level;
-    auto* placed = static_cast<TestPlayer*>(LevelSerializer::Instantiate(level, variant, nullptr, nullptr));
+    auto* placed = static_cast<TestPlayer*>(*LevelSerializer::Instantiate(level, variant, nullptr, nullptr));
     ASSERT_NE(placed, nullptr);
     Core::Guid id = placed->GetId();
     placed->m_lives = 11;
@@ -138,13 +138,16 @@ TEST(VariantTests, SpawnReturnsLinkedObjects)
     Core::Guid variant = CreateVariant(CreateTemplate(3, 600.0f), 5, "Brute.variant");
     RuntimeLevel level;
     Assets::AssetReference<LevelObjectVariantAsset> reference(variant);
-    auto* spawned = level.Spawn<TestPlayer>(reference, { 1.0f, 2.0f, 3.0f }, Math::Quaternion());
-    ASSERT_NE(spawned, nullptr);
+    Core::Result<TestPlayer*> result = level.Spawn<TestPlayer>(reference, { 1.0f, 2.0f, 3.0f }, Math::Quaternion());
+    ASSERT_TRUE(Tests::Succeeded(result));
+    TestPlayer* spawned = *result;
     EXPECT_TRUE(spawned->GetLink().isRoot);
     EXPECT_EQ(spawned->GetLink().asset, variant);
     EXPECT_EQ(spawned->m_lives, 5);
     EXPECT_FLOAT_EQ(spawned->GetTransform().GetPosition().y, 2.0f);
-    EXPECT_EQ(level.Spawn<Framework::Camera>(reference, {}, Math::Quaternion()), nullptr);
+    Core::Result<Framework::Camera*> wrongType = level.Spawn<Framework::Camera>(reference, {}, Math::Quaternion());
+    ASSERT_FALSE(wrongType);
+    EXPECT_EQ(wrongType.GetError().GetId(), Core::EngineText::NotLevelObjectType);
 }
 
 TEST(VariantTests, TemplatesAndVariantsOfVariantsAreRefused)
@@ -154,11 +157,17 @@ TEST(VariantTests, TemplatesAndVariantsOfVariantsAreRefused)
     Core::Guid templateAsset = CreateTemplate(3, 600.0f);
     Core::Guid variant = CreateVariant(templateAsset, 5, "Brute.variant");
     RuntimeLevel level;
-    EXPECT_EQ(LevelSerializer::Instantiate(level, templateAsset, nullptr, nullptr), nullptr);
-    EXPECT_EQ(level.Spawn(Assets::AssetReference<LevelObjectVariantAsset>(templateAsset), {}, Math::Quaternion()), nullptr);
+    Core::Result<LevelObject*> placedTemplate = LevelSerializer::Instantiate(level, templateAsset, nullptr, nullptr);
+    ASSERT_FALSE(placedTemplate);
+    EXPECT_EQ(placedTemplate.GetError().GetId(), Core::EngineText::TemplateNotPlaceable);
+    Core::Result<LevelObject*> spawnedTemplate = level.Spawn(Assets::AssetReference<LevelObjectVariantAsset>(templateAsset), {}, Math::Quaternion());
+    ASSERT_FALSE(spawnedTemplate);
+    EXPECT_EQ(spawnedTemplate.GetError().GetId(), Core::EngineText::TemplateNotPlaceable);
     Core::Guid nested = CreateVariant(variant, 7, "Nested.variant");
     ASSERT_TRUE(nested.IsValid());
-    EXPECT_EQ(LevelSerializer::Instantiate(level, nested, nullptr, nullptr), nullptr);
+    Core::Result<LevelObject*> placedNested = LevelSerializer::Instantiate(level, nested, nullptr, nullptr);
+    ASSERT_FALSE(placedNested);
+    EXPECT_EQ(placedNested.GetError().GetId(), Core::EngineText::LevelObjectAssetUnreadable);
 }
 
 TEST(VariantTests, OldLevelObjectFilesBecomeVariants)
@@ -167,7 +176,7 @@ TEST(VariantTests, OldLevelObjectFilesBecomeVariants)
     std::filesystem::path assets = project.Root() / "Assets";
     Core::Guid guid = Core::Guid::Generate();
     RuntimeLevel authoring;
-    LevelObject* source = authoring.CreateObject(TestPlayer::StaticType());
+    LevelObject* source = *authoring.CreateObject(TestPlayer::StaticType());
     Serialization::JsonDocument document;
     LevelSerializer::MakeLevelObjectDocument(*source, document, Assets::AssetType::LevelObjectVariant);
     Serialization::SetMember(document, "$asset", Serialization::JsonValue("LevelObject", document.GetAllocator()), document.GetAllocator());
@@ -189,5 +198,5 @@ TEST(VariantTests, OldLevelObjectFilesBecomeVariants)
     ASSERT_NE(record, nullptr);
     EXPECT_EQ(record->type, Assets::AssetType::LevelObjectVariant);
     RuntimeLevel level;
-    EXPECT_NE(LevelSerializer::Instantiate(level, guid, nullptr, nullptr), nullptr);
+    EXPECT_TRUE(Tests::Succeeded(LevelSerializer::Instantiate(level, guid, nullptr, nullptr)));
 }

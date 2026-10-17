@@ -55,7 +55,7 @@ TEST(UITests, StyleSheetParsesSelectorsAndSpecificity)
 TEST(UITests, BindingsLayoutInputAndRendering)
 {
     Level::Level level;
-    auto* player = static_cast<Tests::UITestPlayer*>(level.CreateObject(Tests::UITestPlayer::StaticType()));
+    auto* player = static_cast<Tests::UITestPlayer*>(*level.CreateObject(Tests::UITestPlayer::StaticType()));
     Document document;
     Core::Result<void> loaded = document.LoadFromText(HudMarkup);
     ASSERT_TRUE(loaded) << loaded.GetError().GetText();

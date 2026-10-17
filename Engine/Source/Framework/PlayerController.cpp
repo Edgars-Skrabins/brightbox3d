@@ -1,6 +1,7 @@
 #include "Framework/PlayerController.h"
 
 #include "Core/EngineText.h"
+#include "Core/Log.h"
 #include "Framework/Camera.h"
 #include "Framework/GameModeBase.h"
 #include "Framework/PlayableLevelObject.h"
@@ -101,7 +102,13 @@ namespace BrightBox3D::Framework
         {
             return nullptr;
         }
-        auto* camera = level->CreateObject<Camera>(playable.GetCollection(), &playable);
+        Core::Result<Camera*> created = level->CreateObject<Camera>(playable.GetCollection(), &playable);
+        if (!created)
+        {
+            Core::Log::Error(created.GetError().GetText());
+            return nullptr;
+        }
+        Camera* camera = *created;
         camera->SetName(Core::Text(Core::EngineText::CameraName, playable.GetName()));
         camera->SetOwnerId(playable.GetId());
         camera->GetTransform().SetLocalPosition(m_cameraOffset);
