@@ -22,7 +22,7 @@ namespace BrightBox3D::Editor::ValueDrawers
 
     namespace
     {
-        using ValueDrawer = bool (*)(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level);
+        using ValueDrawer = bool (*)(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level* level);
 
         constexpr float IntegerDragSpeed = 0.2f;
         constexpr float FloatDragSpeed = 0.01f;
@@ -72,57 +72,57 @@ namespace BrightBox3D::Editor::ValueDrawers
             }
         }
 
-        bool DrawBool(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawBool(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::Checkbox(label, static_cast<bool*>(value));
         }
 
-        bool DrawInt32(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawInt32(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragInt(label, static_cast<int32_t*>(value), IntegerDragSpeed);
         }
 
-        bool DrawUInt32(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawUInt32(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragScalar(label, ImGuiDataType_U32, value, IntegerDragSpeed);
         }
 
-        bool DrawInt64(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawInt64(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragScalar(label, ImGuiDataType_S64, value, IntegerDragSpeed);
         }
 
-        bool DrawFloat(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawFloat(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragFloat(label, static_cast<float*>(value), FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
         }
 
-        bool DrawDouble(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawDouble(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragScalar(label, ImGuiDataType_Double, value, FloatDragSpeed, nullptr, nullptr, DoubleFormat);
         }
 
-        bool DrawString(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawString(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::InputText(label, static_cast<std::string*>(value));
         }
 
-        bool DrawVector2(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawVector2(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragFloat2(label, &static_cast<Math::Vector2*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
         }
 
-        bool DrawVector3(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawVector3(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragFloat3(label, &static_cast<Math::Vector3*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
         }
 
-        bool DrawVector4(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawVector4(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::DragFloat4(label, &static_cast<Math::Vector4*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
         }
 
-        bool DrawQuaternion(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawQuaternion(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             auto* quaternion = static_cast<Math::Quaternion*>(value);
             auto& cache = EulerCache();
@@ -141,19 +141,19 @@ namespace BrightBox3D::Editor::ValueDrawers
             return true;
         }
 
-        bool DrawColor(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawColor(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             return ImGui::ColorEdit4(label, &static_cast<Math::Color*>(value)->r, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
         }
 
-        bool DrawGuid(const char* label, const ValueDescriptor&, void* value, bool, const Level::Level*)
+        bool DrawGuid(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
             std::string text = static_cast<Core::Guid*>(value)->ToString();
             ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
             return false;
         }
 
-        bool DrawEnum(const char* label, const ValueDescriptor& descriptor, void* value, bool, const Level::Level*)
+        bool DrawEnum(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess, const Level::Level*)
         {
             int64_t current = ReadEnum(value, descriptor.size);
             const EnumEntry* entry = descriptor.enumInfo ? descriptor.enumInfo->FindByValue(current) : nullptr;
@@ -177,22 +177,22 @@ namespace BrightBox3D::Editor::ValueDrawers
             return changed;
         }
 
-        bool DrawAssetReference(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level*)
+        bool DrawAssetReference(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level*)
         {
             ImGui::EndDisabled();
-            bool changed = PropertyDrawer::AssetField(label, descriptor.assetType, *static_cast<Core::Guid*>(value), readOnly);
-            ImGui::BeginDisabled(readOnly);
+            bool changed = PropertyDrawer::AssetField(label, descriptor.assetType, *static_cast<Core::Guid*>(value), access);
+            ImGui::BeginDisabled(access == FieldAccess::ReadOnly);
             return changed;
         }
 
-        bool DrawObjectReference(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level)
+        bool DrawObjectReference(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level* level)
         {
             Core::Guid& guid = *static_cast<Core::Guid*>(value);
             const Level::LevelObject* object = level && guid.IsValid() ? level->FindObject(guid) : nullptr;
             std::string text = object ? object->GetName() : (guid.IsValid() ? std::string(Text(EditorText::MissingObject)) : Text(EditorText::NoneOfType, descriptor.referenceType));
             ImGui::InputText(label, &text, ImGuiInputTextFlags_ReadOnly);
             bool changed = false;
-            if (!readOnly && ImGui::BeginDragDropTarget())
+            if (access == FieldAccess::Editable && ImGui::BeginDragDropTarget())
             {
                 if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Object))
                 {
@@ -201,7 +201,7 @@ namespace BrightBox3D::Editor::ValueDrawers
                 }
                 ImGui::EndDragDropTarget();
             }
-            if (!readOnly && ImGui::BeginPopupContextItem())
+            if (access == FieldAccess::Editable && ImGui::BeginPopupContextItem())
             {
                 if (ImGui::MenuItem(Text(EditorText::Clear)))
                 {
@@ -213,12 +213,12 @@ namespace BrightBox3D::Editor::ValueDrawers
             return changed;
         }
 
-        bool DrawClassReference(const char* label, const ValueDescriptor& descriptor, void* value, bool, const Level::Level*)
+        bool DrawClassReference(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess, const Level::Level*)
         {
             return PropertyDrawer::ClassField(label, descriptor.baseType ? &descriptor.baseType() : nullptr, *static_cast<std::string*>(value));
         }
 
-        bool DrawArray(const char*, const ValueDescriptor&, void*, bool, const Level::Level*)
+        bool DrawArray(const char*, const ValueDescriptor&, void*, FieldAccess, const Level::Level*)
         {
             return false;
         }
@@ -247,10 +247,10 @@ namespace BrightBox3D::Editor::ValueDrawers
         static_assert(std::size(Drawers) == static_cast<size_t>(PropertyKind::Array) + 1);
     }
 
-    bool Draw(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level)
+    bool Draw(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level* level)
     {
-        ImGui::BeginDisabled(readOnly);
-        bool changed = Drawers[static_cast<size_t>(descriptor.kind)](label, descriptor, value, readOnly, level);
+        ImGui::BeginDisabled(access == FieldAccess::ReadOnly);
+        bool changed = Drawers[static_cast<size_t>(descriptor.kind)](label, descriptor, value, access, level);
         ImGui::EndDisabled();
         return changed;
     }

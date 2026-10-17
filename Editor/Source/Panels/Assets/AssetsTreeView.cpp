@@ -82,7 +82,7 @@ namespace BrightBox3D::Editor
             return open;
         }
         bool expanded = open && !(flags & ImGuiTreeNodeFlags_Leaf);
-        DrawAssetLabel(labelPosition, type, label, expanded);
+        DrawAssetLabel(labelPosition, type, label, expanded ? FolderState::Open : FolderState::Closed);
         return open;
     }
 
@@ -233,7 +233,7 @@ namespace BrightBox3D::Editor
                 ImGui::PopID();
                 continue;
             }
-            DrawAssetLabel(labelPosition, record.type, record.name, false);
+            DrawAssetLabel(labelPosition, record.type, record.name, FolderState::Closed);
             std::string path = AssetActions::DisplayPath(record);
             float pathX = rowPosition.x + width - ImGui::GetStyle().FramePadding.x - ImGui::CalcTextSize(path.c_str()).x;
             ImGui::GetWindowDrawList()->AddText(ImVec2(pathX, labelPosition.y), EditorColorU32(EditorColor::TextDim), path.c_str());

@@ -77,14 +77,14 @@ namespace BrightBox3D::Editor
     {
     }
 
-    bool ComponentInspector::DrawContextMenu(LevelObject& object, LevelObjectComponent& component, size_t index, size_t count, bool structural, bool& removed)
+    bool ComponentInspector::DrawContextMenu(LevelObject& object, LevelObjectComponent& component, size_t index, size_t count, ComponentEditing editing, bool& removed)
     {
         if (!ImGui::BeginPopupContextItem("ComponentContext"))
         {
             return false;
         }
         bool changed = false;
-        ImGui::BeginDisabled(!structural);
+        ImGui::BeginDisabled(editing == ComponentEditing::ValuesOnly);
         if (ImGui::MenuItem(Text(EditorText::RemoveComponent)))
         {
             removed = true;
@@ -147,7 +147,7 @@ namespace BrightBox3D::Editor
         return PropertyDrawer::DrawObject(component, options);
     }
 
-    bool ComponentInspector::Draw(LevelObject& object, LevelObjectComponent& component, size_t index, size_t count, bool structural)
+    bool ComponentInspector::Draw(LevelObject& object, LevelObjectComponent& component, size_t index, size_t count, ComponentEditing editing)
     {
         bool changed = false;
         ImGui::PushID(component.GetLocalId().ToString().c_str());
@@ -160,7 +160,7 @@ namespace BrightBox3D::Editor
         bool removed = false;
         if (!isTransform)
         {
-            changed |= DrawContextMenu(object, component, index, count, structural, removed);
+            changed |= DrawContextMenu(object, component, index, count, editing, removed);
         }
         ImGui::SameLine(ImGui::GetStyle().IndentSpacing + ImGui::GetStyle().FramePadding.x * 2.0f);
         if (!isTransform)

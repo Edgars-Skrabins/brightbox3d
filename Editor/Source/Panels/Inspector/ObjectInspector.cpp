@@ -166,7 +166,7 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    bool ObjectInspector::DrawComponents(LevelObject& object, bool structural)
+    bool ObjectInspector::DrawComponents(LevelObject& object, ComponentEditing editing)
     {
         bool changed = false;
         size_t count = object.GetComponents().size();
@@ -177,7 +177,7 @@ namespace BrightBox3D::Editor
             {
                 continue;
             }
-            bool componentChanged = m_components.Draw(object, *component, index, count, structural);
+            bool componentChanged = m_components.Draw(object, *component, index, count, editing);
             changed |= componentChanged;
             if (componentChanged && index < object.GetComponents().size() && object.GetComponents()[index].get() != component)
             {
@@ -219,26 +219,30 @@ namespace BrightBox3D::Editor
         EditorContext& context = m_application.GetContext();
         RefreshSnapshot(object);
         bool changed = DrawHeader(object);
-        bool structural = true;
+        ComponentEditing editing = ComponentEditing::Structure;
         if (!context.GetLevelObjectEditService().IsEditingLevelObject() && object.IsLinked())
         {
             if (DrawLinkBar(object))
             {
                 return;
             }
-            structural = false;
+            editing = ComponentEditing::ValuesOnly;
         }
         DrawKeepChanges(object);
         ImGui::Spacing();
 
         bool playing = context.GetLevelService().IsPlaying();
-        changed |= m_components.Draw(object, object.GetTransform(), 0, 1, false);
+        if (playing)
+        {
+            editing = ComponentEditing::Structure;
+        }
+        changed |= m_components.Draw(object, object.GetTransform(), 0, 1, ComponentEditing::ValuesOnly);
         changed |= DrawObjectProperties(object);
-        changed |= DrawComponents(object, structural || playing);
+        changed |= DrawComponents(object, editing);
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-        if (structural || playing)
+        if (editing == ComponentEditing::Structure)
         {
             if (m_components.DrawAddComponent(object))
             {

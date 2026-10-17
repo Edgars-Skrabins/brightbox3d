@@ -28,7 +28,7 @@ namespace BrightBox3D::Editor
         bool DrawLinkBar(Level::LevelObject& object);
         void DrawKeepChanges(Level::LevelObject& object);
         bool DrawObjectProperties(Level::LevelObject& object);
-        bool DrawComponents(Level::LevelObject& object, bool structural);
+        bool DrawComponents(Level::LevelObject& object, ComponentEditing editing);
         void TrackEdit(Level::LevelObject& object, bool changed);
         void RecordEdit(Level::LevelObject& object);
 

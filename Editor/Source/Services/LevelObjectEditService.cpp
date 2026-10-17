@@ -42,7 +42,7 @@ namespace BrightBox3D::Editor
         }
         if (IsEditingLevelObject())
         {
-            CloseLevelObjectEditor(true);
+            CloseLevelObjectEditor(EditorChanges::Save);
         }
         auto level = std::make_unique<Level::Level>(record->name);
         Level::LevelCollection* collection = level->AddCollection(record->name);
@@ -82,13 +82,13 @@ namespace BrightBox3D::Editor
         return saved;
     }
 
-    void LevelObjectEditService::CloseLevelObjectEditor(bool save)
+    void LevelObjectEditService::CloseLevelObjectEditor(EditorChanges changes)
     {
         if (!IsEditingLevelObject())
         {
             return;
         }
-        if (save && m_dirty)
+        if (changes == EditorChanges::Save && m_dirty)
         {
             SaveLevelObjectEditor();
         }

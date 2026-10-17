@@ -12,6 +12,12 @@ namespace BrightBox3D::Editor
 {
     class EditorContext;
 
+    enum class EditorChanges
+    {
+        Save,
+        Discard
+    };
+
     class LevelObjectEditService
     {
     public:
@@ -22,7 +28,7 @@ namespace BrightBox3D::Editor
         const Core::Guid& GetEditedLevelObject() const { return m_editedLevelObject; }
         Level::Level* GetStashedLevel() const { return m_stashedLevel.get(); }
         bool OpenLevelObjectEditor(const Core::Guid& asset);
-        void CloseLevelObjectEditor(bool save);
+        void CloseLevelObjectEditor(EditorChanges changes);
         bool SaveLevelObjectEditor();
         bool IsDirty() const { return m_dirty; }
         void MarkDirty() { m_dirty = true; }

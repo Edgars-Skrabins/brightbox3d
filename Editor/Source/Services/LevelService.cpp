@@ -49,7 +49,7 @@ namespace BrightBox3D::Editor
         LevelObjectEditService& editing = m_context.GetLevelObjectEditService();
         if (editing.IsEditingLevelObject())
         {
-            editing.CloseLevelObjectEditor(true);
+            editing.CloseLevelObjectEditor(EditorChanges::Save);
         }
         std::string error;
         std::unique_ptr<Level::Level> level = Level::LevelSerializer::LoadLevel(levelAsset, &error);

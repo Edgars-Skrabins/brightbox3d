@@ -33,12 +33,12 @@ namespace BrightBox3D::Editor
         }
     }
 
-    void PropertyDrawer::BeginRow(const char* label, bool bold)
+    void PropertyDrawer::BeginRow(const char* label, RowLabel style)
     {
         ImGui::PushID(label);
         float start = ImGui::GetCursorPosX();
         ImGui::AlignTextToFramePadding();
-        if (bold)
+        if (style == RowLabel::Bold)
         {
             ImGui::TextColored(EditorColorVec4(EditorColor::Override), "%s", label);
         }
@@ -74,7 +74,7 @@ namespace BrightBox3D::Editor
 
     bool PropertyDrawer::IsEditable(const PropertyInfo& property, const PropertyDrawOptions& options)
     {
-        if (options.readOnly || property.HasFlag(PropertyFlagVisibleAnywhere))
+        if (options.access == FieldAccess::ReadOnly || property.HasFlag(PropertyFlagVisibleAnywhere))
         {
             return false;
         }
@@ -85,13 +85,13 @@ namespace BrightBox3D::Editor
         return property.HasFlag(PropertyFlagEditAnywhere) || property.HasFlag(PropertyFlagEditInstanceOnly);
     }
 
-    bool PropertyDrawer::AssetField(const char* label, Assets::AssetType type, Core::Guid& guid, bool readOnly)
+    bool PropertyDrawer::AssetField(const char* label, Assets::AssetType type, Core::Guid& guid, FieldAccess access)
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         const Assets::AssetRecord* record = guid.IsValid() ? database.FindRecord(guid) : nullptr;
         std::string preview = record ? record->name : (guid.IsValid() ? Text(EditorText::MissingAsset, guid.ToString().substr(0, 8)) : Text(EditorText::NoneOfType, Assets::AssetTypeName(type)));
         bool changed = false;
-        ImGui::BeginDisabled(readOnly);
+        ImGui::BeginDisabled(access == FieldAccess::ReadOnly);
         float clearWidth = ImGui::GetFrameHeight();
         ImGui::SetNextItemWidth(std::max(ScaledMetric(EditorMetric::AssetFieldMinWidth), ImGui::CalcItemWidth() - clearWidth - ImGui::GetStyle().ItemInnerSpacing.x));
         if (ImGui::BeginCombo(label, preview.c_str(), ImGuiComboFlags_HeightLarge))
@@ -129,7 +129,7 @@ namespace BrightBox3D::Editor
             }
             ImGui::EndCombo();
         }
-        if (!readOnly && ImGui::BeginDragDropTarget())
+        if (access == FieldAccess::Editable && ImGui::BeginDragDropTarget())
         {
             if (std::optional<Core::Guid> dropped = AcceptPayload(DragDropPayload::Asset))
             {
@@ -175,9 +175,9 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    bool PropertyDrawer::DrawValue(const char* label, const ValueDescriptor& descriptor, void* value, bool readOnly, const Level::Level* level)
+    bool PropertyDrawer::DrawValue(const char* label, const ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level* level)
     {
-        return ValueDrawers::Draw(label, descriptor, value, readOnly, level);
+        return ValueDrawers::Draw(label, descriptor, value, access, level);
     }
 
     void PropertyDrawer::DrawOverrideMenu(const PropertyInfo& property, const PropertyDrawOptions& options, bool overridden)
@@ -197,13 +197,13 @@ namespace BrightBox3D::Editor
         ImGui::EndPopup();
     }
 
-    bool PropertyDrawer::DrawArrayElements(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, bool editable)
+    bool PropertyDrawer::DrawArrayElements(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, FieldAccess access)
     {
         void* value = property.GetValuePointer(&object);
         bool changed = false;
         int size = static_cast<int>(property.array.size(value));
-        BeginRow(Text(EditorText::ArraySize), false);
-        ImGui::BeginDisabled(!editable);
+        BeginRow(Text(EditorText::ArraySize), RowLabel::Normal);
+        ImGui::BeginDisabled(access == FieldAccess::ReadOnly);
         if (ImGui::InputInt("##size", &size, 1, 1, ImGuiInputTextFlags_EnterReturnsTrue) && size >= 0 && size < MaxArraySize)
         {
             property.array.resize(value, static_cast<size_t>(size));
@@ -216,13 +216,13 @@ namespace BrightBox3D::Editor
         for (size_t i = 0; i < count; ++i)
         {
             std::string label = Text(EditorText::ArrayElement, i);
-            BeginRow(label.c_str(), false);
-            if (editable)
+            BeginRow(label.c_str(), RowLabel::Normal);
+            if (access == FieldAccess::Editable)
             {
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - ImGui::GetStyle().ItemInnerSpacing.x);
             }
-            changed |= DrawValue("##element", property.element, property.array.element(value, i), !editable, options.level);
-            if (editable)
+            changed |= DrawValue("##element", property.element, property.array.element(value, i), access, options.level);
+            if (access == FieldAccess::Editable)
             {
                 ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
                 if (ImGui::Button(Text(EditorText::RemoveElementButton), ImVec2(ImGui::GetFrameHeight(), 0.0f)))
@@ -244,7 +244,7 @@ namespace BrightBox3D::Editor
             }
             changed = true;
         }
-        if (editable && ImGui::Button(Text(EditorText::AddElement)))
+        if (access == FieldAccess::Editable && ImGui::Button(Text(EditorText::AddElement)))
         {
             property.array.resize(value, count + 1);
             changed = true;
@@ -252,7 +252,7 @@ namespace BrightBox3D::Editor
         return changed;
     }
 
-    bool PropertyDrawer::DrawArrayProperty(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, bool editable, bool overridden)
+    bool PropertyDrawer::DrawArrayProperty(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options, FieldAccess access, bool overridden)
     {
         ImGui::PushID(property.name.c_str());
         size_t count = property.array.size(property.GetValuePointer(&object));
@@ -269,7 +269,7 @@ namespace BrightBox3D::Editor
         bool changed = false;
         if (open)
         {
-            changed = DrawArrayElements(property, object, options, editable);
+            changed = DrawArrayElements(property, object, options, access);
             ImGui::TreePop();
         }
         ImGui::PopID();
@@ -278,17 +278,17 @@ namespace BrightBox3D::Editor
 
     bool PropertyDrawer::DrawProperty(const PropertyInfo& property, EngineObject& object, const PropertyDrawOptions& options)
     {
-        bool editable = IsEditable(property, options);
+        FieldAccess access = IsEditable(property, options) ? FieldAccess::Editable : FieldAccess::ReadOnly;
         bool overridden = options.isOverridden && options.isOverridden(property);
         bool changed = false;
         if (property.value.kind == PropertyKind::Array)
         {
-            changed = DrawArrayProperty(property, object, options, editable, overridden);
+            changed = DrawArrayProperty(property, object, options, access, overridden);
         }
         else
         {
-            BeginRow(property.displayName.c_str(), overridden);
-            changed = DrawValue("##value", property.value, property.GetValuePointer(&object), !editable, options.level);
+            BeginRow(property.displayName.c_str(), overridden ? RowLabel::Bold : RowLabel::Normal);
+            changed = DrawValue("##value", property.value, property.GetValuePointer(&object), access, options.level);
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal | ImGuiHoveredFlags_AllowWhenDisabled))
             {
                 ImGui::SetTooltip("%s", property.name.c_str());

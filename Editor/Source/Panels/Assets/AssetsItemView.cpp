@@ -257,7 +257,7 @@ namespace BrightBox3D::Editor
         }
         else
         {
-            DrawAssetLabel(labelPosition, record.type, record.name, false);
+            DrawAssetLabel(labelPosition, record.type, record.name, FolderState::Closed);
             const char* typeName = Assets::AssetTypeName(record.type);
             float typeX = rowPosition.x + width - ImGui::GetStyle().FramePadding.x - ImGui::CalcTextSize(typeName).x;
             drawList->AddText(ImVec2(typeX, labelPosition.y), EditorColorU32(EditorColor::TextDim), typeName);

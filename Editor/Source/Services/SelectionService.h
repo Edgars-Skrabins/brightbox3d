@@ -19,6 +19,12 @@ namespace BrightBox3D::Editor
         Level
     };
 
+    enum class SelectionMode
+    {
+        Replace,
+        Toggle
+    };
+
     class SelectionService
     {
     public:
@@ -28,7 +34,7 @@ namespace BrightBox3D::Editor
         void SetSelection(std::vector<Core::Guid> selection);
         Level::LevelObject* GetPrimarySelection() const;
         std::vector<Level::LevelObject*> GetSelectedObjects() const;
-        void Select(const Core::Guid& id, bool additive = false);
+        void Select(const Core::Guid& id, SelectionMode mode = SelectionMode::Replace);
         void ClearSelection();
         bool IsSelected(const Core::Guid& id) const;
         void SelectAsset(const Core::Guid& asset);

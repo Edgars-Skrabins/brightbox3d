@@ -19,7 +19,7 @@ namespace BrightBox3D::Editor
         }
         PropertyDrawOptions options;
         options.instanceContext = false;
-        options.readOnly = database.IsBuiltin(guid);
+        options.access = database.IsBuiltin(guid) ? FieldAccess::ReadOnly : FieldAccess::Editable;
         if (PropertyDrawer::DrawObject(*material, options))
         {
             m_editing = true;

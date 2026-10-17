@@ -65,7 +65,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             bool open = ImGui::TreeNodeEx(folder.empty() ? "##root" : folder.c_str(), flags, "%s", "");
             if (!record || !state.rename.IsRenaming(record->guid))
             {
-                DrawAssetLabel(labelPosition, Assets::AssetType::Folder, label, open && !(flags & ImGuiTreeNodeFlags_Leaf));
+                DrawAssetLabel(labelPosition, Assets::AssetType::Folder, label, open && !(flags & ImGuiTreeNodeFlags_Leaf) ? FolderState::Open : FolderState::Closed);
                 return open;
             }
             ImGui::SameLine();
@@ -125,7 +125,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
         {
             state.folder = Assets::AssetDatabase::BuiltinFolder;
         }
-        DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), false);
+        DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), FolderState::Closed);
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
         {
             AssetsContextMenu::Draw(application, state, { {}, Assets::AssetDatabase::BuiltinFolder });

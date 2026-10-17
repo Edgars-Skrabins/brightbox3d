@@ -264,7 +264,7 @@ namespace BrightBox3D::Editor
         m_context.GetSelectionService().ClearSelection();
         for (LevelObject* copy : duplicates)
         {
-            m_context.GetSelectionService().Select(copy->GetId(), true);
+            m_context.GetSelectionService().Select(copy->GetId(), SelectionMode::Toggle);
         }
         m_context.GetLevelService().BumpLevelRevision();
     }

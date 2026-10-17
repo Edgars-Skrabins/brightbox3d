@@ -32,7 +32,7 @@ namespace BrightBox3D::Editor
     {
         EditorPreferences& preferences = EditorPreferences::Get();
         bool isDefault = preferences.IsDefault(color);
-        PropertyDrawer::BeginRow(EditorColorLabel(color).c_str(), false);
+        PropertyDrawer::BeginRow(EditorColorLabel(color).c_str(), RowLabel::Normal);
         float resetWidth = ImGui::GetFrameHeight();
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - resetWidth - ImGui::GetStyle().ItemInnerSpacing.x);
         Math::Color value = preferences.GetColor(color);
@@ -190,7 +190,7 @@ namespace BrightBox3D::Editor
         {
             ImGui::PushStyleColor(ImGuiCol_Text, EditorColorVec4(EditorColor::Warning));
         }
-        PropertyDrawer::BeginRow(IconLabel(command.icon, Text(command.label)).c_str(), false);
+        PropertyDrawer::BeginRow(IconLabel(command.icon, Text(command.label)).c_str(), RowLabel::Normal);
         float resetWidth = ImGui::GetFrameHeight();
         std::string chordText = ShortcutText(registry.GetShortcut(id));
         std::string label = capturing ? std::string(Text(EditorText::ShortcutCapturePrompt)) : (chordText.empty() ? std::string(Text(EditorText::ShortcutUnbound)) : chordText);

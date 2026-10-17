@@ -20,11 +20,11 @@ namespace BrightBox3D::Editor::LevelInspector
 
         constexpr Framework::GameplaySlot GameplaySlots[] = { Framework::GameplaySlot::GameMode, Framework::GameplaySlot::LevelBehavior };
 
-        bool DrawClassCombo(const Reflection::TypeInfo& base, Framework::GameplaySlot slot, std::string& className, bool readOnly)
+        bool DrawClassCombo(const Reflection::TypeInfo& base, Framework::GameplaySlot slot, std::string& className, FieldAccess access)
         {
             bool changed = false;
-            PropertyDrawer::BeginRow(Text(EditorText::ClassRowLabel, base.GetName()).c_str(), false);
-            ImGui::BeginDisabled(readOnly);
+            PropertyDrawer::BeginRow(Text(EditorText::ClassRowLabel, base.GetName()).c_str(), RowLabel::Normal);
+            ImGui::BeginDisabled(access == FieldAccess::ReadOnly);
             if (ImGui::BeginCombo("##class", className.empty() ? Text(EditorText::None) : className.c_str()))
             {
                 if (LevelGameplaySettings::IsOptional(slot) && ImGui::Selectable(Text(EditorText::None), className.empty()))
@@ -86,13 +86,13 @@ namespace BrightBox3D::Editor::LevelInspector
         }
     }
 
-    bool DrawGameplaySettings(Serialization::JsonDocument& levelSettings, Framework::GameplaySlot slot, bool readOnly)
+    bool DrawGameplaySettings(Serialization::JsonDocument& levelSettings, Framework::GameplaySlot slot, FieldAccess access)
     {
         const Reflection::TypeInfo& base = LevelGameplaySettings::GetBaseType(slot);
         auto& allocator = levelSettings.GetAllocator();
         Serialization::JsonValue& entry = LevelGameplaySettings::GetOrCreateEntry(levelSettings, slot);
         std::string className = LevelGameplaySettings::GetClassName(entry);
-        bool changed = DrawClassCombo(base, slot, className, readOnly);
+        bool changed = DrawClassCombo(base, slot, className, access);
         if (changed)
         {
             LevelGameplaySettings::SetClassName(entry, className, allocator);
@@ -112,7 +112,7 @@ namespace BrightBox3D::Editor::LevelInspector
         Serialization::DeserializeProperties(*temporary, settings);
         PropertyDrawOptions options;
         options.instanceContext = false;
-        options.readOnly = readOnly;
+        options.access = access;
         if (PropertyDrawer::DrawObject(*temporary, options))
         {
             Serialization::JsonValue updated;
@@ -135,7 +135,7 @@ namespace BrightBox3D::Editor::LevelInspector
         {
             ImGui::PushID(static_cast<int>(slot));
             ImGui::SeparatorText(LevelGameplaySettings::GetBaseType(slot).GetName().c_str());
-            if (DrawGameplaySettings(level->GetSettings(), slot, context.GetLevelService().IsPlaying()))
+            if (DrawGameplaySettings(level->GetSettings(), slot, context.GetLevelService().IsPlaying() ? FieldAccess::ReadOnly : FieldAccess::Editable))
             {
                 context.GetLevelService().MarkDirty(level->GetDefaultCollection());
             }
@@ -154,7 +154,7 @@ namespace BrightBox3D::Editor::LevelInspector
         }
         ImGui::TextUnformatted(Assets::AssetTypeName(Assets::AssetType::LevelCollection));
         std::string name = collection->GetName();
-        PropertyDrawer::BeginRow(Text(EditorText::Name), false);
+        PropertyDrawer::BeginRow(Text(EditorText::Name), RowLabel::Normal);
         if (ImGui::InputText("##name", &name, ImGuiInputTextFlags_EnterReturnsTrue) && !context.GetLevelService().IsPlaying())
         {
             collection->SetName(name);

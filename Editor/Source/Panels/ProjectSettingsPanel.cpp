@@ -35,8 +35,8 @@ namespace BrightBox3D::Editor
 
         ImGui::SeparatorText(Text(EditorText::SettingsStartup));
         Core::Guid startup = project.GetStartupLevel();
-        PropertyDrawer::BeginRow(Text(EditorText::StartupLevel), false);
-        if (PropertyDrawer::AssetField("##startup", Assets::AssetType::Level, startup, false))
+        PropertyDrawer::BeginRow(Text(EditorText::StartupLevel), RowLabel::Normal);
+        if (PropertyDrawer::AssetField("##startup", Assets::AssetType::Level, startup, FieldAccess::Editable))
         {
             project.SetStartupLevel(startup);
             changed = true;
@@ -45,7 +45,7 @@ namespace BrightBox3D::Editor
 
         ImGui::SeparatorText(Text(EditorText::SettingsSimulation));
         float rate = 1.0f / project.GetFixedTimeStep();
-        PropertyDrawer::BeginRow(Text(EditorText::FixedUpdateRate), false);
+        PropertyDrawer::BeginRow(Text(EditorText::FixedUpdateRate), RowLabel::Normal);
         if (ImGui::DragFloat("##rate", &rate, 1.0f, 10.0f, 240.0f, "%.0f"))
         {
             project.SetFixedTimeStep(1.0f / std::max(rate, 1.0f));
@@ -59,7 +59,7 @@ namespace BrightBox3D::Editor
 
         ImGui::SeparatorText(Text(EditorText::SettingsHotReload));
         bool autoReload = project.GetAutoHotReload();
-        PropertyDrawer::BeginRow(Text(EditorText::CompileOnSave), false);
+        PropertyDrawer::BeginRow(Text(EditorText::CompileOnSave), RowLabel::Normal);
         if (ImGui::Checkbox("##auto", &autoReload))
         {
             project.SetAutoHotReload(autoReload);

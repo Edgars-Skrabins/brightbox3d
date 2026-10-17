@@ -48,16 +48,16 @@ namespace BrightBox3D::Editor
         return objects;
     }
 
-    void SelectionService::Select(const Core::Guid& id, bool additive)
+    void SelectionService::Select(const Core::Guid& id, SelectionMode mode)
     {
-        if (!additive)
+        if (mode == SelectionMode::Replace)
         {
             m_selection.clear();
         }
         auto it = std::find(m_selection.begin(), m_selection.end(), id);
         if (it != m_selection.end())
         {
-            if (additive)
+            if (mode == SelectionMode::Toggle)
             {
                 m_selection.erase(it);
             }

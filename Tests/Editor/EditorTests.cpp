@@ -158,7 +158,7 @@ TEST_F(ProjectFixture, LevelObjectAssetsLinkAndEditInIsolation)
     LevelObject* child = m_context.GetLevelService().GetEditLevel()->CreateObject(LevelObject::StaticType(), nullptr, root);
     child->SetName("Lid");
     m_context.GetLevelService().MarkDirty(*root);
-    m_context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
+    m_context.GetLevelObjectEditService().CloseLevelObjectEditor(Editor::EditorChanges::Save);
     EXPECT_FALSE(m_context.GetLevelObjectEditService().IsEditingLevelObject());
 
     LevelObject* refreshed = m_context.GetLevelService().GetEditLevel()->FindObject(secondId);

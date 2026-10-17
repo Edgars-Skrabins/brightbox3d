@@ -15,6 +15,12 @@ namespace BrightBox3D::Editor
     class EditorContext;
     struct PropertyDrawOptions;
 
+    enum class ComponentEditing
+    {
+        Structure,
+        ValuesOnly
+    };
+
     void AddOverrideHandlers(PropertyDrawOptions& options, EditorContext& context, Level::LevelObject& object, Level::LevelObjectComponent* component);
 
     class ComponentInspector
@@ -22,11 +28,11 @@ namespace BrightBox3D::Editor
     public:
         explicit ComponentInspector(EditorApplication& application);
 
-        bool Draw(Level::LevelObject& object, Level::LevelObjectComponent& component, size_t index, size_t count, bool structural);
+        bool Draw(Level::LevelObject& object, Level::LevelObjectComponent& component, size_t index, size_t count, ComponentEditing editing);
         bool DrawAddComponent(Level::LevelObject& object);
 
     private:
-        bool DrawContextMenu(Level::LevelObject& object, Level::LevelObjectComponent& component, size_t index, size_t count, bool structural, bool& removed);
+        bool DrawContextMenu(Level::LevelObject& object, Level::LevelObjectComponent& component, size_t index, size_t count, ComponentEditing editing, bool& removed);
         bool DrawEnabledToggle(Level::LevelObjectComponent& component);
         bool DrawProperties(Level::LevelObject& object, Level::LevelObjectComponent& component);
 

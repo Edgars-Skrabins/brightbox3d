@@ -62,7 +62,7 @@ namespace BrightBox3D::Editor
         {
             if (Level::LevelObject* object = context.GetObjectEditService().RestoreSnapshot(*location.snapshot, location.parent, location.collection, location.sibling))
             {
-                context.GetSelectionService().Select(object->GetId(), true);
+                context.GetSelectionService().Select(object->GetId(), SelectionMode::Toggle);
             }
         }
         context.GetLevelService().BumpLevelRevision();

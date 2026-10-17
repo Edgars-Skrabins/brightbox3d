@@ -33,15 +33,15 @@ namespace BrightBox3D::Editor
         return AssetTypeStyles[index < std::size(AssetTypeStyles) ? index : 0];
     }
 
-    Icon AssetTypeIcon(Assets::AssetType type, bool open)
+    Icon AssetTypeIcon(Assets::AssetType type, FolderState folder)
     {
-        return type == Assets::AssetType::Folder && open ? Icon::FolderOpen : GetAssetTypeStyle(type).icon;
+        return type == Assets::AssetType::Folder && folder == FolderState::Open ? Icon::FolderOpen : GetAssetTypeStyle(type).icon;
     }
 
-    void DrawAssetLabel(const ImVec2& position, Assets::AssetType type, const std::string& name, bool open)
+    void DrawAssetLabel(const ImVec2& position, Assets::AssetType type, const std::string& name, FolderState folder)
     {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        const char* icon = IconGlyph(AssetTypeIcon(type, open));
+        const char* icon = IconGlyph(AssetTypeIcon(type, folder));
         drawList->AddText(position, EditorColorU32(GetAssetTypeStyle(type).color), icon);
         ImVec2 namePosition(position.x + ImGui::CalcTextSize(icon).x + ImGui::GetStyle().ItemInnerSpacing.x + LabelIconGap, position.y);
         drawList->AddText(namePosition, ImGui::GetColorU32(ImGuiCol_Text), name.c_str());

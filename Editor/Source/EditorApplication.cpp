@@ -682,7 +682,7 @@ namespace BrightBox3D::Editor
             {
                 if (m_context.GetLevelObjectEditService().IsEditingLevelObject())
                 {
-                    m_context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
+                    m_context.GetLevelObjectEditService().CloseLevelObjectEditor(EditorChanges::Save);
                 }
                 m_playSession->Start();
             }

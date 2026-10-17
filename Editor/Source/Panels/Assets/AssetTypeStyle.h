@@ -16,7 +16,13 @@ namespace BrightBox3D::Editor
         EditorColor color = EditorColor::AssetOther;
     };
 
+    enum class FolderState
+    {
+        Closed,
+        Open
+    };
+
     const AssetTypeStyle& GetAssetTypeStyle(Assets::AssetType type);
-    Icon AssetTypeIcon(Assets::AssetType type, bool open);
-    void DrawAssetLabel(const ImVec2& position, Assets::AssetType type, const std::string& name, bool open);
+    Icon AssetTypeIcon(Assets::AssetType type, FolderState folder);
+    void DrawAssetLabel(const ImVec2& position, Assets::AssetType type, const std::string& name, FolderState folder);
 }

@@ -215,7 +215,7 @@ namespace BrightBox3D::Editor
         ImGui::SameLine();
         if (ImGui::Button(Text(EditorText::BackToLevel)))
         {
-            context.GetLevelObjectEditService().CloseLevelObjectEditor(true);
+            context.GetLevelObjectEditService().CloseLevelObjectEditor(EditorChanges::Save);
         }
     }
 
@@ -260,7 +260,7 @@ namespace BrightBox3D::Editor
                 m_iconHovered = true;
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver())
                 {
-                    context.GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper);
+                    context.GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper ? SelectionMode::Toggle : SelectionMode::Replace);
                 }
             }
         });
@@ -330,10 +330,10 @@ namespace BrightBox3D::Editor
             return;
         }
         PickResult hit = PickObject(*level, ScreenRay(view, projection, origin, size, mouse));
-        bool additive = ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper;
+        SelectionMode mode = ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper ? SelectionMode::Toggle : SelectionMode::Replace;
         if (!hit.object)
         {
-            if (!additive)
+            if (mode == SelectionMode::Replace)
             {
                 context.GetSelectionService().ClearSelection();
             }
@@ -350,7 +350,7 @@ namespace BrightBox3D::Editor
                 }
             }
         }
-        context.GetSelectionService().Select(target->GetId(), additive);
+        context.GetSelectionService().Select(target->GetId(), mode);
     }
 
     void LevelViewPanel::EnsureTarget(uint32_t width, uint32_t height)

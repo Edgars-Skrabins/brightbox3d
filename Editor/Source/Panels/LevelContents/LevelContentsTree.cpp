@@ -299,7 +299,7 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
         {
-            m_application.GetContext().GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl);
+            m_application.GetContext().GetSelectionService().Select(object.GetId(), ImGui::GetIO().KeyShift || ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl ? SelectionMode::Toggle : SelectionMode::Replace);
         }
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         {
