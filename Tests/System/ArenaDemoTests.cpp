@@ -182,8 +182,7 @@ protected:
             CopyFolder(SampleRoot / folder, m_root / folder);
         }
         m_context = std::make_unique<Editor::EditorContext>();
-        std::string error;
-        ASSERT_TRUE(m_context->GetProjectService().OpenProject(m_root, error)) << error;
+        ASSERT_TRUE(Tests::Succeeded(m_context->GetProjectService().OpenProject(m_root)));
     }
 
     void CompileGameCode()
@@ -208,9 +207,8 @@ protected:
 
     void BuildGame()
     {
-        std::string error;
         m_output = Editor::GameBuilder::DefaultOutput(*m_context);
-        ASSERT_TRUE(Editor::GameBuilder::Build(*m_context, m_output, error)) << error;
+        ASSERT_TRUE(Tests::Succeeded(Editor::GameBuilder::Build(*m_context, m_output)));
         EXPECT_TRUE(std::filesystem::exists(m_output / "Game.json"));
         EXPECT_TRUE(std::filesystem::exists(m_output / "Cooked" / "Manifest.json"));
         EXPECT_TRUE(std::filesystem::exists(m_output / "EngineContent" / "Shaders" / "GBuffer.hlsl"));

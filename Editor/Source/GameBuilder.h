@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EditorText.h"
+
 #include <filesystem>
 #include <string>
 
@@ -11,6 +13,6 @@ namespace BrightBox3D::Editor
     {
     public:
         static std::filesystem::path DefaultOutput(EditorContext& context);
-        static bool Build(EditorContext& context, const std::filesystem::path& output, std::string& error);
+        static Core::Result<void, EditorError> Build(EditorContext& context, const std::filesystem::path& output);
     };
 }

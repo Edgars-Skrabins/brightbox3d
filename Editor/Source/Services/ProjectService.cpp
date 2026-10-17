@@ -8,20 +8,19 @@
 
 namespace BrightBox3D::Editor
 {
-    bool ProjectService::OpenProject(const std::filesystem::path& directory, std::string& error)
+    Core::Result<void> ProjectService::OpenProject(const std::filesystem::path& directory)
     {
         CloseProject();
         if (Core::Result<void> opened = m_project.Open(directory); !opened)
         {
-            error = opened.GetError().GetText();
-            return false;
+            return opened;
         }
         Runtime::Project::SetCurrent(&m_project);
         Runtime::MigrateLegacyLevelObjectAssets(m_project);
         Assets::AssetDatabase::Get().Open(m_project.GetRoot());
         Runtime::MigrateLegacyGameplaySettings(m_project);
         m_context.GetLevelService().OpenStartupLevel();
-        return true;
+        return {};
     }
 
     void ProjectService::CloseProject()

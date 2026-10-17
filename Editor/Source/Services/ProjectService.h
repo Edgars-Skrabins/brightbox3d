@@ -14,7 +14,7 @@ namespace BrightBox3D::Editor
     public:
         explicit ProjectService(EditorContext& context) : m_context(context) {}
 
-        bool OpenProject(const std::filesystem::path& directory, std::string& error);
+        Core::Result<void> OpenProject(const std::filesystem::path& directory);
         void CloseProject();
         bool HasProject() const { return m_project.IsOpen(); }
         Runtime::Project& GetProject() { return m_project; }

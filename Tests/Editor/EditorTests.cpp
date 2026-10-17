@@ -30,8 +30,7 @@ namespace
         {
             m_root = Tests::MakeTempDirectory("Editor");
             ASSERT_TRUE(Tests::Succeeded(Runtime::Project::Create(m_root, "EditorTest")));
-            std::string error;
-            ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;
+            ASSERT_TRUE(Tests::Succeeded(m_context.GetProjectService().OpenProject(m_root)));
         }
 
         void TearDown() override
@@ -422,8 +421,7 @@ TEST_F(ProjectFixture, LegacyProjectGameModeMovesIntoLevels)
     Serialization::SetMember(project, "gameMode", std::move(legacy), project.GetAllocator());
     ASSERT_TRUE(Serialization::SaveJsonFile(projectFile, project));
 
-    std::string error;
-    ASSERT_TRUE(m_context.GetProjectService().OpenProject(m_root, error)) << error;
+    ASSERT_TRUE(Tests::Succeeded(m_context.GetProjectService().OpenProject(m_root)));
     const Serialization::JsonValue* entry = Framework::LevelGameplaySettings::FindEntry(m_context.GetLevelService().GetEditLevel()->GetSettings(), Framework::GameplaySlot::GameMode);
     ASSERT_NE(entry, nullptr);
     EXPECT_EQ(Framework::LevelGameplaySettings::GetClassName(*entry), "GameModeBase");

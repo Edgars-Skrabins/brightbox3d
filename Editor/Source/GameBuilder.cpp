@@ -8,11 +8,14 @@
 #include "Runtime/BuildLayout.h"
 #include "Runtime/GameManifest.h"
 
+#include <utility>
+#include <vector>
+
 namespace BrightBox3D::Editor
 {
     namespace
     {
-        bool CopyPath(const std::filesystem::path& from, const std::filesystem::path& to, std::string& error)
+        Core::Result<void, EditorError> CopyPath(const std::filesystem::path& from, const std::filesystem::path& to)
         {
             std::error_code code;
             if (std::filesystem::is_directory(from))
@@ -27,10 +30,9 @@ namespace BrightBox3D::Editor
             }
             if (code)
             {
-                error = Text(EditorText::CopyFailed, from.generic_string(), code.message());
-                return false;
+                return EditorError(EditorText::CopyFailed, from.generic_string(), code.message());
             }
-            return true;
+            return {};
         }
     }
 
@@ -39,18 +41,16 @@ namespace BrightBox3D::Editor
         return context.GetProjectService().GetProject().GetBuildDirectory() / Runtime::BuildLayout::PlatformFolderName();
     }
 
-    bool GameBuilder::Build(EditorContext& context, const std::filesystem::path& output, std::string& error)
+    Core::Result<void, EditorError> GameBuilder::Build(EditorContext& context, const std::filesystem::path& output)
     {
         Runtime::Project& project = context.GetProjectService().GetProject();
         if (!project.GetStartupLevel().IsValid())
         {
-            error = Text(EditorText::NoStartupLevel);
-            return false;
+            return EditorError(EditorText::NoStartupLevel);
         }
         if (context.GetLevelService().IsDirty() && !context.GetLevelService().SaveLevel())
         {
-            error = Text(EditorText::SavingLevelFailed);
-            return false;
+            return EditorError(EditorText::SavingLevelFailed);
         }
         Core::Log::Info(Text(EditorText::BuildingGame, project.GetName(), output.generic_string()));
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
@@ -74,20 +74,25 @@ namespace BrightBox3D::Editor
         std::filesystem::path player = engineBinaries / Runtime::BuildLayout::PlayerExecutableFileName();
         if (!std::filesystem::exists(player))
         {
-            error = Text(EditorText::PlayerNotFound);
-            return false;
+            return EditorError(EditorText::PlayerNotFound);
         }
-        if (!CopyPath(player, output / executableName, error) ||
-            !CopyPath(engineBinaries / Runtime::BuildLayout::EngineLibraryFileName(), output / Runtime::BuildLayout::EngineLibraryFileName(), error) ||
-            !CopyPath(database.GetCookedDirectory(), Runtime::BuildLayout::GetCookedDirectory(output), error) ||
-            !CopyPath(Core::FileSystem::EngineContentDirectory(), Runtime::BuildLayout::GetEngineContentDirectory(output), error))
-        {
-            return false;
-        }
+        std::vector<std::pair<std::filesystem::path, std::filesystem::path>> copies = {
+            { player, output / executableName },
+            { engineBinaries / Runtime::BuildLayout::EngineLibraryFileName(), output / Runtime::BuildLayout::EngineLibraryFileName() },
+            { database.GetCookedDirectory(), Runtime::BuildLayout::GetCookedDirectory(output) },
+            { Core::FileSystem::EngineContentDirectory(), Runtime::BuildLayout::GetEngineContentDirectory(output) }
+        };
         std::filesystem::path module = project.GetGameModulePath();
-        if (std::filesystem::exists(module) && !CopyPath(module, Runtime::BuildLayout::GetGameModulePath(output, project.GetGameModuleName()), error))
+        if (std::filesystem::exists(module))
         {
-            return false;
+            copies.emplace_back(module, Runtime::BuildLayout::GetGameModulePath(output, project.GetGameModuleName()));
+        }
+        for (const auto& [from, to] : copies)
+        {
+            if (Core::Result<void, EditorError> copied = CopyPath(from, to); !copied)
+            {
+                return copied;
+            }
         }
         std::filesystem::permissions(output / executableName, std::filesystem::perms::owner_exec | std::filesystem::perms::group_exec | std::filesystem::perms::others_exec, std::filesystem::perm_options::add, code);
 
@@ -99,10 +104,9 @@ namespace BrightBox3D::Editor
         }
         if (!manifest.Save(Runtime::BuildLayout::GetManifestPath(output)))
         {
-            error = Text(EditorText::ManifestWriteFailed);
-            return false;
+            return EditorError(EditorText::ManifestWriteFailed);
         }
         Core::Log::Info(Text(EditorText::BuildFinished, (output / executableName).generic_string()));
-        return true;
+        return {};
     }
 }

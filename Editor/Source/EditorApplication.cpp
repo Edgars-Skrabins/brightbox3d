@@ -368,11 +368,9 @@ namespace BrightBox3D::Editor
         }
         if (m_options.build && m_context.GetProjectService().HasProject())
         {
-            std::string error;
-            bool built = GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context), error);
-            if (!built)
+            if (Core::Result<void, EditorError> built = GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context)); !built)
             {
-                Core::Log::Error(Text(EditorText::BuildFailed, error));
+                Core::Log::Error(Text(EditorText::BuildFailed, built.GetError().GetText()));
             }
             m_exitAfterFrames = 1;
         }
@@ -435,11 +433,10 @@ namespace BrightBox3D::Editor
             GetResources().Clear();
             m_context.GetProjectService().CloseProject();
         }
-        std::string error;
-        if (!m_context.GetProjectService().OpenProject(path, error))
+        if (Core::Result<void> opened = m_context.GetProjectService().OpenProject(path); !opened)
         {
-            m_launcher.SetError(error);
-            Core::Log::Error(Text(EditorText::OpenProjectFailed, error));
+            m_launcher.SetError(opened.GetError().GetText());
+            Core::Log::Error(Text(EditorText::OpenProjectFailed, opened.GetError().GetText()));
             return false;
         }
         AddRecentProject(m_context.GetProjectService().GetProject().GetRoot());
@@ -477,10 +474,9 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::BuildGame()
     {
-        std::string error;
-        if (!GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context), error))
+        if (Core::Result<void, EditorError> built = GameBuilder::Build(m_context, GameBuilder::DefaultOutput(m_context)); !built)
         {
-            Core::Log::Error(Text(EditorText::BuildFailed, error));
+            Core::Log::Error(Text(EditorText::BuildFailed, built.GetError().GetText()));
             return;
         }
         RevealInFileBrowser(GameBuilder::DefaultOutput(m_context));

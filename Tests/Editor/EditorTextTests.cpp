@@ -60,8 +60,7 @@ TEST_F(EditorTextTests, FormatsArguments)
 TEST_F(EditorTextTests, OverrideFileReplacesText)
 {
     std::filesystem::path path = WriteOverrides("Valid.json", R"({ "Open": "Ouvrir", "OpenedProject": "Projet '{}' ouvert" })");
-    std::string error;
-    ASSERT_TRUE(Editor::EditorTextTable::Get().LoadOverrides(path, error)) << error;
+    ASSERT_TRUE(Tests::Succeeded(Editor::EditorTextTable::Get().LoadOverrides(path)));
     EXPECT_STREQ(Editor::Text(EditorText::Open), "Ouvrir");
     EXPECT_EQ(Editor::Text(EditorText::OpenedProject, std::string("Arena")), "Projet 'Arena' ouvert");
     EXPECT_STREQ(Editor::Text(EditorText::Cancel), "Cancel");
@@ -70,15 +69,14 @@ TEST_F(EditorTextTests, OverrideFileReplacesText)
 TEST_F(EditorTextTests, OverrideWithWrongPlaceholderCountIsIgnored)
 {
     std::filesystem::path path = WriteOverrides("Mismatch.json", R"({ "OpenedProject": "Projet ouvert" })");
-    std::string error;
-    ASSERT_TRUE(Editor::EditorTextTable::Get().LoadOverrides(path, error)) << error;
+    ASSERT_TRUE(Tests::Succeeded(Editor::EditorTextTable::Get().LoadOverrides(path)));
     EXPECT_EQ(Editor::Text(EditorText::OpenedProject, std::string("Arena")), "Opened project 'Arena'");
 }
 
 TEST_F(EditorTextTests, InvalidOverrideFileFails)
 {
     std::filesystem::path path = WriteOverrides("Invalid.json", "[1, 2]");
-    std::string error;
-    EXPECT_FALSE(Editor::EditorTextTable::Get().LoadOverrides(path, error));
-    EXPECT_FALSE(error.empty());
+    Core::Result<void, Editor::EditorError> loaded = Editor::EditorTextTable::Get().LoadOverrides(path);
+    ASSERT_FALSE(loaded);
+    EXPECT_EQ(loaded.GetError().GetId(), EditorText::TextFileNotObject);
 }

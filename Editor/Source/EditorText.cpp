@@ -285,6 +285,7 @@ namespace BrightBox3D::Editor
             { "CannotMoveInstanceChild", "Objects inside a {} instance cannot be moved; unlink the instance or edit the {}", 2 },
             { "CreateMenuLight", "Light", 0 },
             { "TextFileNotObject", "the text file is not a JSON object", 0 },
+            { "TextFileLoadFailed", "cannot load the text file: {}", 1 },
             { "TextOverrideArgumentMismatch", "Ignoring text override '{}': it must contain {} placeholders", 2 },
             { "MenuFile", "File", 0 },
             { "MenuEdit", "Edit", 0 },
@@ -390,18 +391,16 @@ namespace BrightBox3D::Editor
         }
     }
 
-    bool EditorTextTable::LoadOverrides(const std::filesystem::path& path, std::string& error)
+    Core::Result<void, EditorError> EditorTextTable::LoadOverrides(const std::filesystem::path& path)
     {
         Serialization::JsonDocument document;
         if (Core::Result<void> loaded = Serialization::LoadJsonFile(path, document); !loaded)
         {
-            error = loaded.GetError().GetText();
-            return false;
+            return EditorError(EditorText::TextFileLoadFailed, loaded.GetError().GetText());
         }
         if (!document.IsObject())
         {
-            error = Lookup(EditorText::TextFileNotObject);
-            return false;
+            return EditorError(EditorText::TextFileNotObject);
         }
         for (size_t index = 0; index < m_texts.size(); ++index)
         {
@@ -417,6 +416,6 @@ namespace BrightBox3D::Editor
             }
             m_texts[index] = value->GetString();
         }
-        return true;
+        return {};
     }
 }

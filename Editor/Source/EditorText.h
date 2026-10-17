@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Assert.h"
+#include "Core/Result.h"
 
 #include <array>
 #include <filesystem>
@@ -287,6 +288,7 @@ namespace BrightBox3D::Editor
         CannotMoveInstanceChild,
         CreateMenuLight,
         TextFileNotObject,
+        TextFileLoadFailed,
         TextOverrideArgumentMismatch,
         MenuFile,
         MenuEdit,
@@ -366,6 +368,8 @@ namespace BrightBox3D::Editor
         Count
     };
 
+    using EditorError = Core::TextError<EditorText>;
+
     struct EditorTextInfo
     {
         const char* key;
@@ -381,7 +385,7 @@ namespace BrightBox3D::Editor
         static EditorTextTable& Get();
 
         const std::string& Lookup(EditorText text) const { return m_texts[static_cast<size_t>(text)]; }
-        bool LoadOverrides(const std::filesystem::path& path, std::string& error);
+        Core::Result<void, EditorError> LoadOverrides(const std::filesystem::path& path);
         void Reset();
 
     private:

@@ -110,23 +110,21 @@ namespace BrightBox3D::Editor
         return m_context.GetProjectService().GetProject().GetStagingModulePath();
     }
 
-    bool HotReload::PromoteStagedModule(std::string& error)
+    Core::Result<void, EditorError> HotReload::PromoteStagedModule()
     {
         std::filesystem::path staged = GetStagingModulePath();
         std::error_code code;
         if (!std::filesystem::exists(staged, code))
         {
-            error = Text(EditorText::NoModuleProduced, staged.generic_string());
-            return false;
+            return EditorError(EditorText::NoModuleProduced, staged.generic_string());
         }
         std::filesystem::path module = GetModulePath();
         std::filesystem::copy_file(staged, module, std::filesystem::copy_options::overwrite_existing, code);
         if (code)
         {
-            error = code.message();
-            return false;
+            return EditorError(EditorText::CopyFailed, staged.generic_string(), code.message());
         }
-        return true;
+        return {};
     }
 
     bool HotReload::HasSources() const
@@ -370,12 +368,11 @@ namespace BrightBox3D::Editor
         }
         ReportCompilerOutput(result.output);
         std::filesystem::path module = GetModulePath();
-        std::string error;
-        if (!PromoteStagedModule(error))
+        if (Core::Result<void, EditorError> promoted = PromoteStagedModule(); !promoted)
         {
             m_state = CompileState::Failed;
             m_statusText = Text(EditorText::ReloadFailed);
-            Core::Log::Error(Text(EditorText::ModulePromoteFailed, error));
+            Core::Log::Error(Text(EditorText::ModulePromoteFailed, promoted.GetError().GetText()));
             if (OnCompileFailed)
             {
                 OnCompileFailed();

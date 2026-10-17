@@ -54,7 +54,7 @@ namespace BrightBox3D::Editor
         void ReportCompilerOutput(const std::string& output);
         bool HasSources() const;
         std::filesystem::path GetStagingModulePath() const;
-        bool PromoteStagedModule(std::string& error);
+        Core::Result<void, EditorError> PromoteStagedModule();
 
         EditorContext& m_context;
         Core::AsyncProcess m_process;
