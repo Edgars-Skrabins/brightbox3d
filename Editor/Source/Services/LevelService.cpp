@@ -51,15 +51,14 @@ namespace BrightBox3D::Editor
         {
             editing.CloseLevelObjectEditor(EditorChanges::Save);
         }
-        std::string error;
-        std::unique_ptr<Level::Level> level = Level::LevelSerializer::LoadLevel(levelAsset, &error);
+        Core::Result<std::unique_ptr<Level::Level>> level = Level::LevelSerializer::LoadLevel(levelAsset);
         if (!level)
         {
-            Core::Log::Error(Text(EditorText::OpenLevelFailed, error));
+            Core::Log::Error(Text(EditorText::OpenLevelFailed, level.GetError().GetText()));
             return false;
         }
         level->SetFixedDeltaTime(m_context.GetProjectService().GetProject().GetFixedTimeStep());
-        m_level = std::move(level);
+        m_level = std::move(*level);
         m_activeCollection = nullptr;
         m_context.GetSelectionService().Reset();
         m_context.GetUndoService().Clear();
@@ -90,14 +89,13 @@ namespace BrightBox3D::Editor
 
     bool LevelService::NewLevel(const std::string& relativePath)
     {
-        std::string error;
-        Core::Guid guid = Level::LevelSerializer::CreateLevelAsset(relativePath, &error);
-        if (!guid.IsValid())
+        Core::Result<Core::Guid> guid = Level::LevelSerializer::CreateLevelAsset(relativePath);
+        if (!guid)
         {
-            Core::Log::Error(Text(EditorText::CreateLevelFailed, error));
+            Core::Log::Error(Text(EditorText::CreateLevelFailed, guid.GetError().GetText()));
             return false;
         }
-        if (!OpenLevel(guid))
+        if (!OpenLevel(*guid))
         {
             return false;
         }

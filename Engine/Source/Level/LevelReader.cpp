@@ -354,16 +354,12 @@ namespace BrightBox3D::Level
         return result;
     }
 
-    std::unique_ptr<Level> LevelSerializer::LoadLevel(const Core::Guid& levelAsset, std::string* error)
+    Core::Result<std::unique_ptr<Level>> LevelSerializer::LoadLevel(const Core::Guid& levelAsset)
     {
         auto asset = Assets::AssetDatabase::Get().Load<LevelAsset>(levelAsset);
         if (!asset)
         {
-            if (error)
-            {
-                *error = asset.GetError().GetText();
-            }
-            return nullptr;
+            return asset.GetError();
         }
         auto level = std::make_unique<Level>(asset->GetName());
         level->SetAsset(levelAsset);

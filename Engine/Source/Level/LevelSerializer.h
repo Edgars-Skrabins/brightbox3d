@@ -30,11 +30,11 @@ namespace BrightBox3D::Level
         static bool ReadCollection(Level& level, LevelCollection& collection, const Serialization::JsonValue& document);
 
         static void WriteLevel(const Level& level, Serialization::JsonValue& out, Serialization::JsonAllocator& allocator);
-        static std::unique_ptr<Level> LoadLevel(const Core::Guid& levelAsset, std::string* error = nullptr);
+        static Core::Result<std::unique_ptr<Level>> LoadLevel(const Core::Guid& levelAsset);
         static bool SaveLevel(Level& level, SaveScope scope = SaveScope::All);
         static bool SaveCollection(LevelCollection& collection);
         static bool LoadCollectionInto(Level& level, const Core::Guid& collectionAsset, LevelCollection** loaded = nullptr);
-        static Core::Guid CreateLevelAsset(const std::string& relativePath, std::string* error = nullptr);
+        static Core::Result<Core::Guid> CreateLevelAsset(const std::string& relativePath);
         static std::unique_ptr<Level> CloneLevel(const Level& source);
 
         static LevelObject* Instantiate(Level& level, const Core::Guid& variant, LevelCollection* collection, LevelObject* parent, const Core::Guid& instanceId = {}, Initialization initialization = Initialization::Immediate);

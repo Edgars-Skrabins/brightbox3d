@@ -3,6 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Commands/CommandWidgets.h"
 #include "Core/FileSystem.h"
+#include "Core/Log.h"
 #include "EditorApplication.h"
 #include "EditorContent.h"
 #include "EditorLayout.h"
@@ -74,7 +75,14 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         ImGui::Separator();
         if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Level)))
         {
-            context.GetSelectionService().SelectAsset(Level::LevelSerializer::CreateLevelAsset(NewAssetPath(folder, Assets::AssetType::Level)));
+            if (Core::Result<Core::Guid> level = Level::LevelSerializer::CreateLevelAsset(NewAssetPath(folder, Assets::AssetType::Level)))
+            {
+                context.GetSelectionService().SelectAsset(*level);
+            }
+            else
+            {
+                Core::Log::Error(Text(EditorText::CreateLevelFailed, level.GetError().GetText()));
+            }
         }
         if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::LevelCollection)))
         {

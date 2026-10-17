@@ -114,7 +114,7 @@ namespace BrightBox3D::Level
         return success;
     }
 
-    Core::Guid LevelSerializer::CreateLevelAsset(const std::string& relativePath, std::string* error)
+    Core::Result<Core::Guid> LevelSerializer::CreateLevelAsset(const std::string& relativePath)
     {
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         std::string path = database.MakeUniquePath(relativePath);
@@ -138,9 +138,9 @@ namespace BrightBox3D::Level
         level.AddMember(LevelFileSchema::Collections, collections, allocator);
         level.AddMember(LevelFileSchema::Settings, JsonValue(rapidjson::kObjectType), allocator);
         Core::Guid guid = database.CreateJsonAsset(path, level);
-        if (!guid.IsValid() && error)
+        if (!guid.IsValid())
         {
-            *error = Core::Text(Core::EngineText::LevelWriteFailed);
+            return Core::Error(Core::EngineText::LevelWriteFailed);
         }
         return guid;
     }

@@ -108,13 +108,13 @@ namespace BrightBox3D::Player
 
     bool PlayerApplication::LoadStartupLevel()
     {
-        std::string error;
-        m_level = Level::LevelSerializer::LoadLevel(m_manifest.startupLevel, &error);
-        if (!m_level)
+        Core::Result<std::unique_ptr<Level::Level>> level = Level::LevelSerializer::LoadLevel(m_manifest.startupLevel);
+        if (!level)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::PlayerStartupLevelFailed, error));
+            Core::Log::Error(Core::Text(Core::EngineText::PlayerStartupLevelFailed, level.GetError().GetText()));
             return false;
         }
+        m_level = std::move(*level);
         m_level->SetFixedDeltaTime(m_manifest.fixedTimeStep);
         return true;
     }

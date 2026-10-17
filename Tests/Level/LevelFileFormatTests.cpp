@@ -20,11 +20,11 @@ TEST(LevelFileFormatTests, SampleCollectionsRewriteToTheSameJson)
     std::filesystem::copy_file(std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo" / Runtime::Project::FileName, root / Runtime::Project::FileName);
     Runtime::Project project;
     ASSERT_TRUE(Tests::Succeeded(project.Open(root)));
-    std::string error;
     ASSERT_TRUE(Assets::AssetDatabase::Get().Open(root));
 
-    std::unique_ptr<Level::Level> level = Level::LevelSerializer::LoadLevel(project.GetStartupLevel(), &error);
-    ASSERT_NE(level, nullptr) << error;
+    Core::Result<std::unique_ptr<Level::Level>> loaded = Level::LevelSerializer::LoadLevel(project.GetStartupLevel());
+    ASSERT_TRUE(Tests::Succeeded(loaded));
+    std::unique_ptr<Level::Level> level = std::move(*loaded);
     ASSERT_FALSE(level->GetCollections().empty());
     for (const auto& collection : level->GetCollections())
     {
