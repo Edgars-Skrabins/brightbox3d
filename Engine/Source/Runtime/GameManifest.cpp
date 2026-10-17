@@ -18,12 +18,14 @@ namespace BrightBox3D::Runtime
     bool GameManifest::Load(const std::filesystem::path& path, std::string& error)
     {
         Serialization::JsonDocument document;
-        if (!Serialization::LoadJsonFile(path, document, &error) || !document.IsObject())
+        if (Core::Result<void> loaded = Serialization::LoadJsonFile(path, document); !loaded)
         {
-            if (error.empty())
-            {
-                error = Core::Text(Core::EngineText::ManifestInvalid);
-            }
+            error = loaded.GetError().GetText();
+            return false;
+        }
+        if (!document.IsObject())
+        {
+            error = Core::Text(Core::EngineText::ManifestInvalid);
             return false;
         }
         Serialization::DeserializeProperties(*this, document);

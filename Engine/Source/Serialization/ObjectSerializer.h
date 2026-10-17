@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Result.h"
 #include "Reflection/EngineObject.h"
 #include "Serialization/Json.h"
 
@@ -18,7 +19,7 @@ namespace BrightBox3D::Serialization
     void DeserializeProperties(Reflection::EngineObject& object, const JsonValue& in);
 
     void SerializeObject(const Reflection::EngineObject& object, JsonValue& out, JsonAllocator& allocator);
-    std::unique_ptr<Reflection::EngineObject> DeserializeObject(const JsonValue& in, std::string* error = nullptr);
+    Core::Result<std::unique_ptr<Reflection::EngineObject>> DeserializeObject(const JsonValue& in);
 
     bool PropertyValuesEqual(const Reflection::PropertyInfo& property, const Reflection::EngineObject& a, const Reflection::EngineObject& b);
     void CopyPropertyValue(const Reflection::PropertyInfo& property, const Reflection::EngineObject& source, Reflection::EngineObject& destination);

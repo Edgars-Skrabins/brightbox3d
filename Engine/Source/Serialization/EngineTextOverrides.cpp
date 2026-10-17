@@ -5,18 +5,18 @@
 
 namespace BrightBox3D::Serialization
 {
-    bool LoadEngineTextOverrides(const std::filesystem::path& path, std::vector<std::string>& rejectedKeys, std::string& error)
+    Core::Result<std::vector<std::string>> LoadEngineTextOverrides(const std::filesystem::path& path)
     {
         JsonDocument document;
-        if (!LoadJsonFile(path, document, &error))
+        if (Core::Result<void> loaded = LoadJsonFile(path, document); !loaded)
         {
-            return false;
+            return loaded.GetError();
         }
         if (!document.IsObject())
         {
-            error = Core::Text(Core::EngineText::TextFileNotObject);
-            return false;
+            return Core::Error(Core::EngineText::TextFileNotObject);
         }
+        std::vector<std::string> rejectedKeys;
         for (auto member = document.MemberBegin(); member != document.MemberEnd(); ++member)
         {
             std::string key = member->name.GetString();
@@ -26,6 +26,6 @@ namespace BrightBox3D::Serialization
                 rejectedKeys.push_back(key);
             }
         }
-        return true;
+        return rejectedKeys;
     }
 }

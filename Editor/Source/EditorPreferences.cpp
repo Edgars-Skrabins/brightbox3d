@@ -167,10 +167,14 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        std::string error;
-        if (!Serialization::LoadJsonFile(path, document, &error) || !document.IsObject())
+        if (Core::Result<void> loaded = Serialization::LoadJsonFile(path, document); !loaded)
         {
-            Core::Log::Warning(Text(EditorText::PreferencesLoadFailed, error));
+            Core::Log::Warning(Text(EditorText::PreferencesLoadFailed, loaded.GetError().GetText()));
+            return;
+        }
+        if (!document.IsObject())
+        {
+            Core::Log::Warning(Text(EditorText::PreferencesLoadFailed, Text(EditorText::TextFileNotObject)));
             return;
         }
         if (const Serialization::JsonValue* colors = Serialization::FindMember(document, ColorsSection); colors && colors->IsObject())

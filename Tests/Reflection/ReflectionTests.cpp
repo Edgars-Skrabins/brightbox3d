@@ -98,10 +98,9 @@ TEST(SerializationTests, RoundTripsThroughJson)
 
     JsonDocument parsed;
     ASSERT_TRUE(ParseJson(text, parsed));
-    std::string error;
-    std::unique_ptr<EngineObject> object = DeserializeObject(parsed, &error);
-    ASSERT_NE(object, nullptr) << error;
-    auto* restored = Cast<TestDerived>(object.get());
+    Core::Result<std::unique_ptr<EngineObject>> object = DeserializeObject(parsed);
+    ASSERT_TRUE(object) << object.GetError().GetText();
+    auto* restored = Cast<TestDerived>(object.GetValue().get());
     ASSERT_NE(restored, nullptr);
     EXPECT_EQ(restored->GetHealth(), 5);
     EXPECT_EQ(restored->m_mode, TestMode::Running);

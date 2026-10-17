@@ -55,22 +55,20 @@ TEST_F(EngineTextTests, FormatsArguments)
 TEST_F(EngineTextTests, OverrideFileReplacesValidEntriesAndRejectsTheRest)
 {
     std::filesystem::path path = WriteOverrides(R"json({ "CannotReadFile": "Datei unlesbar", "GameModuleLoaded": "Modul '{}' geladen ({})", "ProjectInvalid": "{} broken", "NoSuchText": "x", "LogLevelInfo": 3 })json");
-    std::vector<std::string> rejected;
-    std::string error;
-    ASSERT_TRUE(Serialization::LoadEngineTextOverrides(path, rejected, error)) << error;
+    Core::Result<std::vector<std::string>> rejected = Serialization::LoadEngineTextOverrides(path);
+    ASSERT_TRUE(rejected) << rejected.GetError().GetText();
     EXPECT_STREQ(Core::Text(EngineText::CannotReadFile), "Datei unlesbar");
     EXPECT_EQ(Core::Text(EngineText::GameModuleLoaded, std::string("Arena"), 4), "Modul 'Arena' geladen (4)");
     EXPECT_STREQ(Core::Text(EngineText::ProjectInvalid), "Invalid project file");
-    EXPECT_EQ(rejected, (std::vector<std::string>{ "ProjectInvalid", "NoSuchText", "LogLevelInfo" }));
+    EXPECT_EQ(*rejected, (std::vector<std::string>{ "ProjectInvalid", "NoSuchText", "LogLevelInfo" }));
     std::filesystem::remove(path);
 }
 
 TEST_F(EngineTextTests, InvalidOverrideFileFails)
 {
     std::filesystem::path path = WriteOverrides("[1, 2]");
-    std::vector<std::string> rejected;
-    std::string error;
-    EXPECT_FALSE(Serialization::LoadEngineTextOverrides(path, rejected, error));
-    EXPECT_FALSE(error.empty());
+    Core::Result<std::vector<std::string>> rejected = Serialization::LoadEngineTextOverrides(path);
+    ASSERT_FALSE(rejected);
+    EXPECT_EQ(rejected.GetError().GetId(), EngineText::TextFileNotObject);
     std::filesystem::remove(path);
 }

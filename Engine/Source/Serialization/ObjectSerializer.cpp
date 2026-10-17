@@ -346,26 +346,18 @@ namespace BrightBox3D::Serialization
         SerializeProperties(object, out, allocator);
     }
 
-    std::unique_ptr<EngineObject> DeserializeObject(const JsonValue& in, std::string* error)
+    Core::Result<std::unique_ptr<EngineObject>> DeserializeObject(const JsonValue& in)
     {
         std::string typeName = GetString(in, TypeKey);
         const TypeInfo* type = TypeRegistry::Find(typeName);
         if (!type)
         {
-            if (error)
-            {
-                *error = Core::Text(Core::EngineText::UnknownType, typeName);
-            }
-            return nullptr;
+            return Core::Error(Core::EngineText::UnknownType, typeName);
         }
         std::unique_ptr<EngineObject> object(type->CreateInstance());
         if (!object)
         {
-            if (error)
-            {
-                *error = Core::Text(Core::EngineText::TypeNotInstantiable, typeName);
-            }
-            return nullptr;
+            return Core::Error(Core::EngineText::TypeNotInstantiable, typeName);
         }
         DeserializeProperties(*object, in);
         return object;

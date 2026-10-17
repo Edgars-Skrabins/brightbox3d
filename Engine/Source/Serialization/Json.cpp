@@ -13,41 +13,33 @@
 
 namespace BrightBox3D::Serialization
 {
-    bool ParseJson(const std::string& text, JsonDocument& document, std::string* error)
+    Core::Result<void> ParseJson(const std::string& text, JsonDocument& document)
     {
         document.Parse<rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag | rapidjson::kParseNanAndInfFlag>(text.c_str(), text.size());
-        if (document.HasParseError())
+        if (!document.HasParseError())
         {
-            if (error)
-            {
-                size_t offset = document.GetErrorOffset();
-                int line = 1;
-                for (size_t i = 0; i < offset && i < text.size(); ++i)
-                {
-                    if (text[i] == '\n')
-                    {
-                        ++line;
-                    }
-                }
-                *error = Core::Text(Core::EngineText::JsonParseError, rapidjson::GetParseError_En(document.GetParseError()), line);
-            }
-            return false;
+            return {};
         }
-        return true;
+        size_t offset = document.GetErrorOffset();
+        int line = 1;
+        for (size_t i = 0; i < offset && i < text.size(); ++i)
+        {
+            if (text[i] == '\n')
+            {
+                ++line;
+            }
+        }
+        return Core::Error(Core::EngineText::JsonParseError, rapidjson::GetParseError_En(document.GetParseError()), line);
     }
 
-    bool LoadJsonFile(const std::filesystem::path& path, JsonDocument& document, std::string* error)
+    Core::Result<void> LoadJsonFile(const std::filesystem::path& path, JsonDocument& document)
     {
         auto text = Core::FileSystem::ReadText(path);
         if (!text)
         {
-            if (error)
-            {
-                *error = Core::Text(Core::EngineText::CannotReadFile);
-            }
-            return false;
+            return Core::Error(Core::EngineText::CannotReadFile);
         }
-        return ParseJson(*text, document, error);
+        return ParseJson(*text, document);
     }
 
     std::string WriteJson(const JsonValue& value, JsonFormat format)

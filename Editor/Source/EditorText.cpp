@@ -393,12 +393,14 @@ namespace BrightBox3D::Editor
     bool EditorTextTable::LoadOverrides(const std::filesystem::path& path, std::string& error)
     {
         Serialization::JsonDocument document;
-        if (!Serialization::LoadJsonFile(path, document, &error) || !document.IsObject())
+        if (Core::Result<void> loaded = Serialization::LoadJsonFile(path, document); !loaded)
         {
-            if (error.empty())
-            {
-                error = Lookup(EditorText::TextFileNotObject);
-            }
+            error = loaded.GetError().GetText();
+            return false;
+        }
+        if (!document.IsObject())
+        {
+            error = Lookup(EditorText::TextFileNotObject);
             return false;
         }
         for (size_t index = 0; index < m_texts.size(); ++index)

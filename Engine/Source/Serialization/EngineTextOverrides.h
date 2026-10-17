@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Core/Result.h"
+
 #include <filesystem>
 #include <string>
 #include <vector>
 
 namespace BrightBox3D::Serialization
 {
-    bool LoadEngineTextOverrides(const std::filesystem::path& path, std::vector<std::string>& rejectedKeys, std::string& error);
+    Core::Result<std::vector<std::string>> LoadEngineTextOverrides(const std::filesystem::path& path);
 }

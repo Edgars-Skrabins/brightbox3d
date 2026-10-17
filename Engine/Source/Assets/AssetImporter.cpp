@@ -11,8 +11,9 @@ namespace BrightBox3D::Assets
     bool JsonAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
     {
         Serialization::JsonDocument document;
-        if (!Serialization::LoadJsonFile(source, document, &error))
+        if (Core::Result<void> loaded = Serialization::LoadJsonFile(source, document); !loaded)
         {
+            error = loaded.GetError().GetText();
             return false;
         }
         output = Serialization::EncodeBinaryJson(document);

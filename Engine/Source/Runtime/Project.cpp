@@ -101,12 +101,14 @@ namespace BrightBox3D::Runtime
     bool Project::Open(const std::filesystem::path& directory, std::string& error)
     {
         Serialization::JsonDocument document;
-        if (!Serialization::LoadJsonFile(directory / FileName, document, &error) || !document.IsObject())
+        if (Core::Result<void> loaded = Serialization::LoadJsonFile(directory / FileName, document); !loaded)
         {
-            if (error.empty())
-            {
-                error = Core::Text(Core::EngineText::ProjectInvalid);
-            }
+            error = loaded.GetError().GetText();
+            return false;
+        }
+        if (!document.IsObject())
+        {
+            error = Core::Text(Core::EngineText::ProjectInvalid);
             return false;
         }
         std::error_code ec;

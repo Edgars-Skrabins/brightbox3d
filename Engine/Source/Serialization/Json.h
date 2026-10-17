@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Result.h"
+
 #include <rapidjson/document.h>
 
 #include <filesystem>
@@ -18,8 +20,8 @@ namespace BrightBox3D::Serialization
         Compact
     };
 
-    bool ParseJson(const std::string& text, JsonDocument& document, std::string* error = nullptr);
-    bool LoadJsonFile(const std::filesystem::path& path, JsonDocument& document, std::string* error = nullptr);
+    Core::Result<void> ParseJson(const std::string& text, JsonDocument& document);
+    Core::Result<void> LoadJsonFile(const std::filesystem::path& path, JsonDocument& document);
     std::string WriteJson(const JsonValue& value, JsonFormat format = JsonFormat::Pretty);
     bool SaveJsonFile(const std::filesystem::path& path, const JsonValue& value);
 
