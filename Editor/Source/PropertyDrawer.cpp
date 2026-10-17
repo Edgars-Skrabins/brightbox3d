@@ -55,9 +55,13 @@ namespace BrightBox3D::Editor
         ImGui::PopID();
     }
 
-    bool PropertyDrawer::IsVisible(const PropertyInfo& property, const PropertyDrawOptions& options)
+    bool PropertyDrawer::IsVisible(const PropertyInfo& property, const EngineObject& object, const PropertyDrawOptions& options)
     {
         if (options.filter && !options.filter(property))
+        {
+            return false;
+        }
+        if (!object.IsPropertyVisible(property))
         {
             return false;
         }
@@ -298,6 +302,7 @@ namespace BrightBox3D::Editor
         }
         if (changed)
         {
+            object.OnPropertyEdited(property);
             object.OnPropertiesChanged();
         }
         return changed;
@@ -310,7 +315,7 @@ namespace BrightBox3D::Editor
         std::map<std::string, std::vector<const PropertyInfo*>> grouped;
         for (const PropertyInfo* property : properties)
         {
-            if (!IsVisible(*property, options))
+            if (!IsVisible(*property, object, options))
             {
                 continue;
             }

@@ -145,7 +145,7 @@ namespace BrightBox3D::Editor
         bool hasProperties = false;
         for (const Reflection::PropertyInfo* property : object.GetType().GetAllProperties())
         {
-            hasProperties |= PropertyDrawer::IsVisible(*property, options);
+            hasProperties |= PropertyDrawer::IsVisible(*property, object, options);
         }
         if (!hasProperties)
         {

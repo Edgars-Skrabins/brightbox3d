@@ -43,7 +43,7 @@ namespace BrightBox3D::Editor
         static bool DrawObject(Reflection::EngineObject& object, const PropertyDrawOptions& options);
         static bool DrawProperty(const Reflection::PropertyInfo& property, Reflection::EngineObject& object, const PropertyDrawOptions& options);
         static bool DrawValue(const char* label, const Reflection::ValueDescriptor& descriptor, void* value, FieldAccess access, const Level::Level* level);
-        static bool IsVisible(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
+        static bool IsVisible(const Reflection::PropertyInfo& property, const Reflection::EngineObject& object, const PropertyDrawOptions& options);
         static bool IsEditable(const Reflection::PropertyInfo& property, const PropertyDrawOptions& options);
         static bool AssetField(const char* label, Assets::AssetType type, Core::Guid& guid, FieldAccess access);
         static bool ClassField(const char* label, const Reflection::TypeInfo* baseType, std::string& typeName);

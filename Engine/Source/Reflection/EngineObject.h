@@ -106,6 +106,8 @@ namespace BrightBox3D::Reflection
         static const TypeInfo& StaticType();
         virtual const TypeInfo& GetType() const;
         virtual void OnPropertiesChanged() {}
+        virtual void OnPropertyEdited(const PropertyInfo& property) {}
+        virtual bool IsPropertyVisible(const PropertyInfo& property) const { return true; }
         virtual void CarryReferences(ReferenceCarrier& carrier) {}
 
         virtual void OnInitialize() {}
