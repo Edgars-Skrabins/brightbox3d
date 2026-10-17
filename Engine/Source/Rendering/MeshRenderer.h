@@ -2,6 +2,7 @@
 
 #include "Assets/AssetDatabase.h"
 #include "Geometry/Categories.h"
+#include "Geometry/MeshSource.h"
 #include "Geometry/ModelAsset.h"
 #include "Level/LevelObjectComponent.h"
 #include "Rendering/Categories.h"
@@ -12,13 +13,13 @@
 namespace BrightBox3D::Rendering
 {
     BrightClass(.category = Categories::Rendering, .icon = Icon::Box)
-    class MeshRenderer : public Level::LevelObjectComponent
+    class MeshRenderer : public Level::LevelObjectComponent, public Geometry::MeshSource
     {
         BrightBody()
     public:
-        const Assets::AssetReference<Geometry::ModelAsset>& GetModel() const { return m_model; }
+        const Assets::AssetReference<Geometry::ModelAsset>& GetModel() const override { return m_model; }
         void SetModel(const Assets::AssetReference<Geometry::ModelAsset>& model) { m_model = model; }
-        int32_t GetMeshIndex() const { return m_meshIndex; }
+        int32_t GetMeshIndex() const override { return m_meshIndex; }
         void SetMeshIndex(int32_t index) { m_meshIndex = index; }
         const std::vector<Assets::AssetReference<MaterialAsset>>& GetMaterials() const { return m_materials; }
         void SetMaterial(size_t slot, const Assets::AssetReference<MaterialAsset>& material);
