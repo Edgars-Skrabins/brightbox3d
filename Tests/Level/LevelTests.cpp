@@ -452,7 +452,7 @@ TEST(AssetDatabaseTests, CreatesMetaAndCooksWithSourceHash)
     EXPECT_TRUE(std::filesystem::exists(project.Root() / "Assets" / "Maps" / "Area.collection.meta"));
 
     auto asset = database.Load<LevelCollectionAsset>(guid);
-    ASSERT_NE(asset, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(asset));
     EXPECT_EQ(Serialization::GetString(asset->GetDocument(), "name"), "Streamed");
     EXPECT_TRUE(std::filesystem::exists(database.GetCookedDirectory() / (guid.ToString() + ".bin")));
 

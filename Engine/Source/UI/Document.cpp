@@ -79,7 +79,7 @@ Image { width: 64px; height: 64px; }
         auto asset = Assets::AssetDatabase::Get().Load<ScreenAsset>(screen);
         if (!asset)
         {
-            return Core::Error(Core::EngineText::UIScreenNotFound);
+            return asset.GetError();
         }
         return LoadFromText(asset->GetText());
     }

@@ -26,11 +26,24 @@ namespace BrightBox3D::Assets
         return asset;
     }
 
-    std::shared_ptr<Asset> AssetDatabase::LoadAsset(const Core::Guid& guid)
+    bool IsAbsentAsset(const Core::Error& error)
+    {
+        return error.GetId() == Core::EngineText::AssetNotSet || error.GetId() == Core::EngineText::AssetNotFound;
+    }
+
+    void ReportLoadFailure(const Core::Error& error)
+    {
+        if (!IsAbsentAsset(error))
+        {
+            Core::Log::Error(error.GetText());
+        }
+    }
+
+    Core::Result<std::shared_ptr<Asset>> AssetDatabase::LoadAsset(const Core::Guid& guid)
     {
         if (!guid.IsValid())
         {
-            return nullptr;
+            return Core::Error(Core::EngineText::AssetNotSet);
         }
         AssetRecord record;
         {
@@ -46,7 +59,7 @@ namespace BrightBox3D::Assets
             auto it = m_records.find(guid);
             if (it == m_records.end())
             {
-                return nullptr;
+                return Core::Error(Core::EngineText::AssetNotFound, guid.ToString());
             }
             record = it->second;
         }
@@ -54,21 +67,19 @@ namespace BrightBox3D::Assets
         AssetImporter* importer = GetImporter(record.type);
         if (!importer)
         {
-            return nullptr;
+            return Core::Error(Core::EngineText::AssetLoadFailed, record.path, Core::Text(Core::EngineText::NoImporter, AssetTypeName(record.type)));
         }
         std::vector<uint8_t> payload;
         if (!ReadCookedPayload(record, *importer, payload))
         {
             if (m_mode == AssetDatabaseMode::Cooked)
             {
-                Core::Log::Error(Core::Text(Core::EngineText::AssetLoadFailed, record.path, Core::Text(Core::EngineText::MissingCookedData)));
-                return nullptr;
+                return Core::Error(Core::EngineText::AssetLoadFailed, record.path, Core::Text(Core::EngineText::MissingCookedData));
             }
             Core::Result<std::vector<uint8_t>> cooked = CookAsset(record);
             if (!cooked)
             {
-                Core::Log::Error(Core::Text(Core::EngineText::AssetLoadFailed, record.path, cooked.GetError().GetText()));
-                return nullptr;
+                return Core::Error(Core::EngineText::AssetLoadFailed, record.path, cooked.GetError().GetText());
             }
             payload = std::move(*cooked);
         }
@@ -76,8 +87,7 @@ namespace BrightBox3D::Assets
         Core::Result<std::shared_ptr<Asset>> loaded = importer->Load(record, payload.data(), payload.size());
         if (!loaded)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::AssetLoadFailed, record.path, loaded.GetError().GetText()));
-            return nullptr;
+            return Core::Error(Core::EngineText::AssetLoadFailed, record.path, loaded.GetError().GetText());
         }
         std::shared_ptr<Asset> asset = std::move(*loaded);
         asset->SetIdentity(guid, AssetStem(std::filesystem::path(record.path).filename().string()), record.path, record.type);

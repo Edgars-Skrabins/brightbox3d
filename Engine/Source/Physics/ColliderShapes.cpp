@@ -91,6 +91,10 @@ namespace BrightBox3D::Physics
         JPH::RefConst<JPH::Shape> CreateMeshShape(const MeshCollider& mesh, MotionType motion)
         {
             auto model = mesh.GetModel().Load();
+            if (!model)
+            {
+                Assets::ReportLoadFailure(model.GetError());
+            }
             const Geometry::MeshData* data = model ? model->GetMesh(mesh.GetMeshIndex()) : nullptr;
             if (!data || data->vertices.empty())
             {

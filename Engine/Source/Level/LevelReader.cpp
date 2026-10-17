@@ -240,12 +240,18 @@ namespace BrightBox3D::Level
 
     const JsonValue* LevelReader::FindAssetRoot(const Core::Guid& asset, std::shared_ptr<Assets::Asset>& holder, TemplateAccess templates)
     {
-        holder = Assets::AssetDatabase::Get().LoadAsset(asset);
-        if (auto* variant = holder ? Reflection::Cast<LevelObjectVariantAsset>(holder.get()) : nullptr)
+        Core::Result<std::shared_ptr<Assets::Asset>> loaded = Assets::AssetDatabase::Get().LoadAsset(asset);
+        if (!loaded)
+        {
+            Assets::ReportLoadFailure(loaded.GetError());
+            return nullptr;
+        }
+        holder = std::move(*loaded);
+        if (auto* variant = Reflection::Cast<LevelObjectVariantAsset>(holder.get()))
         {
             return variant->GetRoot();
         }
-        auto* templateAsset = holder ? Reflection::Cast<LevelObjectTemplateAsset>(holder.get()) : nullptr;
+        auto* templateAsset = Reflection::Cast<LevelObjectTemplateAsset>(holder.get());
         if (templateAsset && templates == TemplateAccess::Allow)
         {
             return templateAsset->GetRoot();
@@ -335,7 +341,7 @@ namespace BrightBox3D::Level
         auto asset = Assets::AssetDatabase::Get().Load<LevelCollectionAsset>(collectionAsset);
         if (!asset)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::CollectionLoadFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), collectionAsset.ToString()));
+            Core::Log::Error(Core::Text(Core::EngineText::CollectionLoadFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), collectionAsset.ToString(), asset.GetError().GetText()));
             return false;
         }
         LevelCollection* collection = level.AddCollection(GetString(asset->GetDocument(), LevelFileSchema::Name, asset->GetName()), collectionAsset);
@@ -355,7 +361,7 @@ namespace BrightBox3D::Level
         {
             if (error)
             {
-                *error = Core::Text(Core::EngineText::LevelAssetNotFound);
+                *error = asset.GetError().GetText();
             }
             return nullptr;
         }

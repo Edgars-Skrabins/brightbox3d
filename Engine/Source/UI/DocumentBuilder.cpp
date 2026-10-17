@@ -59,6 +59,7 @@ namespace BrightBox3D::UI
         auto asset = Assets::AssetDatabase::Get().Load<StyleSheetAsset>(guid);
         if (!asset)
         {
+            Assets::ReportLoadFailure(asset.GetError());
             return false;
         }
         StyleSheet sheet;
@@ -110,6 +111,7 @@ namespace BrightBox3D::UI
             auto widget = Assets::AssetDatabase::Get().Load<WidgetAsset>(guid);
             if (!widget)
             {
+                Assets::ReportLoadFailure(widget.GetError());
                 return nullptr;
             }
             pugi::xml_parse_result result = widgetDocument.load_string(widget->GetText().c_str());

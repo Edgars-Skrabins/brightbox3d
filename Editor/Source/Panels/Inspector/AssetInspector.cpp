@@ -98,6 +98,10 @@ namespace BrightBox3D::Editor
         {
             ImGui::TextUnformatted(Text(EditorText::TextureSummary, texture->GetWidth(), texture->GetHeight(), texture->GetMips().size()).c_str());
         }
+        else
+        {
+            Assets::ReportLoadFailure(texture.GetError());
+        }
         m_importSettings.Draw(guid);
     }
 
@@ -116,6 +120,10 @@ namespace BrightBox3D::Editor
                 m_application.GetContext().GetObjectEditService().CreateModelObject(record.guid, StemOf(record.name), m_application.GetSpawnPoint());
             }
         }
+        else
+        {
+            Assets::ReportLoadFailure(model.GetError());
+        }
         m_importSettings.Draw(record.guid);
     }
 
@@ -131,6 +139,10 @@ namespace BrightBox3D::Editor
             ImGui::BeginChild("Preview", ImVec2(0, 0), ImGuiChildFlags_Borders);
             ImGui::TextUnformatted(text->GetText().c_str());
             ImGui::EndChild();
+        }
+        else
+        {
+            Assets::ReportLoadFailure(text.GetError());
         }
     }
 

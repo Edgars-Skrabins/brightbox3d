@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "Level/LevelSubsystem.h"
 
 #include <functional>
@@ -40,11 +41,11 @@ namespace BrightBox3D::Level
         struct Request
         {
             Core::Guid collection;
-            std::future<std::shared_ptr<LevelCollectionAsset>> asset;
+            std::future<Core::Result<std::shared_ptr<LevelCollectionAsset>>> asset;
             std::vector<Callback> callbacks;
         };
 
-        void Complete(Request& request, std::shared_ptr<LevelCollectionAsset> asset);
+        void Complete(Request& request, const Core::Result<std::shared_ptr<LevelCollectionAsset>>& asset);
 
         std::vector<std::unique_ptr<Request>> m_requests;
         std::vector<Core::Guid> m_pendingRemovals;

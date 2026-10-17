@@ -50,6 +50,7 @@ namespace BrightBox3D::Editor
             auto model = Assets::AssetDatabase::Get().Load<Geometry::ModelAsset>(asset);
             if (!model)
             {
+                Assets::ReportLoadFailure(model.GetError());
                 return std::nullopt;
             }
             Math::Bounds bounds;
@@ -207,7 +208,12 @@ namespace BrightBox3D::Editor
     bool ThumbnailCache::CopyTextureThumbnail(const Core::Guid& asset)
     {
         auto texture = Assets::AssetDatabase::Get().Load<Rendering::TextureAsset>(asset);
-        if (!texture || texture->GetMips().empty() || texture->GetPixelFormat() == Rendering::TexturePixelFormat::RGBA32Float)
+        if (!texture)
+        {
+            Assets::ReportLoadFailure(texture.GetError());
+            return false;
+        }
+        if (texture->GetMips().empty() || texture->GetPixelFormat() == Rendering::TexturePixelFormat::RGBA32Float)
         {
             return false;
         }

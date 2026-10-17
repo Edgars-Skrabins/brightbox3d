@@ -74,6 +74,10 @@ namespace BrightBox3D::Rendering
             return it->second.get();
         }
         auto asset = Assets::AssetDatabase::Get().Load<Geometry::ModelAsset>(model);
+        if (!asset)
+        {
+            Assets::ReportLoadFailure(asset.GetError());
+        }
         const Geometry::MeshData* mesh = asset ? asset->GetMesh(meshIndex) : nullptr;
         std::unique_ptr<GpuMesh> gpu = mesh ? Upload(*mesh) : nullptr;
         GpuMesh* raw = gpu.get();
@@ -107,6 +111,10 @@ namespace BrightBox3D::Rendering
             return it->second.get();
         }
         auto asset = Assets::AssetDatabase::Get().Load<TextureAsset>(texture);
+        if (!asset)
+        {
+            Assets::ReportLoadFailure(asset.GetError());
+        }
         std::unique_ptr<GpuTexture> gpu;
         if (asset && !asset->GetMips().empty())
         {

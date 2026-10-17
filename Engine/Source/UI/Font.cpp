@@ -151,7 +151,14 @@ namespace BrightBox3D::UI
         auto asset = database.Load<FontAsset>(database.ResolveReference(family));
         if (!asset)
         {
-            Core::Log::Warning(Core::Text(Core::EngineText::FontNotFound, family));
+            if (Assets::IsAbsentAsset(asset.GetError()))
+            {
+                Core::Log::Warning(Core::Text(Core::EngineText::FontNotFound, family));
+            }
+            else
+            {
+                Core::Log::Error(asset.GetError().GetText());
+            }
             m_fonts[family] = nullptr;
             return GetDefault();
         }

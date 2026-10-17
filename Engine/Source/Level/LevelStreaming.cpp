@@ -97,12 +97,12 @@ namespace BrightBox3D::Level
         m_requests.push_back(std::move(request));
     }
 
-    void LevelStreaming::Complete(Request& request, std::shared_ptr<LevelCollectionAsset> asset)
+    void LevelStreaming::Complete(Request& request, const Core::Result<std::shared_ptr<LevelCollectionAsset>>& asset)
     {
         LevelCollection* collection = nullptr;
         if (!asset)
         {
-            Core::Log::Error(Core::Text(Core::EngineText::StreamingFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), request.collection.ToString()));
+            Core::Log::Error(Core::Text(Core::EngineText::StreamingFailed, Assets::AssetTypeName(Assets::AssetType::LevelCollection), request.collection.ToString(), asset.GetError().GetText()));
         }
         else if (!(collection = GetLevel()->FindCollection(request.collection)))
         {

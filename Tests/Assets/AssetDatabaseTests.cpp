@@ -1,4 +1,5 @@
 #include "Assets/AssetDatabase.h"
+#include "Assets/JsonAsset.h"
 #include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
 
@@ -208,6 +209,37 @@ TEST(AssetDatabaseTests, DuplicatedAssetsGetNumberedCopiesWithNewGuids)
     EXPECT_FALSE(database.DuplicateAsset(Core::Guid::Generate()).IsValid());
 }
 
+TEST(AssetDatabaseTests, LoadFailuresCarryTypedErrors)
+{
+    AssetProject project;
+    ASSERT_TRUE(project.Write("Main.css", "a {}"));
+    ASSERT_TRUE(project.Write("Broken.material", "{ not json"));
+    ASSERT_TRUE(project.Open());
+    AssetDatabase& database = AssetDatabase::Get();
+
+    Core::Result<std::shared_ptr<Asset>> unset = database.LoadAsset(Core::Guid{});
+    ASSERT_FALSE(unset);
+    EXPECT_EQ(unset.GetError().GetId(), Core::EngineText::AssetNotSet);
+    EXPECT_TRUE(IsAbsentAsset(unset.GetError()));
+
+    Core::Guid unknown = Core::Guid::Generate();
+    Core::Result<std::shared_ptr<Asset>> missing = database.LoadAsset(unknown);
+    ASSERT_FALSE(missing);
+    EXPECT_EQ(missing.GetError().GetId(), Core::EngineText::AssetNotFound);
+    EXPECT_EQ(missing.GetError().GetArguments(), std::vector<std::string>{ unknown.ToString() });
+
+    Core::Result<std::shared_ptr<JsonAsset>> wrongType = database.Load<JsonAsset>(project.GuidOf("Main.css"));
+    ASSERT_FALSE(wrongType);
+    EXPECT_EQ(wrongType.GetError().GetId(), Core::EngineText::AssetWrongType);
+    EXPECT_FALSE(IsAbsentAsset(wrongType.GetError()));
+
+    Core::Result<std::shared_ptr<Asset>> broken = database.LoadAsset(project.GuidOf("Broken.material"));
+    ASSERT_FALSE(broken);
+    EXPECT_EQ(broken.GetError().GetId(), Core::EngineText::AssetLoadFailed);
+    EXPECT_EQ(broken.GetError().GetArguments().front(), "Broken.material");
+    EXPECT_EQ(database.FindLoaded(project.GuidOf("Broken.material")), nullptr);
+}
+
 TEST(AssetDatabaseTests, RefreshBroadcastsExternalEditsAndDeletions)
 {
     AssetProject project;
@@ -217,7 +249,7 @@ TEST(AssetDatabaseTests, RefreshBroadcastsExternalEditsAndDeletions)
     AssetDatabase& database = AssetDatabase::Get();
     Core::Guid edited = project.GuidOf("Edited.css");
     Core::Guid removed = project.GuidOf("Removed.css");
-    ASSERT_NE(database.LoadAsset(edited), nullptr);
+    ASSERT_TRUE(Tests::Succeeded(database.LoadAsset(edited)));
     ASSERT_NE(database.FindLoaded(edited), nullptr);
 
     std::vector<Core::Guid> changedEvents;

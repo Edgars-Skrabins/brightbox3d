@@ -101,6 +101,7 @@ namespace BrightBox3D::Editor
         auto asset = Assets::AssetDatabase::Get().Load<Geometry::ModelAsset>(model);
         if (!asset)
         {
+            Assets::ReportLoadFailure(asset.GetError());
             return nullptr;
         }
         LevelCollection* collection = parent ? parent->GetCollection() : m_context.GetLevelService().GetActiveCollection();

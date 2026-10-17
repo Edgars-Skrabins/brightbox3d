@@ -82,10 +82,10 @@ TEST(RenderingAssetTests, BuiltinMeshesAreClosedAndWoundConsistently)
 TEST(RenderingAssetTests, BuiltinAssetsLoadThroughDatabase)
 {
     auto cube = Assets::AssetDatabase::Get().Load<ModelAsset>(BuiltinAssets::Cube());
-    ASSERT_NE(cube, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(cube));
     EXPECT_EQ(cube->GetMeshes().size(), 1u);
     EXPECT_EQ(cube->GetName(), "Cube");
-    EXPECT_NE(Assets::AssetDatabase::Get().Load<MaterialAsset>(BuiltinAssets::DefaultMaterial()), nullptr);
+    EXPECT_TRUE(Tests::Succeeded(Assets::AssetDatabase::Get().Load<MaterialAsset>(BuiltinAssets::DefaultMaterial())));
 }
 
 TEST(RenderingAssetTests, ImportsFbxIntoLeftHandedSpace)
@@ -99,7 +99,7 @@ TEST(RenderingAssetTests, ImportsFbxIntoLeftHandedSpace)
     ASSERT_NE(record, nullptr);
     EXPECT_EQ(record->type, Assets::AssetType::Model);
     auto model = Assets::AssetDatabase::Get().Load<ModelAsset>(record->guid);
-    ASSERT_NE(model, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(model));
     ASSERT_FALSE(model->GetMeshes().empty());
     const MeshData& mesh = model->GetMeshes()[0];
     EXPECT_EQ(mesh.indices.size() % 3, 0u);
@@ -122,7 +122,7 @@ TEST(RenderingAssetTests, ImportsPngWithMipChain)
     const Assets::AssetRecord* record = Assets::AssetDatabase::Get().FindRecordByPath("Checker.png");
     ASSERT_NE(record, nullptr);
     auto texture = Assets::AssetDatabase::Get().Load<TextureAsset>(record->guid);
-    ASSERT_NE(texture, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(texture));
     EXPECT_EQ(texture->GetWidth(), 8u);
     EXPECT_EQ(texture->GetHeight(), 4u);
     EXPECT_EQ(texture->GetMips().size(), 4u);
@@ -145,7 +145,7 @@ TEST(RenderingAssetTests, ChangingTextureFilterSettingReimports)
     ASSERT_NE(record, nullptr);
     Core::Guid guid = record->guid;
     auto texture = database.Load<TextureAsset>(guid);
-    ASSERT_NE(texture, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(texture));
     EXPECT_EQ(texture->GetFilter(), TextureFilterMode::Trilinear);
 
     std::unique_ptr<Reflection::EngineObject> settings = database.LoadImportSettings(*record);
@@ -156,7 +156,7 @@ TEST(RenderingAssetTests, ChangingTextureFilterSettingReimports)
     ASSERT_TRUE(database.SaveImportSettings(guid, *settings));
 
     auto reimported = database.Load<TextureAsset>(guid);
-    ASSERT_NE(reimported, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(reimported));
     EXPECT_EQ(reimported->GetFilter(), TextureFilterMode::Point);
     auto reloaded = database.LoadImportSettings(*database.FindRecord(guid));
     EXPECT_EQ(Reflection::Cast<TextureImportSettings>(reloaded.get())->filter, TextureFilterMode::Point);
@@ -174,7 +174,7 @@ TEST(RenderingAssetTests, MaterialsRoundTripThroughJson)
     Serialization::SerializeProperties(source, document, document.GetAllocator());
     Core::Guid guid = Assets::AssetDatabase::Get().CreateJsonAsset("Glass.material", document);
     auto material = Assets::AssetDatabase::Get().Load<MaterialAsset>(guid);
-    ASSERT_NE(material, nullptr);
+    ASSERT_TRUE(Tests::Succeeded(material));
     EXPECT_EQ(material->m_baseColor, source.m_baseColor);
     EXPECT_EQ(material->m_roughness, 0.1f);
     EXPECT_EQ(material->m_blendMode, BlendMode::Transparent);

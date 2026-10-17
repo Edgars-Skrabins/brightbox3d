@@ -35,15 +35,26 @@ namespace BrightBox3D::Rendering
             EmissiveSlot
         };
 
+        std::shared_ptr<MaterialAsset> LoadOrReport(const Assets::AssetReference<MaterialAsset>& reference)
+        {
+            Core::Result<std::shared_ptr<MaterialAsset>> material = reference.Load();
+            if (!material)
+            {
+                Assets::ReportLoadFailure(material.GetError());
+                return nullptr;
+            }
+            return *material;
+        }
+
         std::shared_ptr<MaterialAsset> FindSlotMaterial(const std::vector<Assets::AssetReference<MaterialAsset>>& materials, uint32_t slot)
         {
             if (slot < materials.size() && materials[slot].IsSet())
             {
-                return materials[slot].Load();
+                return LoadOrReport(materials[slot]);
             }
             if (!materials.empty() && materials.back().IsSet() && slot >= materials.size())
             {
-                return materials.back().Load();
+                return LoadOrReport(materials.back());
             }
             return nullptr;
         }
@@ -147,7 +158,11 @@ namespace BrightBox3D::Rendering
                 ++m_statistics.culledObjects;
             }
 
-            std::shared_ptr<Geometry::ModelAsset> modelAsset = database.Load<Geometry::ModelAsset>(model.guid);
+            Core::Result<std::shared_ptr<Geometry::ModelAsset>> modelAsset = database.Load<Geometry::ModelAsset>(model.guid);
+            if (!modelAsset)
+            {
+                Assets::ReportLoadFailure(modelAsset.GetError());
+            }
             for (uint32_t subMesh = 0; subMesh < mesh->subMeshes.size(); ++subMesh)
             {
                 uint32_t slot = mesh->subMeshes[subMesh].materialSlot;
@@ -159,7 +174,7 @@ namespace BrightBox3D::Rendering
                 }
                 if (!material && !embedded)
                 {
-                    material = database.Load<MaterialAsset>(BuiltinAssets::DefaultMaterial());
+                    material = LoadOrReport(Assets::AssetReference<MaterialAsset>(BuiltinAssets::DefaultMaterial()));
                 }
 
                 DrawItem item;

@@ -121,7 +121,11 @@ namespace BrightBox3D::Editor
             for (const Assets::AssetRecord& candidate : database.GetRecords(Assets::AssetType::LevelObjectVariant))
             {
                 auto variant = database.Load<Level::LevelObjectVariantAsset>(candidate.guid);
-                if (variant && variant->GetParentTemplate() == guid)
+                if (!variant)
+                {
+                    Assets::ReportLoadFailure(variant.GetError());
+                }
+                else if (variant->GetParentTemplate() == guid)
                 {
                     variants.push_back(candidate.guid);
                 }

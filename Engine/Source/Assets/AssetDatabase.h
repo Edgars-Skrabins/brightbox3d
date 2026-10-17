@@ -6,6 +6,7 @@
 #include "Core/Event.h"
 #include "Core/FileSystem.h"
 #include "Core/Guid.h"
+#include "Core/Result.h"
 #include "Serialization/Json.h"
 
 #include <filesystem>
@@ -72,17 +73,21 @@ namespace BrightBox3D::Assets
         std::vector<AssetRecord> GetRecords(AssetType type = AssetType::Unknown) const;
         std::string MakeRelativePath(const std::filesystem::path& absolutePath) const;
 
-        std::shared_ptr<Asset> LoadAsset(const Core::Guid& guid);
+        Core::Result<std::shared_ptr<Asset>> LoadAsset(const Core::Guid& guid);
 
         template <typename T>
-        std::shared_ptr<T> Load(const Core::Guid& guid)
+        Core::Result<std::shared_ptr<T>> Load(const Core::Guid& guid)
         {
-            std::shared_ptr<Asset> asset = LoadAsset(guid);
-            if (asset && asset->IsA(T::StaticType()))
+            Core::Result<std::shared_ptr<Asset>> asset = LoadAsset(guid);
+            if (!asset)
             {
-                return std::static_pointer_cast<T>(asset);
+                return asset.GetError();
             }
-            return nullptr;
+            if (!asset->IsA(T::StaticType()))
+            {
+                return Core::Error(Core::EngineText::AssetWrongType, asset->GetPath(), T::StaticType().GetName());
+            }
+            return std::static_pointer_cast<T>(*asset);
         }
 
         std::shared_ptr<Asset> FindLoaded(const Core::Guid& guid) const;
@@ -149,6 +154,9 @@ namespace BrightBox3D::Assets
         uint64_t m_revision = 0;
     };
 
+    bool IsAbsentAsset(const Core::Error& error);
+    void ReportLoadFailure(const Core::Error& error);
+
     template <typename T>
     struct AssetReference
     {
@@ -160,9 +168,9 @@ namespace BrightBox3D::Assets
         AssetReference() = default;
         explicit AssetReference(const Core::Guid& value) : guid(value) {}
 
-        std::shared_ptr<T> Load() const
+        Core::Result<std::shared_ptr<T>> Load() const
         {
-            return guid.IsValid() ? AssetDatabase::Get().Load<T>(guid) : nullptr;
+            return AssetDatabase::Get().Load<T>(guid);
         }
 
         bool IsSet() const { return guid.IsValid(); }
