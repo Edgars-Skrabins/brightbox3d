@@ -13,6 +13,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
@@ -199,7 +200,7 @@ namespace BrightBox3D::Level
         void RefreshEnabledState(LevelObject& object);
         void OnComponentAttached(LevelObjectComponent& component);
         void MoveToCollection(LevelObject& object, LevelCollection* collection);
-        void SetRootCollection(LevelObject& root, LevelCollection* collection, int siblingIndex = -1);
+        void SetRootCollection(LevelObject& root, LevelCollection* collection, std::optional<size_t> siblingPosition = std::nullopt);
 
         Reflection::EngineObject* CreateEngineObject(const Reflection::TypeInfo& type);
         void DestroyEngineObject(Reflection::EngineObject* object);
@@ -231,10 +232,10 @@ namespace BrightBox3D::Level
         static void SetRuntimeState(LevelObjectComponent& component, const ComponentRuntimeState& state);
         static Reflection::EngineObjectState GetRuntimeState(const Reflection::EngineObject& object);
         static void SetRuntimeState(Reflection::EngineObject& object, const Reflection::EngineObjectState& state);
-        static void AttachComponent(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, int index = -1);
+        static void AttachComponent(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, std::optional<size_t> position = std::nullopt);
 
         std::unique_ptr<LevelObject> ReleaseObjectForReplacement(LevelObject& object, std::vector<LevelObject*>& children, std::vector<std::unique_ptr<LevelObjectComponent>>& components);
-        void InstallReplacement(std::unique_ptr<LevelObject> replacement, const std::vector<LevelObject*>& children, LevelObject* parent, LevelCollection* collection, int siblingIndex);
+        void InstallReplacement(std::unique_ptr<LevelObject> replacement, const std::vector<LevelObject*>& children, LevelObject* parent, LevelCollection* collection, std::optional<size_t> siblingPosition);
         std::unique_ptr<LevelObjectComponent> ReleaseComponentForReplacement(LevelObject& object, size_t index);
         void InstallComponentReplacement(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, size_t index);
         std::unique_ptr<Reflection::EngineObject> ReleaseEngineObjectForReplacement(size_t index);

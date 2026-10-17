@@ -2,6 +2,7 @@
 
 #include "Core/Guid.h"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,7 @@ namespace BrightBox3D::Level
         bool IsDirty() const { return m_isDirty; }
         void SetDirty(bool dirty) { m_isDirty = dirty; }
 
-        void AddRoot(LevelObject* object, int index = -1);
+        void AddRoot(LevelObject* object, std::optional<size_t> position = std::nullopt);
         void RemoveRoot(LevelObject* object);
 
     private:

@@ -111,8 +111,8 @@ namespace BrightBox3D::Editor
             Serialization::JsonDocument after;
             ObjectEditService::Snapshot(*played, after);
             Core::Guid parent = original->GetParent() ? original->GetParent()->GetId() : Core::Guid{};
-            int collection = m_context.GetLevelService().GetCollectionIndex(original->GetCollection());
-            int sibling = original->GetSiblingIndex();
+            std::optional<size_t> collection = m_context.GetLevelService().GetCollectionIndex(original->GetCollection());
+            size_t sibling = original->GetSiblingIndex();
             m_context.GetObjectEditService().RestoreSnapshot(after, parent, collection, sibling);
             m_context.GetUndoService().RecordObjectChange(id, before, Text(EditorText::UndoKeepPlayModeChanges));
             Core::Log::Info(Text(EditorText::KeptPlayModeChanges, played->GetName()));

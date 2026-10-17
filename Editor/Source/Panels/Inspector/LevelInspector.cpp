@@ -147,7 +147,7 @@ namespace BrightBox3D::Editor::LevelInspector
     void DrawCollection(EditorContext& context, Level::LevelCollection* collection)
     {
         Level::Level* level = context.GetLevelService().GetActiveLevel();
-        if (!collection || !level || context.GetLevelService().GetCollectionIndex(collection) < 0)
+        if (!collection || !level || !context.GetLevelService().GetCollectionIndex(collection))
         {
             ImGui::TextDisabled("%s", Text(EditorText::NothingSelected));
             return;

@@ -32,7 +32,7 @@ namespace BrightBox3D::Level
         Core::Guid id;
         Core::Guid parentId;
         LevelCollection* collection = nullptr;
-        int siblingIndex = 0;
+        size_t siblingIndex = 0;
         int depth = 0;
         bool replaceBrain = false;
         std::string typeName;

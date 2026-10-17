@@ -159,7 +159,7 @@ namespace BrightBox3D::Editor
         {
             if (Level::LevelObject* draggedObject = context.GetLevelService().GetActiveLevel()->FindObject(*dragged))
             {
-                context.GetObjectEditService().Reparent(*draggedObject, nullptr, &collection, -1);
+                context.GetObjectEditService().Reparent(*draggedObject, nullptr, &collection, std::nullopt);
             }
         }
         ImGui::EndDragDropTarget();
@@ -334,7 +334,7 @@ namespace BrightBox3D::Editor
                 }
                 else
                 {
-                    context.GetObjectEditService().Reparent(*draggedObject, &object, object.GetCollection(), -1);
+                    context.GetObjectEditService().Reparent(*draggedObject, &object, object.GetCollection(), std::nullopt);
                 }
             }
         }

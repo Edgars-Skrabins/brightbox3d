@@ -6,6 +6,7 @@
 #include "UndoStack.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,8 +21,8 @@ namespace BrightBox3D::Editor
     {
         Core::Guid id;
         Core::Guid parent;
-        int collection = 0;
-        int sibling = 0;
+        std::optional<size_t> collection;
+        size_t sibling = 0;
         std::shared_ptr<Serialization::JsonDocument> snapshot;
     };
 

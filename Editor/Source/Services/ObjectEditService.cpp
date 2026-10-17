@@ -49,7 +49,7 @@ namespace BrightBox3D::Editor
         LevelSerializer::WriteObject(object, document, document.GetAllocator(), Level::LinkWriting::Preserve);
     }
 
-    LevelObject* ObjectEditService::RestoreSnapshot(const JsonValue& snapshot, const Core::Guid& parentId, int collectionIndex, int siblingIndex)
+    LevelObject* ObjectEditService::RestoreSnapshot(const JsonValue& snapshot, const Core::Guid& parentId, std::optional<size_t> collectionIndex, size_t siblingIndex)
     {
         Level::Level* level = m_context.GetLevelService().GetEditLevel();
         if (!level)
@@ -269,7 +269,7 @@ namespace BrightBox3D::Editor
         m_context.GetLevelService().BumpLevelRevision();
     }
 
-    void ObjectEditService::Reparent(LevelObject& object, LevelObject* parent, LevelCollection* collection, int siblingIndex)
+    void ObjectEditService::Reparent(LevelObject& object, LevelObject* parent, LevelCollection* collection, std::optional<size_t> siblingPosition)
     {
         if (parent == &object || (parent && parent->IsDescendantOf(&object)))
         {
@@ -284,12 +284,12 @@ namespace BrightBox3D::Editor
         m_context.GetLevelService().MarkDirty(object);
         if (parent)
         {
-            object.SetParent(parent, Level::ParentTransform::KeepWorld, siblingIndex);
+            object.SetParent(parent, Level::ParentTransform::KeepWorld, siblingPosition);
         }
         else
         {
             object.SetParent(nullptr, Level::ParentTransform::KeepWorld);
-            m_context.GetLevelService().GetActiveLevel()->SetRootCollection(object, collection ? collection : object.GetCollection(), siblingIndex);
+            m_context.GetLevelService().GetActiveLevel()->SetRootCollection(object, collection ? collection : object.GetCollection(), siblingPosition);
         }
         m_context.GetLevelService().MarkDirty(object);
         m_context.GetUndoService().RecordReparent(object, from);

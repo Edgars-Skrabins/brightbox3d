@@ -91,12 +91,12 @@ namespace BrightBox3D::Editor
         }
         if (ImGui::MenuItem(Text(EditorText::MoveUp), nullptr, false, index > 0))
         {
-            object.MoveComponent(&component, static_cast<int>(index) - 1);
+            object.MoveComponent(&component, index - 1);
             changed = true;
         }
         if (ImGui::MenuItem(Text(EditorText::MoveDown), nullptr, false, index + 1 < count))
         {
-            object.MoveComponent(&component, static_cast<int>(index) + 1);
+            object.MoveComponent(&component, index + 1);
             changed = true;
         }
         ImGui::EndDisabled();

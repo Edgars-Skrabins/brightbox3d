@@ -113,8 +113,8 @@ namespace BrightBox3D::Level
         owner->DetachComponent(&component);
     }
 
-    void Level::AttachComponent(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, int index)
+    void Level::AttachComponent(LevelObject& object, std::unique_ptr<LevelObjectComponent> component, std::optional<size_t> position)
     {
-        object.AttachComponent(std::move(component), index);
+        object.AttachComponent(std::move(component), position);
     }
 }

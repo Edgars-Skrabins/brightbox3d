@@ -6,6 +6,7 @@
 #include "Reflection/EngineObject.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -70,9 +71,9 @@ namespace BrightBox3D::Level
 
         LevelObject* GetParent() const { return m_parent; }
         const std::vector<LevelObject*>& GetChildren() const { return m_children; }
-        void SetParent(LevelObject* parent, ParentTransform mode = ParentTransform::KeepWorld, int siblingIndex = -1);
-        int GetSiblingIndex() const;
-        void SetSiblingIndex(int index);
+        void SetParent(LevelObject* parent, ParentTransform mode = ParentTransform::KeepWorld, std::optional<size_t> siblingPosition = std::nullopt);
+        size_t GetSiblingIndex() const;
+        void SetSiblingIndex(size_t index);
         bool IsDescendantOf(const LevelObject* ancestor) const;
         LevelObject* GetRoot();
         LevelObject* FindChild(const std::string& name, ChildSearch search = ChildSearch::Recursive) const;
@@ -81,7 +82,7 @@ namespace BrightBox3D::Level
 
         LevelObjectComponent* AddComponent(const Reflection::TypeInfo& type);
         void RemoveComponent(LevelObjectComponent* component);
-        bool MoveComponent(LevelObjectComponent* component, int index);
+        bool MoveComponent(LevelObjectComponent* component, size_t index);
         const std::vector<std::unique_ptr<LevelObjectComponent>>& GetComponents() const { return m_components; }
         LevelObjectComponent* GetComponent(const Reflection::TypeInfo& type);
         const LevelObjectComponent* GetComponent(const Reflection::TypeInfo& type) const;
@@ -206,7 +207,7 @@ namespace BrightBox3D::Level
         template <typename Self>
         static MatchConst<LevelObject, Self>* FindLinkRoot(Self& self);
 
-        void AttachComponent(std::unique_ptr<LevelObjectComponent> component, int index = -1);
+        void AttachComponent(std::unique_ptr<LevelObjectComponent> component, std::optional<size_t> position = std::nullopt);
         std::unique_ptr<LevelObjectComponent> DetachComponent(LevelObjectComponent* component);
 
         LevelObjectState m_state;

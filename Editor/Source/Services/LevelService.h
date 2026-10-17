@@ -4,6 +4,7 @@
 #include "Level/Level.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace BrightBox3D::Editor
@@ -30,8 +31,8 @@ namespace BrightBox3D::Editor
 
         Level::LevelCollection* GetActiveCollection() const;
         void SetActiveCollection(Level::LevelCollection* collection) { m_activeCollection = collection; }
-        int GetCollectionIndex(const Level::LevelCollection* collection) const;
-        Level::LevelCollection* GetCollectionByIndex(int index) const;
+        std::optional<size_t> GetCollectionIndex(const Level::LevelCollection* collection) const;
+        Level::LevelCollection* GetCollectionByIndex(std::optional<size_t> index) const;
 
         PlaySession* GetPlaySession() const { return m_playSession; }
         void SetPlaySession(PlaySession* session) { m_playSession = session; }

@@ -139,7 +139,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    void Level::SetRootCollection(LevelObject& root, LevelCollection* collection, int siblingIndex)
+    void Level::SetRootCollection(LevelObject& root, LevelCollection* collection, std::optional<size_t> siblingPosition)
     {
         if (!collection || root.m_parent)
         {
@@ -150,7 +150,7 @@ namespace BrightBox3D::Level
             root.m_collection->RemoveRoot(&root);
         }
         MoveToCollection(root, collection);
-        collection->AddRoot(&root, siblingIndex);
+        collection->AddRoot(&root, siblingPosition);
         MarkHierarchyChanged();
     }
 

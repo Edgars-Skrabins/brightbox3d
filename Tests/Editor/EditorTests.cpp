@@ -109,7 +109,7 @@ TEST_F(ProjectFixture, ReparentAndDuplicate)
     LevelObject* parent = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "Parent");
     LevelObject* child = m_context.GetObjectEditService().CreateObject(LevelObject::StaticType(), "Child");
     Core::Guid childId = child->GetId();
-    m_context.GetObjectEditService().Reparent(*child, parent, nullptr, -1);
+    m_context.GetObjectEditService().Reparent(*child, parent, nullptr, std::nullopt);
     EXPECT_EQ(level->FindObject(childId)->GetParent(), parent);
     m_context.GetUndoService().Undo();
     EXPECT_EQ(level->FindObject(childId)->GetParent(), nullptr);

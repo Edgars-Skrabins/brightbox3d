@@ -192,38 +192,38 @@ namespace BrightBox3D::Editor
         {
             return nullptr;
         }
-        if (m_activeCollection && GetCollectionIndex(m_activeCollection) >= 0)
+        if (m_activeCollection && GetCollectionIndex(m_activeCollection))
         {
             return m_activeCollection;
         }
         return level->GetDefaultCollection();
     }
 
-    int LevelService::GetCollectionIndex(const Level::LevelCollection* collection) const
+    std::optional<size_t> LevelService::GetCollectionIndex(const Level::LevelCollection* collection) const
     {
         Level::Level* level = GetActiveLevel();
         if (!level || !collection)
         {
-            return -1;
+            return std::nullopt;
         }
         const auto& collections = level->GetCollections();
         for (size_t i = 0; i < collections.size(); ++i)
         {
             if (collections[i].get() == collection)
             {
-                return static_cast<int>(i);
+                return i;
             }
         }
-        return -1;
+        return std::nullopt;
     }
 
-    Level::LevelCollection* LevelService::GetCollectionByIndex(int index) const
+    Level::LevelCollection* LevelService::GetCollectionByIndex(std::optional<size_t> index) const
     {
         Level::Level* level = GetActiveLevel();
-        if (!level || index < 0 || index >= static_cast<int>(level->GetCollections().size()))
+        if (!level || !index || *index >= level->GetCollections().size())
         {
             return level ? level->GetDefaultCollection() : nullptr;
         }
-        return level->GetCollections()[static_cast<size_t>(index)].get();
+        return level->GetCollections()[*index].get();
     }
 }

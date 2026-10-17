@@ -66,7 +66,7 @@ namespace BrightBox3D::Editor
         case SelectionFocus::Asset:
             return Assets::AssetDatabase::Get().FindRecord(target.asset) != nullptr;
         case SelectionFocus::Collection:
-            return context.GetLevelService().GetCollectionIndex(target.collection) >= 0;
+            return context.GetLevelService().GetCollectionIndex(target.collection).has_value();
         case SelectionFocus::Level:
             return context.GetLevelService().GetEditLevel() != nullptr;
         default:

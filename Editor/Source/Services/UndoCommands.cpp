@@ -29,8 +29,8 @@ namespace BrightBox3D::Editor
         Level::Level* level = context.GetLevelService().GetEditLevel();
         Level::LevelObject* existing = level ? level->FindObject(m_location.id) : nullptr;
         Core::Guid parent = m_location.parent;
-        int collection = m_location.collection;
-        int sibling = m_location.sibling;
+        std::optional<size_t> collection = m_location.collection;
+        size_t sibling = m_location.sibling;
         if (existing)
         {
             parent = existing->GetParent() ? existing->GetParent()->GetId() : Core::Guid{};

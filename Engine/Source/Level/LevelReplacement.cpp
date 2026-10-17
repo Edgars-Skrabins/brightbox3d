@@ -78,7 +78,7 @@ namespace BrightBox3D::Level
         return nullptr;
     }
 
-    void Level::InstallReplacement(std::unique_ptr<LevelObject> replacement, const std::vector<LevelObject*>& children, LevelObject* parent, LevelCollection* collection, int siblingIndex)
+    void Level::InstallReplacement(std::unique_ptr<LevelObject> replacement, const std::vector<LevelObject*>& children, LevelObject* parent, LevelCollection* collection, std::optional<size_t> siblingPosition)
     {
         LevelObject* raw = replacement.get();
         raw->m_level = this;
@@ -88,18 +88,18 @@ namespace BrightBox3D::Level
         if (parent)
         {
             auto& siblings = parent->m_children;
-            if (siblingIndex < 0 || siblingIndex > static_cast<int>(siblings.size()))
+            if (!siblingPosition || *siblingPosition > siblings.size())
             {
                 siblings.push_back(raw);
             }
             else
             {
-                siblings.insert(siblings.begin() + siblingIndex, raw);
+                siblings.insert(siblings.begin() + static_cast<std::ptrdiff_t>(*siblingPosition), raw);
             }
         }
         else if (collection)
         {
-            collection->AddRoot(raw, siblingIndex);
+            collection->AddRoot(raw, siblingPosition);
         }
         for (LevelObject* child : children)
         {

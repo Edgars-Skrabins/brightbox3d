@@ -8,19 +8,19 @@ namespace BrightBox3D::Level
     {
     }
 
-    void LevelCollection::AddRoot(LevelObject* object, int index)
+    void LevelCollection::AddRoot(LevelObject* object, std::optional<size_t> position)
     {
         if (std::find(m_roots.begin(), m_roots.end(), object) != m_roots.end())
         {
             return;
         }
-        if (index < 0 || index > static_cast<int>(m_roots.size()))
+        if (!position || *position > m_roots.size())
         {
             m_roots.push_back(object);
         }
         else
         {
-            m_roots.insert(m_roots.begin() + index, object);
+            m_roots.insert(m_roots.begin() + static_cast<std::ptrdiff_t>(*position), object);
         }
     }
 

@@ -95,7 +95,7 @@ namespace BrightBox3D::Level
             Level* level = linkRoot.GetLevel();
             LevelObject* parent = linkRoot.GetParent();
             LevelCollection* collection = linkRoot.GetCollection();
-            int sibling = linkRoot.GetSiblingIndex();
+            size_t sibling = linkRoot.GetSiblingIndex();
             level->DestroyObjectImmediate(&linkRoot);
             LevelObject* restored = LevelSerializer::ReadObject(*level, collection, parent, document, Initialization::Immediate);
             if (restored)
@@ -276,7 +276,7 @@ namespace BrightBox3D::Level
         {
             JsonDocument document;
             LevelCollection* collection = nullptr;
-            int sibling = 0;
+            size_t sibling = 0;
             Core::Guid parentId;
         };
         std::vector<LevelObject*> roots;

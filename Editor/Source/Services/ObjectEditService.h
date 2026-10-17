@@ -6,6 +6,7 @@
 #include "Rendering/Light.h"
 #include "Serialization/Json.h"
 
+#include <optional>
 #include <string>
 
 namespace BrightBox3D::Editor
@@ -23,10 +24,10 @@ namespace BrightBox3D::Editor
         Level::LevelObject* CreateLight(Rendering::LightType type);
         void DeleteSelection();
         void DuplicateSelection();
-        void Reparent(Level::LevelObject& object, Level::LevelObject* parent, Level::LevelCollection* collection, int siblingIndex);
+        void Reparent(Level::LevelObject& object, Level::LevelObject* parent, Level::LevelCollection* collection, std::optional<size_t> siblingPosition);
 
         static void Snapshot(const Level::LevelObject& object, Serialization::JsonDocument& document);
-        Level::LevelObject* RestoreSnapshot(const Serialization::JsonValue& snapshot, const Core::Guid& parentId, int collectionIndex, int siblingIndex);
+        Level::LevelObject* RestoreSnapshot(const Serialization::JsonValue& snapshot, const Core::Guid& parentId, std::optional<size_t> collectionIndex, size_t siblingIndex);
 
     private:
         EditorContext& m_context;

@@ -51,7 +51,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    void LevelObject::SetParent(LevelObject* parent, ParentTransform mode, int siblingIndex)
+    void LevelObject::SetParent(LevelObject* parent, ParentTransform mode, std::optional<size_t> siblingPosition)
     {
         if (parent == this || (parent && parent->IsDescendantOf(this)))
         {
@@ -80,13 +80,13 @@ namespace BrightBox3D::Level
         if (parent)
         {
             auto& siblings = parent->m_children;
-            if (siblingIndex < 0 || siblingIndex > static_cast<int>(siblings.size()))
+            if (!siblingPosition || *siblingPosition > siblings.size())
             {
                 siblings.push_back(this);
             }
             else
             {
-                siblings.insert(siblings.begin() + siblingIndex, this);
+                siblings.insert(siblings.begin() + static_cast<std::ptrdiff_t>(*siblingPosition), this);
             }
             if (parent->m_collection != m_collection && GetLevel())
             {
@@ -95,7 +95,7 @@ namespace BrightBox3D::Level
         }
         else if (m_collection)
         {
-            m_collection->AddRoot(this, siblingIndex);
+            m_collection->AddRoot(this, siblingPosition);
         }
 
         if (mode == ParentTransform::KeepWorld)
@@ -114,7 +114,7 @@ namespace BrightBox3D::Level
         }
     }
 
-    int LevelObject::GetSiblingIndex() const
+    size_t LevelObject::GetSiblingIndex() const
     {
         const std::vector<LevelObject*>* siblings = nullptr;
         if (m_parent)
@@ -130,17 +130,17 @@ namespace BrightBox3D::Level
             return 0;
         }
         auto it = std::find(siblings->begin(), siblings->end(), this);
-        return it == siblings->end() ? 0 : static_cast<int>(it - siblings->begin());
+        return it == siblings->end() ? 0 : static_cast<size_t>(it - siblings->begin());
     }
 
-    void LevelObject::SetSiblingIndex(int index)
+    void LevelObject::SetSiblingIndex(size_t index)
     {
         if (m_parent)
         {
             auto& siblings = m_parent->m_children;
             siblings.erase(std::remove(siblings.begin(), siblings.end(), this), siblings.end());
-            index = std::clamp(index, 0, static_cast<int>(siblings.size()));
-            siblings.insert(siblings.begin() + index, this);
+            index = std::min(index, siblings.size());
+            siblings.insert(siblings.begin() + static_cast<std::ptrdiff_t>(index), this);
         }
         else if (m_collection)
         {
@@ -217,17 +217,17 @@ namespace BrightBox3D::Level
         return result;
     }
 
-    void LevelObject::AttachComponent(std::unique_ptr<LevelObjectComponent> component, int index)
+    void LevelObject::AttachComponent(std::unique_ptr<LevelObjectComponent> component, std::optional<size_t> position)
     {
         component->m_owner = this;
         LevelObjectComponent* raw = component.get();
-        if (index < 0 || index > static_cast<int>(m_components.size()))
+        if (!position || *position > m_components.size())
         {
             m_components.push_back(std::move(component));
         }
         else
         {
-            m_components.insert(m_components.begin() + index, std::move(component));
+            m_components.insert(m_components.begin() + static_cast<std::ptrdiff_t>(*position), std::move(component));
         }
         if (GetLevel())
         {
@@ -263,15 +263,15 @@ namespace BrightBox3D::Level
         DetachComponent(component);
     }
 
-    bool LevelObject::MoveComponent(LevelObjectComponent* component, int index)
+    bool LevelObject::MoveComponent(LevelObjectComponent* component, size_t index)
     {
         std::unique_ptr<LevelObjectComponent> detached = DetachComponent(component);
         if (!detached)
         {
             return false;
         }
-        index = std::clamp(index, 0, static_cast<int>(m_components.size()));
-        m_components.insert(m_components.begin() + index, std::move(detached));
+        index = std::min(index, m_components.size());
+        m_components.insert(m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(detached));
         return true;
     }
 
