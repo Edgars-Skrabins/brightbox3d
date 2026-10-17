@@ -50,19 +50,18 @@ namespace BrightBox3D::Assets
         return hash;
     }
 
-    bool AssetDatabase::CookAsset(const AssetRecord& record, std::vector<uint8_t>* output, std::string& error)
+    Core::Result<std::vector<uint8_t>> AssetDatabase::CookAsset(const AssetRecord& record)
     {
         AssetImporter* importer = GetImporter(record.type);
         if (!importer)
         {
-            error = Core::Text(Core::EngineText::NoImporter, AssetTypeName(record.type));
-            return false;
+            return Core::Error(Core::EngineText::NoImporter, AssetTypeName(record.type));
         }
         std::unique_ptr<Reflection::EngineObject> settings = LoadImportSettings(record);
-        std::vector<uint8_t> payload;
-        if (!importer->Cook(record, GetAbsolutePath(record), settings.get(), payload, error))
+        Core::Result<std::vector<uint8_t>> payload = importer->Cook(record, GetAbsolutePath(record), settings.get());
+        if (!payload)
         {
-            return false;
+            return payload;
         }
 
         uint64_t hash = ComputeSourceHash(record);
@@ -81,17 +80,12 @@ namespace BrightBox3D::Assets
         header.sourceHash = hash;
         Serialization::BinaryWriter writer;
         writer.Write(header);
-        writer.WriteBytes(payload.data(), payload.size());
+        writer.WriteBytes(payload->data(), payload->size());
         if (!Core::FileSystem::WriteBinary(CookedPathFor(record.guid), writer.GetBuffer().data(), writer.GetBuffer().size()))
         {
-            error = Core::Text(Core::EngineText::CookedWriteFailed);
-            return false;
+            return Core::Error(Core::EngineText::CookedWriteFailed);
         }
-        if (output)
-        {
-            *output = std::move(payload);
-        }
-        return true;
+        return payload;
     }
 
     bool AssetDatabase::ReadCookedPayload(const AssetRecord& record, const AssetImporter& importer, std::vector<uint8_t>& payload)
@@ -123,24 +117,22 @@ namespace BrightBox3D::Assets
         return true;
     }
 
-    bool AssetDatabase::CookAll(std::string& error)
+    std::vector<Core::Error> AssetDatabase::CookAll()
     {
-        bool success = true;
+        std::vector<Core::Error> failures;
         for (const AssetRecord& record : GetRecords())
         {
             if (record.type == AssetType::Folder || !GetImporter(record.type))
             {
                 continue;
             }
-            std::string assetError;
-            if (!CookAsset(record, nullptr, assetError))
+            if (Core::Result<std::vector<uint8_t>> cooked = CookAsset(record); !cooked)
             {
-                error += record.path + ": " + assetError + "\n";
-                success = false;
+                failures.emplace_back(Core::EngineText::AssetCookFailed, record.path, cooked.GetError().GetText());
             }
         }
         SaveCookedManifest();
-        return success;
+        return failures;
     }
 
     void AssetDatabase::SaveCookedManifest() const

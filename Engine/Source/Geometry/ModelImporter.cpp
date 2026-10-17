@@ -29,7 +29,7 @@ namespace BrightBox3D::Geometry
             return std::string(value.data, value.length);
         }
 
-        ufbx_scene* LoadScene(const std::filesystem::path& source, float scale, std::string& error)
+        Core::Result<ufbx_scene*> LoadScene(const std::filesystem::path& source, float scale)
         {
             ufbx_load_opts options{};
             options.target_axes = ufbx_axes_left_handed_y_up;
@@ -43,7 +43,7 @@ namespace BrightBox3D::Geometry
             {
                 char buffer[ErrorBufferSize];
                 ufbx_format_error(buffer, sizeof(buffer), &ufbxError);
-                error = buffer;
+                return Core::Error(Core::EngineText::UfbxError, std::string(buffer));
             }
             return scene;
         }
@@ -237,15 +237,13 @@ namespace BrightBox3D::Geometry
             std::unordered_map<const ufbx_material*, uint32_t> m_materialIndices;
         };
 
-        bool WriteModel(const ModelAsset& model, std::vector<uint8_t>& output, std::string& error)
+        Core::Result<std::vector<uint8_t>> WriteModel(const ModelAsset& model)
         {
             if (model.GetMeshes().empty())
             {
-                error = Core::Text(Core::EngineText::ModelHasNoMeshes);
-                return false;
+                return Core::Error(Core::EngineText::ModelHasNoMeshes);
             }
-            output = model.Serialize();
-            return true;
+            return model.Serialize();
         }
     }
 
@@ -254,27 +252,26 @@ namespace BrightBox3D::Geometry
         return &ModelImportSettings::StaticType();
     }
 
-    bool ModelImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
+    Core::Result<std::vector<uint8_t>> ModelImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings)
     {
         const auto& importSettings = static_cast<const ModelImportSettings&>(*settings);
-        ufbx_scene* scene = LoadScene(source, importSettings.scale, error);
+        Core::Result<ufbx_scene*> scene = LoadScene(source, importSettings.scale);
         if (!scene)
         {
-            return false;
+            return scene.GetError();
         }
         SceneConverter converter(importSettings.generateNormals);
-        converter.ExtractMeshes(*scene);
-        ufbx_free_scene(scene);
-        return WriteModel(converter.GetModel(), output, error);
+        converter.ExtractMeshes(**scene);
+        ufbx_free_scene(*scene);
+        return WriteModel(converter.GetModel());
     }
 
-    std::shared_ptr<Assets::Asset> ModelImporter::Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error)
+    Core::Result<std::shared_ptr<Assets::Asset>> ModelImporter::Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size)
     {
         auto model = std::make_shared<ModelAsset>();
         if (!model->Deserialize(data, size))
         {
-            error = Core::Text(Core::EngineText::CorruptCookedModel);
-            return nullptr;
+            return Core::Error(Core::EngineText::CorruptCookedModel);
         }
         return model;
     }

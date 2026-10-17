@@ -8,49 +8,44 @@
 
 namespace BrightBox3D::Assets
 {
-    bool JsonAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
+    Core::Result<std::vector<uint8_t>> JsonAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings)
     {
         Serialization::JsonDocument document;
         if (Core::Result<void> loaded = Serialization::LoadJsonFile(source, document); !loaded)
         {
-            error = loaded.GetError().GetText();
-            return false;
+            return loaded.GetError();
         }
-        output = Serialization::EncodeBinaryJson(document);
-        return true;
+        return Serialization::EncodeBinaryJson(document);
     }
 
-    std::shared_ptr<Asset> JsonAssetImporter::Load(const AssetRecord& record, const uint8_t* data, size_t size, std::string& error)
+    Core::Result<std::shared_ptr<Asset>> JsonAssetImporter::Load(const AssetRecord& record, const uint8_t* data, size_t size)
     {
         Serialization::JsonDocument document;
         if (!Serialization::DecodeBinaryJson(data, size, document))
         {
-            error = Core::Text(Core::EngineText::CorruptCookedJson);
-            return nullptr;
+            return Core::Error(Core::EngineText::CorruptCookedJson);
         }
-        return CreateAsset(std::move(document), error);
+        return CreateAsset(std::move(document));
     }
 
-    std::shared_ptr<Asset> JsonAssetImporter::CreateAsset(Serialization::JsonDocument&& document, std::string& error)
+    Core::Result<std::shared_ptr<Asset>> JsonAssetImporter::CreateAsset(Serialization::JsonDocument&& document)
     {
         auto asset = std::make_shared<JsonAsset>();
         asset->GetDocument().Swap(document);
         return asset;
     }
 
-    bool TextAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
+    Core::Result<std::vector<uint8_t>> TextAssetImporter::Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings)
     {
         auto text = Core::FileSystem::ReadText(source);
         if (!text)
         {
-            error = Core::Text(Core::EngineText::CannotReadFile);
-            return false;
+            return Core::Error(Core::EngineText::CannotReadFile);
         }
-        output.assign(text->begin(), text->end());
-        return true;
+        return std::vector<uint8_t>(text->begin(), text->end());
     }
 
-    std::shared_ptr<Asset> TextAssetImporter::Load(const AssetRecord& record, const uint8_t* data, size_t size, std::string& error)
+    Core::Result<std::shared_ptr<Asset>> TextAssetImporter::Load(const AssetRecord& record, const uint8_t* data, size_t size)
     {
         auto asset = std::make_shared<TextAsset>();
         asset->SetText(std::string(reinterpret_cast<const char*>(data), size));

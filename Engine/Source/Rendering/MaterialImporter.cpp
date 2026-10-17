@@ -5,7 +5,7 @@
 
 namespace BrightBox3D::Rendering
 {
-    std::shared_ptr<Assets::Asset> MaterialImporter::CreateAsset(Serialization::JsonDocument&& document, std::string& error)
+    Core::Result<std::shared_ptr<Assets::Asset>> MaterialImporter::CreateAsset(Serialization::JsonDocument&& document)
     {
         auto material = std::make_shared<MaterialAsset>();
         Serialization::DeserializeProperties(*material, document);

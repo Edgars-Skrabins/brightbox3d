@@ -11,7 +11,7 @@ namespace BrightBox3D::Level
         class TypedJsonImporter : public Assets::JsonAssetImporter
         {
         protected:
-            std::shared_ptr<Assets::Asset> CreateAsset(Serialization::JsonDocument&& document, std::string& error) override
+            Core::Result<std::shared_ptr<Assets::Asset>> CreateAsset(Serialization::JsonDocument&& document) override
             {
                 auto asset = std::make_shared<T>();
                 asset->GetDocument().Swap(document);

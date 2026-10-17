@@ -224,19 +224,17 @@ namespace BrightBox3D::UI
         return it == kerning.end() ? 0.0f : it->second;
     }
 
-    bool GenerateFontData(const std::filesystem::path& file, FontData& data, std::string& error)
+    Core::Result<FontData> GenerateFontData(const std::filesystem::path& file)
     {
         FontSource source;
         if (!source.freetype)
         {
-            error = Core::Text(Core::EngineText::FreeTypeInitFailed);
-            return false;
+            return Core::Error(Core::EngineText::FreeTypeInitFailed);
         }
         source.font = msdfgen::loadFont(source.freetype, file.string().c_str());
         if (!source.font)
         {
-            error = Core::Text(Core::EngineText::FontLoadFailed, file.generic_string());
-            return false;
+            return Core::Error(Core::EngineText::FontLoadFailed, file.generic_string());
         }
         std::vector<msdf_atlas::GlyphGeometry> glyphs;
         msdf_atlas::FontGeometry geometry(&glyphs);
@@ -245,9 +243,9 @@ namespace BrightBox3D::UI
         int height = 0;
         if (!PackGlyphs(glyphs, width, height))
         {
-            error = Core::Text(Core::EngineText::GlyphPackingFailed);
-            return false;
+            return Core::Error(Core::EngineText::GlyphPackingFailed);
         }
+        FontData data;
         CopyAtlas(glyphs, width, height, data);
         const msdfgen::FontMetrics& metrics = geometry.getMetrics();
         double scale = metrics.emSize > 0.0 ? 1.0 / metrics.emSize : 1.0;
@@ -257,6 +255,6 @@ namespace BrightBox3D::UI
         ConvertGlyphs(glyphs, scale, width, height, data);
         ConvertKerning(glyphs, geometry, scale, data);
         data.BuildIndex();
-        return true;
+        return data;
     }
 }

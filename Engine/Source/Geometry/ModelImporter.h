@@ -8,8 +8,8 @@ namespace BrightBox3D::Geometry
     {
     public:
         uint32_t GetVersion() const override { return 2; }
-        bool Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) override;
-        std::shared_ptr<Assets::Asset> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error) override;
+        Core::Result<std::vector<uint8_t>> Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings) override;
+        Core::Result<std::shared_ptr<Assets::Asset>> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size) override;
         const Reflection::TypeInfo* GetSettingsType() const override;
     };
 

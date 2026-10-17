@@ -121,13 +121,14 @@ namespace BrightBox3D::UI
         }
         if (!loaded)
         {
-            std::string error;
-            if (!GenerateFontData(source, data, error))
+            Core::Result<FontData> generated = GenerateFontData(source);
+            if (!generated)
             {
-                Core::Log::Error(Core::Text(Core::EngineText::DefaultFontFailed, error));
+                Core::Log::Error(Core::Text(Core::EngineText::DefaultFontFailed, generated.GetError().GetText()));
                 m_defaultFailed = true;
                 return nullptr;
             }
+            data = std::move(*generated);
             std::vector<uint8_t> serialized = data.Serialize();
             Core::FileSystem::WriteBinary(cache, serialized.data(), serialized.size());
         }

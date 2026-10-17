@@ -18,7 +18,7 @@ namespace BrightBox3D::Rendering
 
         constexpr int RequestedChannels = 4;
 
-        bool LoadHdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture, std::string& error)
+        Core::Result<void> LoadHdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture)
         {
             int width = 0;
             int height = 0;
@@ -26,15 +26,14 @@ namespace BrightBox3D::Rendering
             float* pixels = stbi_loadf(path.c_str(), &width, &height, &channels, RequestedChannels);
             if (!pixels)
             {
-                error = stbi_failure_reason();
-                return false;
+                return Core::Error(Core::EngineText::StbImageError, std::string(stbi_failure_reason()));
             }
             texture.SetData(TexturePixelFormat::RGBA32Float, MipGenerator::BuildMipsFloat(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), MipChainFor(settings)), settings.filter, settings.wrap, false);
             stbi_image_free(pixels);
-            return true;
+            return {};
         }
 
-        bool LoadLdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture, std::string& error)
+        Core::Result<void> LoadLdr(const std::string& path, const TextureImportSettings& settings, TextureAsset& texture)
         {
             int width = 0;
             int height = 0;
@@ -42,14 +41,13 @@ namespace BrightBox3D::Rendering
             stbi_uc* pixels = stbi_load(path.c_str(), &width, &height, &channels, RequestedChannels);
             if (!pixels)
             {
-                error = stbi_failure_reason();
-                return false;
+                return Core::Error(Core::EngineText::StbImageError, std::string(stbi_failure_reason()));
             }
             bool normalMap = settings.normalMap;
             bool srgb = settings.srgb && !normalMap;
             texture.SetData(srgb ? TexturePixelFormat::RGBA8Srgb : TexturePixelFormat::RGBA8, MipGenerator::BuildMips8(pixels, static_cast<uint32_t>(width), static_cast<uint32_t>(height), normalMap ? MipGenerator::MipEncoding::NormalMap : (srgb ? MipGenerator::MipEncoding::Srgb : MipGenerator::MipEncoding::Linear), MipChainFor(settings)), settings.filter, settings.wrap, normalMap);
             stbi_image_free(pixels);
-            return true;
+            return {};
         }
     }
 
@@ -58,27 +56,25 @@ namespace BrightBox3D::Rendering
         return &TextureImportSettings::StaticType();
     }
 
-    bool TextureImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error)
+    Core::Result<std::vector<uint8_t>> TextureImporter::Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings)
     {
         const auto& importSettings = static_cast<const TextureImportSettings&>(*settings);
         std::string path = source.string();
         TextureAsset texture;
-        bool loaded = stbi_is_hdr(path.c_str()) ? LoadHdr(path, importSettings, texture, error) : LoadLdr(path, importSettings, texture, error);
+        Core::Result<void> loaded = stbi_is_hdr(path.c_str()) ? LoadHdr(path, importSettings, texture) : LoadLdr(path, importSettings, texture);
         if (!loaded)
         {
-            return false;
+            return loaded.GetError();
         }
-        output = texture.Serialize();
-        return true;
+        return texture.Serialize();
     }
 
-    std::shared_ptr<Assets::Asset> TextureImporter::Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error)
+    Core::Result<std::shared_ptr<Assets::Asset>> TextureImporter::Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size)
     {
         auto texture = std::make_shared<TextureAsset>();
         if (!texture->Deserialize(data, size))
         {
-            error = Core::Text(Core::EngineText::CorruptCookedTexture);
-            return nullptr;
+            return Core::Error(Core::EngineText::CorruptCookedTexture);
         }
         return texture;
     }

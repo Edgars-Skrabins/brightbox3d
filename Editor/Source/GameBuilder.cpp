@@ -55,9 +55,14 @@ namespace BrightBox3D::Editor
         Core::Log::Info(Text(EditorText::BuildingGame, project.GetName(), output.generic_string()));
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
         database.Refresh();
-        std::string cookErrors;
-        if (!database.CookAll(cookErrors))
+        std::vector<Core::Error> cookFailures = database.CookAll();
+        if (!cookFailures.empty())
         {
+            std::string cookErrors;
+            for (const Core::Error& failure : cookFailures)
+            {
+                cookErrors += failure.GetText() + "\n";
+            }
             Core::Log::Warning(Text(EditorText::CookFailed, cookErrors));
         }
 

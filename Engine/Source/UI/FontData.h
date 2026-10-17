@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Result.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -44,5 +46,5 @@ namespace BrightBox3D::UI
         std::unordered_map<uint32_t, size_t> m_index;
     };
 
-    bool GenerateFontData(const std::filesystem::path& file, FontData& data, std::string& error);
+    Core::Result<FontData> GenerateFontData(const std::filesystem::path& file);
 }

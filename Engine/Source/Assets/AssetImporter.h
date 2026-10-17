@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Assets/Asset.h"
+#include "Core/Result.h"
 #include "Serialization/Json.h"
 
 #include <cstdint>
@@ -25,8 +26,8 @@ namespace BrightBox3D::Assets
         virtual ~AssetImporter() = default;
 
         virtual uint32_t GetVersion() const = 0;
-        virtual bool Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) = 0;
-        virtual std::shared_ptr<Asset> Load(const AssetRecord& record, const uint8_t* data, size_t size, std::string& error) = 0;
+        virtual Core::Result<std::vector<uint8_t>> Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings) = 0;
+        virtual Core::Result<std::shared_ptr<Asset>> Load(const AssetRecord& record, const uint8_t* data, size_t size) = 0;
         virtual const Reflection::TypeInfo* GetSettingsType() const { return nullptr; }
     };
 
@@ -34,18 +35,18 @@ namespace BrightBox3D::Assets
     {
     public:
         uint32_t GetVersion() const override { return 1; }
-        bool Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) override;
-        std::shared_ptr<Asset> Load(const AssetRecord& record, const uint8_t* data, size_t size, std::string& error) override;
+        Core::Result<std::vector<uint8_t>> Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings) override;
+        Core::Result<std::shared_ptr<Asset>> Load(const AssetRecord& record, const uint8_t* data, size_t size) override;
 
     protected:
-        virtual std::shared_ptr<Asset> CreateAsset(Serialization::JsonDocument&& document, std::string& error);
+        virtual Core::Result<std::shared_ptr<Asset>> CreateAsset(Serialization::JsonDocument&& document);
     };
 
     class TextAssetImporter : public AssetImporter
     {
     public:
         uint32_t GetVersion() const override { return 1; }
-        bool Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) override;
-        std::shared_ptr<Asset> Load(const AssetRecord& record, const uint8_t* data, size_t size, std::string& error) override;
+        Core::Result<std::vector<uint8_t>> Cook(const AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings) override;
+        Core::Result<std::shared_ptr<Asset>> Load(const AssetRecord& record, const uint8_t* data, size_t size) override;
     };
 }

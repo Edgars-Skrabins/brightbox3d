@@ -12,7 +12,7 @@ namespace BrightBox3D::UI
         class TypedTextImporter : public Assets::TextAssetImporter
         {
         public:
-            std::shared_ptr<Assets::Asset> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error) override
+            Core::Result<std::shared_ptr<Assets::Asset>> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size) override
             {
                 auto asset = std::make_shared<T>();
                 asset->SetText(std::string(reinterpret_cast<const char*>(data), size));
@@ -25,24 +25,22 @@ namespace BrightBox3D::UI
         public:
             uint32_t GetVersion() const override { return 1; }
 
-            bool Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings, std::vector<uint8_t>& output, std::string& error) override
+            Core::Result<std::vector<uint8_t>> Cook(const Assets::AssetRecord& record, const std::filesystem::path& source, const Reflection::EngineObject* settings) override
             {
-                FontData data;
-                if (!GenerateFontData(source, data, error))
+                Core::Result<FontData> data = GenerateFontData(source);
+                if (!data)
                 {
-                    return false;
+                    return data.GetError();
                 }
-                output = data.Serialize();
-                return true;
+                return data->Serialize();
             }
 
-            std::shared_ptr<Assets::Asset> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size, std::string& error) override
+            Core::Result<std::shared_ptr<Assets::Asset>> Load(const Assets::AssetRecord& record, const uint8_t* data, size_t size) override
             {
                 auto asset = std::make_shared<FontAsset>();
                 if (!asset->GetData().Deserialize(data, size))
                 {
-                    error = Core::Text(Core::EngineText::CorruptCookedFont);
-                    return nullptr;
+                    return Core::Error(Core::EngineText::CorruptCookedFont);
                 }
                 return asset;
             }

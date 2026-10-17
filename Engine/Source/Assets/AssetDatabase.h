@@ -88,8 +88,8 @@ namespace BrightBox3D::Assets
         std::shared_ptr<Asset> FindLoaded(const Core::Guid& guid) const;
         void Unload(const Core::Guid& guid);
         void UnloadAll();
-        bool CookAsset(const AssetRecord& record, std::vector<uint8_t>* output, std::string& error);
-        bool CookAll(std::string& error);
+        Core::Result<std::vector<uint8_t>> CookAsset(const AssetRecord& record);
+        std::vector<Core::Error> CookAll();
 
         Core::Guid ImportOrRegister(const std::filesystem::path& absolutePath);
         Core::Guid CreateJsonAsset(const std::string& relativePath, const Serialization::JsonValue& content);

@@ -169,15 +169,14 @@ namespace BrightBox3D::Editor::AssetActions
         }
         Assets::AssetRecord record = *found;
         Assets::AssetDatabase& database = Assets::AssetDatabase::Get();
-        std::string error;
         database.Unload(record.guid);
-        if (database.CookAsset(record, nullptr, error))
+        if (Core::Result<std::vector<uint8_t>> cooked = database.CookAsset(record))
         {
             database.OnAssetChanged.Broadcast(record.guid);
         }
         else
         {
-            Core::Log::Error(Text(EditorText::ReimportFailed, error));
+            Core::Log::Error(Text(EditorText::ReimportFailed, cooked.GetError().GetText()));
         }
     }
 
