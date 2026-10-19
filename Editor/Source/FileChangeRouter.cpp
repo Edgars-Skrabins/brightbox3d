@@ -48,13 +48,13 @@ namespace BrightBox3D::Editor
         {
             return;
         }
-        WatchedRoot source(projects.GetProject().GetSourceDirectory());
+        WatchedRoot scripts(projects.GetProject().GetScriptsDirectory());
         WatchedRoot assets(projects.GetProject().GetAssetsDirectory());
         bool assetsChanged = false;
         for (const Core::FileChange& change : changes)
         {
             std::string path = change.path.generic_string();
-            if (source.Contains(path))
+            if (scripts.Contains(path))
             {
                 hotReload.NotifySourceChanged(change.path);
             }

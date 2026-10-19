@@ -30,7 +30,7 @@ using BrightBox3D::Level::LevelObject;
 namespace
 {
     const std::filesystem::path SampleRoot = std::filesystem::path(BRIGHT_SAMPLES_DIR) / "ArenaDemo";
-    const char* const CopiedFolders[] = { "Source", "Assets/UI", "Assets/Materials" };
+    const char* const CopiedFolders[] = { "Scripts", "Assets/UI", "Assets/Materials" };
     const char* const AuthoredFolders[] = { "Assets/Levels", "Assets/Prefabs" };
 
     void CopyFolder(const std::filesystem::path& from, const std::filesystem::path& to)

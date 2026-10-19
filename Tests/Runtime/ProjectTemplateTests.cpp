@@ -28,6 +28,6 @@ TEST(ProjectTemplateTests, GeneratedFilesMatchThePreviousOutput)
         "set(BRIGHT_SDK \"/Engine/bin/BrightBox3DSDK.cmake\" CACHE FILEPATH \"\")\n"
         "include(${BRIGHT_SDK})\n"
         "include(${BRIGHT_ENGINE_SOURCE_DIR}/cmake/BrightGame.cmake)\n\n"
-        "bright_add_game_module(ArenaDemo ${CMAKE_CURRENT_SOURCE_DIR}/Source ${CMAKE_CURRENT_SOURCE_DIR}/Binaries/Staging)\n");
+        "bright_add_game_module(ArenaDemo ${CMAKE_CURRENT_SOURCE_DIR}/Scripts ${CMAKE_CURRENT_SOURCE_DIR}/Binaries/Staging)\n");
     EXPECT_NE(cmakeLists->find(Runtime::ProjectTemplates::GeneratedMarker), std::string::npos);
 }

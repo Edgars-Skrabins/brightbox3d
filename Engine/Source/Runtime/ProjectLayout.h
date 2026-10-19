@@ -9,7 +9,7 @@ namespace BrightBox3D::Runtime::ProjectLayout
     inline constexpr const char* ProjectFileName = "Project.bbproject";
     inline constexpr const char* AssetsFolder = Assets::AssetDatabase::AssetsFolder;
     inline constexpr const char* CacheFolder = Assets::AssetDatabase::CacheFolder;
-    inline constexpr const char* SourceFolder = "Source";
+    inline constexpr const char* ScriptsFolder = "Scripts";
     inline constexpr const char* LevelsFolder = "Levels";
     inline constexpr const char* BinariesFolder = "Binaries";
     inline constexpr const char* StagingFolder = "Staging";

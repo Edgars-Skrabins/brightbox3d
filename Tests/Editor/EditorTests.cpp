@@ -192,7 +192,7 @@ TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)
     {
         GTEST_SKIP() << "CMake is not available";
     }
-    std::filesystem::path source = m_root / "Source";
+    std::filesystem::path source = m_root / "Scripts";
     WriteFile(source / "Scorer.h", R"(#pragma once
 
 #include "Level/LevelObject.h"
@@ -314,7 +314,7 @@ void Scorer::OnGameUpdate(float deltaTime)
 
 TEST_F(ProjectFixture, CancellingACompileStopsQuicklyAndKeepsTheModule)
 {
-    std::filesystem::path source = m_context.GetProjectService().GetProject().GetSourceDirectory();
+    std::filesystem::path source = m_context.GetProjectService().GetProject().GetScriptsDirectory();
     WriteFile(source / "Counter.h", R"(#pragma once
 
 #include "Level/LevelObject.h"
@@ -360,7 +360,7 @@ public:
 
 TEST_F(ProjectFixture, FailedReloadRestoresThePreviousModuleAndSaysSo)
 {
-    std::filesystem::path source = m_context.GetProjectService().GetProject().GetSourceDirectory();
+    std::filesystem::path source = m_context.GetProjectService().GetProject().GetScriptsDirectory();
     WriteFile(source / "Keeper.h", R"(#pragma once
 
 #include "Level/LevelObject.h"

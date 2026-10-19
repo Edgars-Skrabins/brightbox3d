@@ -131,7 +131,7 @@ namespace BrightBox3D::Editor
     {
         const Runtime::Project& project = m_context.GetProjectService().GetProject();
         std::error_code error;
-        for (std::filesystem::recursive_directory_iterator it(project.GetSourceDirectory(), error), end; !error && it != end; it.increment(error))
+        for (std::filesystem::recursive_directory_iterator it(project.GetScriptsDirectory(), error), end; !error && it != end; it.increment(error))
         {
             std::string extension = it->path().extension().string();
             if (IsOneOf(extension, CompiledExtensions))

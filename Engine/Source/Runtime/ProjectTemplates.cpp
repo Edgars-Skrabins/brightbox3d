@@ -23,7 +23,7 @@ namespace BrightBox3D::Runtime::ProjectTemplates
         const Core::TemplateValue values[] = {
             { "NAME", moduleName },
             { "SDK", Core::FileSystem::ToGenericString(sdk) },
-            { "SOURCE", ProjectLayout::SourceFolder },
+            { "SCRIPTS", ProjectLayout::ScriptsFolder },
             { "STAGING", (std::filesystem::path(ProjectLayout::BinariesFolder) / ProjectLayout::StagingFolder).generic_string() },
         };
         return Core::RenderTemplate(TemplatePath(GameCMakeListsTemplate), values);

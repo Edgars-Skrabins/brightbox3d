@@ -77,7 +77,7 @@ namespace BrightBox3D::Runtime
         {
             return Core::Error(Core::EngineText::ProjectExists);
         }
-        if (!Core::FileSystem::EnsureDirectory(directory / ProjectLayout::AssetsFolder) || !Core::FileSystem::EnsureDirectory(directory / ProjectLayout::SourceFolder))
+        if (!Core::FileSystem::EnsureDirectory(directory / ProjectLayout::AssetsFolder) || !Core::FileSystem::EnsureDirectory(directory / ProjectLayout::ScriptsFolder))
         {
             return Core::Error(Core::EngineText::ProjectFoldersFailed);
         }

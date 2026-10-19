@@ -24,7 +24,7 @@ namespace BrightBox3D::Runtime
 
         const std::filesystem::path& GetRoot() const { return m_root; }
         std::filesystem::path GetAssetsDirectory() const { return m_root / ProjectLayout::AssetsFolder; }
-        std::filesystem::path GetSourceDirectory() const { return m_root / ProjectLayout::SourceFolder; }
+        std::filesystem::path GetScriptsDirectory() const { return m_root / ProjectLayout::ScriptsFolder; }
         std::filesystem::path GetCacheDirectory() const { return m_root / ProjectLayout::CacheFolder; }
         std::filesystem::path GetBinariesDirectory() const { return m_root / ProjectLayout::BinariesFolder; }
         std::filesystem::path GetGameModulePath() const;
