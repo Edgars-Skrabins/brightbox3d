@@ -9,7 +9,7 @@ C++20 3D game engine: an Unreal-style gameplay framework, a Unity-style editor, 
 | `Engine/Source/<Module>` | Engine shared library `libBrightBox3D`. Modules: `Core`, `Math`, `Platform`, `RHI` (Metal + DX11), `Reflection`, `Serialization`, `Assets`, `Geometry`, `Level`, `Rendering`, `Physics` (Jolt), `UI`, `Framework`, `Runtime`. Each module is its own CMake object library |
 | `Engine/Content` | Runtime content shipped with games: HLSL shaders, fonts. `Shaders/ShaderBindings.h` holds every shader slot number for both HLSL and C++. `Shaders/ThirdParty` is fetched at configure time and gitignored |
 | `Editor/Source` | Editor. Built as the static lib `BrightEditorCore` plus the `BrightEditor` exe. `Panels/` holds dockable windows, `Services/` the editor services owned by `EditorContext`, `Commands/` the command system, `ImGui/` the backends |
-| `Editor/Content` | Editor-only content. `Fonts/ThirdParty/Lucide` (icon font) is fetched at configure time and gitignored |
+| `Editor/Content` | Editor-only content: `AssetTemplates/` and `ScriptTemplates/` (starter files), and `Fonts/ThirdParty/Lucide` (icon font, fetched at configure time and gitignored) |
 | `Player/Source` | `BrightPlayer`, the standalone runtime used by packaged games |
 | `Tools/BrightHeaderTool` | Reflection code generator. It writes a `.gen.cpp` per reflected header |
 | `Tests/<Area>` | GoogleTest suite `BrightTests`. `System/` builds and runs a full packaged game |
@@ -48,6 +48,7 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 - **Gameplay settings** live per Level (`gameMode` and `levelBehavior` in the Level's settings), read through `Framework::LevelGameplaySettings`.
 - **Assets:** `LevelObjectTemplate` (`.template`) can't be placed; `LevelObjectVariant` (`.variant`) is placed or spawned (`Level::Spawn`) and may be based on a Template.
 - **AssetDatabase threading:** worker threads may only call `LoadAsset` / `Load<T>`, `FindLoaded` and `GetImporter`. Everything else (`Refresh`, file operations, `Open`/`Close`, and the `AssetRecord` pointers `FindRecord` returns) is main-thread only. Importers are registered at startup, before any worker runs. The database uses a plain mutex: public members lock, private helpers never do, so a locked member must call the private helper (`FindRecordUnlocked`, `ImporterFor`), never another public member.
+- **Scripts:** game code lives in `<Project>/Scripts/` (`ProjectLayout::ScriptsFolder`), separate from `Assets/`, and is compiled by `HotReload`. The editor's `ScriptLibrary` (on `EditorContext`) pairs `Name.h`/`Name.cpp` into one script; `Scripts/ScriptFiles` does create, rename (adds a `TypeRedirectRegistration`), move and delete (to the Trash). New scripts come from `ScriptTemplate` entries, each with `.h.in`/`.cpp.in` files in `Editor/Content/ScriptTemplates/` using the `@CLASS@` placeholder.
 - **Hot reload:** engine-owned state lives in `EngineObjectState`, `LevelObjectState` and `ComponentState`, moved whole by `ObjectReplacer`. Raw pointers between objects survive a reload only through `CarryReferences`.
 - **Module boundaries:** `cmake/ModuleDependencies.cmake` is the single source of truth; the build fails on a forbidden `#include`. Add a module there before using it.
 - **Renamed classes:** add a `Reflection::TypeRedirectRegistration<NewType> s_redirect("OldName");` so saved files with the old name still load.
@@ -122,6 +123,9 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 | `AssetTypeStyle` | `Editor/Source/Panels/Assets/AssetTypeStyle.h` | Icon and color per `Assets::AssetType`, and the icon-plus-name row label |
 | `AssetActions` | `Editor/Source/Panels/Assets/AssetActions.h` | Asset operations shared by the Assets layouts and commands (open, rename, move by drop, copy path) |
 | `IconButton`, `DrawCenteredIcon` | `Editor/Source/Theme.h` | Square icon buttons and centered glyphs at any size |
+| `ScriptLibrary`, `ScriptFiles` | `Editor/Source/Services/ScriptLibrary.h`, `Editor/Source/Scripts/ScriptFiles.h` | Finding scripts in `Scripts/`, and script and script-folder file operations |
+| `Platform::Shell::MoveToTrash` | `Engine/Source/Platform/Shell.h` | Deleting files recoverably |
+| `TypeInfo::GetHeaderPath`, `FileSystem::EngineSourceDirectory` | `Engine/Source/Reflection/TypeInfo.h`, `Engine/Source/Core/FileSystem.h` | Locating a reflected class's header |
 | `TestUtilities` | `Tests/Common/TestUtilities.h` | `MakeTempDirectory`, `TestOutputPath` (reads `BRIGHT_TEST_OUTPUT`), `CreateTestRenderContext`, `Succeeded(result)` (asserts a `Core::Result` and prints its error) |
 
 ## Workflow rules
