@@ -197,3 +197,12 @@ TEST(ShellTests, ShutdownStopsLaunchesThatAreStillRunning)
     std::filesystem::remove_all(directory);
 }
 #endif
+
+TEST(ShellTests, MovingAMissingFileToTheTrashReportsAnError)
+{
+    std::filesystem::path missing = BrightBox3D::Tests::MakeTempDirectory("Trash") / "Missing.txt";
+    BrightBox3D::Core::Result<void> trashed = BrightBox3D::Platform::Shell::MoveToTrash(missing);
+    ASSERT_FALSE(trashed);
+    EXPECT_EQ(trashed.GetError().GetId(), BrightBox3D::Core::EngineText::TrashFailed);
+    EXPECT_EQ(trashed.GetError().GetArguments().front(), missing.string());
+}

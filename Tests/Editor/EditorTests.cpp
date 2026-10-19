@@ -5,6 +5,7 @@
 #include "Framework/LevelGameplaySettings.h"
 #include "HotReload.h"
 #include "Level/LevelSerializer.h"
+#include "Level/LevelTestTypes.h"
 #include "PlaySession.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/BuiltinAssets.h"
@@ -222,7 +223,50 @@ TEST_F(ProjectFixture, EveryScriptTemplateCompilesAndRegisters)
         const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(std::string("Template") + info.fileStem);
         ASSERT_NE(type, nullptr) << info.fileStem;
         EXPECT_EQ(type->GetBase(), &info.baseType()) << info.fileStem;
+        EXPECT_EQ(type->GetHeaderPath(), std::string("Templates/Template") + info.fileStem + ".h");
     }
+}
+
+TEST_F(ProjectFixture, ProjectsKeepScriptsApartFromAssets)
+{
+    Runtime::Project& project = m_context.GetProjectService().GetProject();
+    EXPECT_EQ(project.GetScriptsDirectory(), project.GetRoot() / "Scripts");
+    EXPECT_TRUE(std::filesystem::is_directory(project.GetScriptsDirectory()));
+    EXPECT_TRUE(std::filesystem::is_directory(project.GetAssetsDirectory()));
+    EXPECT_FALSE(std::filesystem::exists(project.GetRoot() / "Source"));
+    EXPECT_EQ(m_context.GetScriptLibrary().GetRoot(), project.GetScriptsDirectory());
+    m_context.GetProjectService().CloseProject();
+    EXPECT_TRUE(m_context.GetScriptLibrary().GetRoot().empty());
+}
+
+TEST_F(ProjectFixture, PendingScriptComponentWaitsForItsClassAndTarget)
+{
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* object = *level->CreateObject(LevelObject::StaticType());
+    Core::Guid id = object->GetId();
+    const Reflection::TypeInfo& recording = Tests::RecordingComponent::StaticType();
+
+    Editor::PendingScriptComponent pending;
+    pending.Request(id, "NotCompiledYet");
+    pending.OnReloaded(m_context);
+    EXPECT_TRUE(pending.IsPending());
+    pending.Clear();
+    EXPECT_FALSE(pending.IsPending());
+
+    pending.Request(id, LevelObject::StaticType().GetName());
+    pending.OnReloaded(m_context);
+    EXPECT_TRUE(pending.IsPending());
+    EXPECT_EQ(object->GetComponents().size(), 0u);
+
+    pending.Request(id, recording.GetName());
+    pending.OnReloaded(m_context);
+    EXPECT_FALSE(pending.IsPending());
+    EXPECT_NE(object->GetComponent(recording), nullptr);
+
+    pending.Request(id, recording.GetName());
+    level->DestroyObjectImmediate(object);
+    pending.OnReloaded(m_context);
+    EXPECT_FALSE(pending.IsPending());
 }
 
 TEST_F(ProjectFixture, ScriptCreatedFromAddComponentIsAddedAfterCompiling)
