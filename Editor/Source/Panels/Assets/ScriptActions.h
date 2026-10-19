@@ -26,6 +26,8 @@ namespace BrightBox3D::Editor::ScriptActions
     void CopyPath(const AssetsTarget& target);
     void CreateFolder(EditorApplication& application, AssetsPanelState& state, const std::string& parent);
     void BeginRename(EditorApplication& application, AssetsPanelState& state, const AssetsTarget& target);
+    void CommitScriptRename(EditorApplication& application, AssetsPanelState& state, const ScriptEntry& script, const std::string& name);
+    void DeleteScript(EditorApplication& application, AssetsPanelState& state, const Core::Guid& script);
     void CommitFolderRename(EditorApplication& application, AssetsPanelState& state, const std::string& folder, const std::string& name);
     void BeginDrag(const ScriptEntry& script);
     void BeginFolderDrag(const std::string& folder);

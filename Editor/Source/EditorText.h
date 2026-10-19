@@ -187,6 +187,8 @@ namespace BrightBox3D::Editor
         RenameFailed,
         DeleteAssetQuestion,
         DeleteAssetConfirm,
+        DeleteScriptQuestion,
+        DeleteScriptConfirm,
         EmptyLevelObject,
         CreateMenu3DObject,
         DirectionalLight,

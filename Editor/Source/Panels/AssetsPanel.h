@@ -26,6 +26,7 @@ namespace BrightBox3D::Editor
 
     private:
         void DrawDeleteConfirmation();
+        void DrawScriptDeleteConfirmation();
         void DrawTwoColumns();
 
         EditorApplication& m_application;

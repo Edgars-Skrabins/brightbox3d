@@ -184,6 +184,8 @@ namespace BrightBox3D::Editor
             { "RenameFailed", "Rename failed: '{}' already exists or cannot be written", 1 },
             { "DeleteAssetQuestion", "Delete Asset?", 0 },
             { "DeleteAssetConfirm", "Delete '{}'? This cannot be undone.", 1 },
+            { "DeleteScriptQuestion", "Delete Script?", 0 },
+            { "DeleteScriptConfirm", "Move {} to the Trash? Objects that use it become missing until it is restored.", 1 },
             { "EmptyLevelObject", "Empty {}", 1 },
             { "CreateMenu3DObject", "3D Object", 0 },
             { "DirectionalLight", "Directional Light", 0 },

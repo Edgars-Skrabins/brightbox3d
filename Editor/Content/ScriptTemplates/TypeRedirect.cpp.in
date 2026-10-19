@@ -1,0 +1,4 @@
+
+#include "Reflection/TypeRedirects.h"
+
+static BrightBox3D::Reflection::TypeRedirectRegistration<@CLASS@> s_redirectFrom@OLD@("@OLD@");

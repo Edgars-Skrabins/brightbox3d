@@ -263,6 +263,46 @@ TEST_F(ProjectFixture, ScriptCreatedFromAddComponentIsAddedAfterCompiling)
     EXPECT_EQ(current->GetComponent(*spinner), nullptr);
 }
 
+TEST_F(ProjectFixture, RenamedScriptsKeepSavedObjectsLoading)
+{
+    if (Editor::HotReload::FindCMake().empty())
+    {
+        GTEST_SKIP() << "CMake is not available";
+    }
+    std::filesystem::path scripts = m_context.GetProjectService().GetProject().GetScriptsDirectory();
+    ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::CreateScript(scripts, "", "Wanderer", Editor::ScriptTemplate::LevelObject)));
+    Editor::HotReload reload(m_context);
+    auto compile = [&]()
+    {
+        reload.RequestCompile();
+        auto start = std::chrono::steady_clock::now();
+        do
+        {
+            reload.Update();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        } while ((reload.IsCompiling() || reload.GetState() == Editor::CompileState::Idle) && std::chrono::steady_clock::now() - start < std::chrono::minutes(5));
+        return reload.GetState() == Editor::CompileState::Succeeded;
+    };
+    ASSERT_TRUE(compile()) << reload.GetStatusText();
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* wanderer = *level->CreateObject(*Reflection::TypeRegistry::Find("Wanderer"));
+    Serialization::JsonDocument saved;
+    Editor::ObjectEditService::Snapshot(*wanderer, saved);
+    level->DestroyObjectImmediate(wanderer);
+
+    Editor::ScriptLibrary& library = m_context.GetScriptLibrary();
+    library.Refresh();
+    ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::RenameScript(*library.FindByClass("Wanderer"), "Drifter", library)));
+    ASSERT_TRUE(compile()) << reload.GetStatusText();
+    const Reflection::TypeInfo* drifter = Reflection::TypeRegistry::Find("Drifter");
+    ASSERT_NE(drifter, nullptr);
+    EXPECT_EQ(Reflection::TypeRegistry::Find("Wanderer"), drifter);
+    LevelObject* restored = Level::LevelSerializer::ReadObject(*level, nullptr, nullptr, saved, Level::Initialization::Immediate);
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(&restored->GetType(), drifter);
+    level->DestroyObjectImmediate(restored);
+}
+
 TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)
 {
     if (Editor::HotReload::FindCMake().empty())

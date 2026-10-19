@@ -22,6 +22,7 @@ namespace BrightBox3D::Editor
     {
         constexpr float FolderColumnWidth = 180.0f;
         constexpr const char* DeletePopupId = "DeleteAsset";
+        constexpr const char* DeleteScriptPopupId = "DeleteScript";
         constexpr const char* FolderKey = "folder";
         constexpr const char* RootKey = "root";
         constexpr const char* ScriptFolderKey = "scriptFolder";
@@ -113,6 +114,34 @@ namespace BrightBox3D::Editor
         ImGui::EndPopup();
     }
 
+    void AssetsPanel::DrawScriptDeleteConfirmation()
+    {
+        std::string title = LabelWithId(EditorText::DeleteScriptQuestion, DeleteScriptPopupId);
+        if (m_state.pendingScriptDelete.IsValid())
+        {
+            ImGui::OpenPopup(title.c_str());
+        }
+        if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            return;
+        }
+        const ScriptEntry* script = m_application.GetContext().GetScriptLibrary().Find(m_state.pendingScriptDelete);
+        ImGui::TextUnformatted(Text(EditorText::DeleteScriptConfirm, script ? script->className : std::string()).c_str());
+        if (ImGui::Button(Text(EditorText::Delete), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
+        {
+            ScriptActions::DeleteScript(m_application, m_state, m_state.pendingScriptDelete);
+            m_state.pendingScriptDelete = {};
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Text(EditorText::Cancel), ImVec2(ScaledMetric(EditorMetric::DialogButtonWidth), 0)))
+        {
+            m_state.pendingScriptDelete = {};
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+
     void AssetsPanel::DrawTwoColumns()
     {
         if (!ImGui::BeginTable("AssetsLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
@@ -163,6 +192,7 @@ namespace BrightBox3D::Editor
             DrawTwoColumns();
         }
         DrawDeleteConfirmation();
+        DrawScriptDeleteConfirmation();
         PopSelectionColors();
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
         {

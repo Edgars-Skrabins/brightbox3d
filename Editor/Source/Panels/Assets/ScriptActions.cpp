@@ -112,10 +112,49 @@ namespace BrightBox3D::Editor::ScriptActions
 
     void BeginRename(EditorApplication& application, AssetsPanelState& state, const AssetsTarget& target)
     {
+        if (const ScriptEntry* script = Library(application).Find(target.script))
+        {
+            state.rename.Begin(script->id, script->className);
+            return;
+        }
         if (!target.script.IsValid() && !target.folder.empty())
         {
             state.rename.Begin(ScriptLibrary::FolderId(target.folder), ScriptFiles::FolderName(target.folder));
         }
+    }
+
+    void CommitScriptRename(EditorApplication& application, AssetsPanelState& state, const ScriptEntry& script, const std::string& name)
+    {
+        ScriptLibrary& library = Library(application);
+        if (Core::Result<void, EditorError> renamed = ScriptFiles::RenameScript(script, name, library); !renamed)
+        {
+            Report(renamed.GetError());
+            return;
+        }
+        library.Refresh();
+        if (const ScriptEntry* entry = library.FindByClass(name))
+        {
+            state.selectedScript = entry->id;
+        }
+    }
+
+    void DeleteScript(EditorApplication& application, AssetsPanelState& state, const Core::Guid& script)
+    {
+        ScriptLibrary& library = Library(application);
+        const ScriptEntry* entry = library.Find(script);
+        if (!entry)
+        {
+            return;
+        }
+        if (Core::Result<void, EditorError> deleted = ScriptFiles::DeleteScript(*entry); !deleted)
+        {
+            Report(deleted.GetError());
+        }
+        if (state.selectedScript == script)
+        {
+            state.selectedScript = {};
+        }
+        library.Refresh();
     }
 
     void CommitFolderRename(EditorApplication& application, AssetsPanelState& state, const std::string& folder, const std::string& name)

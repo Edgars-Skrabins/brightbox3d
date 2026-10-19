@@ -14,12 +14,15 @@
 #include "Services/ScriptLibrary.h"
 
 #include <iterator>
+#include <span>
 
 namespace BrightBox3D::Editor
 {
     namespace
     {
         constexpr std::string_view ClassPlaceholder = "CLASS";
+        constexpr std::string_view OldNamePlaceholder = "OLD";
+        constexpr const char* TypeRedirectStem = "TypeRedirect";
 
         template <typename T>
         const Reflection::TypeInfo& BaseType()
@@ -39,10 +42,9 @@ namespace BrightBox3D::Editor
 
         static_assert(std::size(ScriptTemplates) == static_cast<size_t>(ScriptTemplate::Count));
 
-        Core::Result<std::string, EditorError> RenderFile(const ScriptTemplateInfo& info, const char* extension, const std::string& className)
+        Core::Result<std::string, EditorError> RenderFile(const char* stem, const char* extension, std::span<const Core::TemplateValue> values)
         {
-            std::string fileName = std::string(info.fileStem) + extension + EditorLayout::TemplateFileSuffix;
-            const Core::TemplateValue values[] = { { ClassPlaceholder, className } };
+            std::string fileName = std::string(stem) + extension + EditorLayout::TemplateFileSuffix;
             std::optional<std::string> text = Core::RenderTemplate(EditorContentDirectory() / EditorLayout::ScriptTemplatesFolder / fileName, values);
             if (!text)
             {
@@ -66,16 +68,23 @@ namespace BrightBox3D::Editor
     Core::Result<ScriptSources, EditorError> RenderScriptTemplate(ScriptTemplate scriptTemplate, const std::string& className)
     {
         const ScriptTemplateInfo& info = GetScriptTemplateInfo(scriptTemplate);
-        Core::Result<std::string, EditorError> header = RenderFile(info, ScriptLibrary::HeaderExtension, className);
+        const Core::TemplateValue values[] = { { ClassPlaceholder, className } };
+        Core::Result<std::string, EditorError> header = RenderFile(info.fileStem, ScriptLibrary::HeaderExtension, values);
         if (!header)
         {
             return header.GetError();
         }
-        Core::Result<std::string, EditorError> source = RenderFile(info, ScriptLibrary::SourceExtension, className);
+        Core::Result<std::string, EditorError> source = RenderFile(info.fileStem, ScriptLibrary::SourceExtension, values);
         if (!source)
         {
             return source.GetError();
         }
         return ScriptSources{ std::move(*header), std::move(*source) };
+    }
+
+    Core::Result<std::string, EditorError> RenderTypeRedirect(const std::string& className, const std::string& oldName)
+    {
+        const Core::TemplateValue values[] = { { ClassPlaceholder, className }, { OldNamePlaceholder, oldName } };
+        return RenderFile(TypeRedirectStem, ScriptLibrary::SourceExtension, values);
     }
 }

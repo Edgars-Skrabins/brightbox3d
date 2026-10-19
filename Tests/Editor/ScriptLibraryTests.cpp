@@ -1,5 +1,6 @@
 #include "Common/TestUtilities.h"
 #include "Core/FileSystem.h"
+#include "Scripts/ScriptTemplate.h"
 #include "Scripts/ScriptFiles.h"
 #include "Services/ScriptLibrary.h"
 
@@ -126,4 +127,27 @@ TEST_F(ScriptLibraryTests, MovingAScriptMovesBothFiles)
     EXPECT_EQ(ClassesIn("Gameplay/Props"), std::vector<std::string>{ "Spinner" });
     EXPECT_FALSE(m_library.FindByClass("Spinner")->header.empty());
     EXPECT_FALSE(m_library.FindByClass("Spinner")->source.empty());
+}
+
+TEST_F(ScriptLibraryTests, RenamingRewritesTheClassAndAddsARedirect)
+{
+    ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::CreateScript(m_root, "", "Rotator", Editor::ScriptTemplate::Component)));
+    m_library.Refresh();
+    ScriptEntry rotator = *m_library.FindByClass("Rotator");
+    ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::RenameScript(rotator, "Spinner", m_library)));
+    m_library.Refresh();
+    EXPECT_EQ(m_library.FindByClass("Rotator"), nullptr);
+    const ScriptEntry* spinner = m_library.FindByClass("Spinner");
+    ASSERT_NE(spinner, nullptr);
+    std::string header = *Core::FileSystem::ReadText(spinner->header);
+    std::string source = *Core::FileSystem::ReadText(spinner->source);
+    EXPECT_NE(header.find("class Spinner : public"), std::string::npos);
+    EXPECT_EQ(header.find("Rotator"), std::string::npos);
+    EXPECT_NE(source.find("#include \"Spinner.h\""), std::string::npos);
+    EXPECT_NE(source.find("void Spinner::OnGameUpdate"), std::string::npos);
+    EXPECT_NE(source.find("TypeRedirectRegistration<Spinner> s_redirectFromRotator(\"Rotator\")"), std::string::npos);
+
+    Core::Result<void, Editor::EditorError> invalid = Editor::ScriptFiles::RenameScript(*spinner, "Not Valid", m_library);
+    ASSERT_FALSE(invalid);
+    EXPECT_EQ(invalid.GetError().GetId(), Editor::EditorText::ScriptNameInvalid);
 }

@@ -425,8 +425,18 @@ namespace BrightBox3D::Editor
                 .label = EditorText::Delete,
                 .scope = CommandScope::Assets,
                 .defaultShortcut = Chord(ImGuiKey_Delete),
-                .isEnabled = editable,
-                .execute = [&application, target] { application.GetAssets()->GetState().pendingDelete = target().asset; },
+                .isEnabled = [editable, target] { return editable() || target().script.IsValid(); },
+                .execute = [&application, target]
+                {
+                    AssetsTarget current = target();
+                    AssetsPanelState& state = application.GetAssets()->GetState();
+                    if (current.root == AssetsRoot::Scripts)
+                    {
+                        state.pendingScriptDelete = current.script;
+                        return;
+                    }
+                    state.pendingDelete = current.asset;
+                },
             });
             registry.Register(CommandId::AssetDuplicate, {
                 .key = "AssetDuplicate",

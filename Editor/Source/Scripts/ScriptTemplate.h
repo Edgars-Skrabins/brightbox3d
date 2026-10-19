@@ -40,4 +40,5 @@ namespace BrightBox3D::Editor
     const ScriptTemplateInfo& GetScriptTemplateInfo(ScriptTemplate scriptTemplate);
     Icon ScriptTemplateIcon(ScriptTemplate scriptTemplate);
     Core::Result<ScriptSources, EditorError> RenderScriptTemplate(ScriptTemplate scriptTemplate, const std::string& className);
+    Core::Result<std::string, EditorError> RenderTypeRedirect(const std::string& className, const std::string& oldName);
 }

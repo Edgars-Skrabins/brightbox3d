@@ -90,10 +90,12 @@ namespace BrightBox3D::Editor::ScriptsView
 
         void CommitRename(EditorApplication& application, AssetsPanelState& state, const Item& item, const std::string& name)
         {
-            if (!item.script)
+            if (item.script)
             {
-                ScriptActions::CommitFolderRename(application, state, item.folder, name);
+                ScriptActions::CommitScriptRename(application, state, *item.script, name);
+                return;
             }
+            ScriptActions::CommitFolderRename(application, state, item.folder, name);
         }
 
         void HandleClick(EditorApplication& application, AssetsPanelState& state, const Item& item)

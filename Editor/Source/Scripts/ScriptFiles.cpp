@@ -2,10 +2,12 @@
 
 #include "Assets/AssetType.h"
 #include "Core/FileSystem.h"
+#include "Platform/Shell.h"
 #include "Reflection/TypeRegistry.h"
 #include "Services/ScriptLibrary.h"
 
 #include <cctype>
+#include <regex>
 
 #include <system_error>
 
@@ -167,5 +169,68 @@ namespace BrightBox3D::Editor::ScriptFiles
             return EditorError(EditorText::ScriptWriteFailed, source.filename().string());
         }
         return source;
+    }
+
+    Core::Result<void, EditorError> RenameScript(const ScriptEntry& script, const std::string& newName, ScriptLibrary& library)
+    {
+        if (newName == script.className)
+        {
+            return {};
+        }
+        if (Core::Result<void, EditorError> valid = ValidateNewClassName(newName, library); !valid)
+        {
+            return valid;
+        }
+        std::regex word("\\b" + script.className + "\\b");
+        for (const std::filesystem::path& file : { script.header, script.source })
+        {
+            if (file.empty())
+            {
+                continue;
+            }
+            std::filesystem::path target = file.parent_path() / (newName + file.extension().string());
+            std::error_code error;
+            if (std::filesystem::exists(target, error))
+            {
+                return EditorError(EditorText::ScriptPathExists, target.filename().string());
+            }
+            std::optional<std::string> text = Core::FileSystem::ReadText(file);
+            if (!text)
+            {
+                return EditorError(EditorText::ScriptWriteFailed, file.filename().string());
+            }
+            std::string renamed = std::regex_replace(*text, word, newName);
+            if (file == script.source)
+            {
+                Core::Result<std::string, EditorError> redirect = RenderTypeRedirect(newName, script.className);
+                if (!redirect)
+                {
+                    return redirect.GetError();
+                }
+                renamed += *redirect;
+            }
+            if (!Core::FileSystem::WriteText(target, renamed))
+            {
+                return EditorError(EditorText::ScriptWriteFailed, target.filename().string());
+            }
+            std::filesystem::remove(file, error);
+        }
+        return {};
+    }
+
+    Core::Result<void, EditorError> DeleteScript(const ScriptEntry& script)
+    {
+        for (const std::filesystem::path& file : { script.header, script.source })
+        {
+            if (file.empty())
+            {
+                continue;
+            }
+            if (Core::Result<void> trashed = Platform::Shell::MoveToTrash(file); !trashed)
+            {
+                return EditorError(EditorText::ScriptFileFailed, file.filename().string(), trashed.GetError().GetText());
+            }
+        }
+        return {};
     }
 }
