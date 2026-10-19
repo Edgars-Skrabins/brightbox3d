@@ -74,6 +74,7 @@ namespace BrightBox3D::Core
         WindowCreateFailed,
         GameModeMigrated,
         ModuleCopyFailed,
+        TrashFailed,
         GameModuleLoaded,
         ModuleRestored,
         ModuleRestoreFailed,

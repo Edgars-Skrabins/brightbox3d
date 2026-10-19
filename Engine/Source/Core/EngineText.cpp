@@ -71,6 +71,7 @@ namespace BrightBox3D::Core
             { "WindowCreateFailed", "Failed to create window '{}'", 1 },
             { "GameModeMigrated", "Moved the GameMode setting into level '{}'", 1 },
             { "ModuleCopyFailed", "cannot copy module: {}", 1 },
+            { "TrashFailed", "cannot move '{}' to the Trash: {}", 2 },
             { "GameModuleLoaded", "Loaded game module '{}' ({} reflected types)", 2 },
             { "ModuleRestored", "Hot reload failed to load the new module; the previous module was restored", 0 },
             { "ModuleRestoreFailed", "Hot reload failed to load the new module, and the previous module could not be restored: {}", 1 },

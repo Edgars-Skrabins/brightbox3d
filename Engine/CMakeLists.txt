@@ -39,7 +39,7 @@ target_link_libraries(BrightBox3D PUBLIC BrightRapidJson)
 if(APPLE)
     target_link_libraries(BrightBox3D PUBLIC "-framework Cocoa" "-framework CoreServices" "-framework IOKit" "-framework QuartzCore" "-framework Metal")
 elseif(WIN32)
-    target_link_libraries(BrightBox3D PUBLIC d3d11 dxgi d3dcompiler)
+    target_link_libraries(BrightBox3D PUBLIC d3d11 dxgi d3dcompiler shell32)
     target_compile_definitions(BrightBox3D PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
 
