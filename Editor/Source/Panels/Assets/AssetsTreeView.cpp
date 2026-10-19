@@ -12,6 +12,7 @@
 #include "Panels/Assets/AssetsDropZone.h"
 #include "Panels/Assets/AssetsFolderTree.h"
 #include "Panels/Assets/AssetsToolbar.h"
+#include "Panels/Assets/EngineClassesView.h"
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/ScriptsView.h"
 
@@ -195,6 +196,7 @@ namespace BrightBox3D::Editor
                 }
             }
         }
+        EngineClassesView::DrawTree(m_application, m_state);
         ImGui::TreePop();
     }
 

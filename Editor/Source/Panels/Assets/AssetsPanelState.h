@@ -39,6 +39,7 @@ namespace BrightBox3D::Editor
         std::string folder;
         std::string scriptFolder;
         std::string engineModule;
+        std::string selectedEngineClass;
         Core::Guid selectedScript;
     };
 

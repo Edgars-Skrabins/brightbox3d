@@ -14,6 +14,7 @@
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsFolderTree.h"
 #include "Panels/Assets/AssetsToolbar.h"
+#include "Panels/Assets/EngineClassesView.h"
 #include "Panels/Assets/ScriptsView.h"
 #include "Theme.h"
 #include "Thumbnails.h"
@@ -89,7 +90,21 @@ namespace BrightBox3D::Editor
     {
         AssetsToolbar::DrawCreateButton(m_application, m_state);
         ImGui::SameLine();
-        if (m_state.root == AssetsRoot::Scripts)
+        if (m_state.root == AssetsRoot::EngineClasses)
+        {
+            if (ImGui::Button(Text(EditorText::FolderUp)))
+            {
+                if (m_state.engineModule.empty())
+                {
+                    m_state.root = AssetsRoot::Assets;
+                    m_state.folder = Assets::AssetDatabase::BuiltinFolder;
+                }
+                m_state.engineModule.clear();
+            }
+            ImGui::SameLine();
+            EngineClassesView::DrawBreadcrumbs(m_state);
+        }
+        else if (m_state.root == AssetsRoot::Scripts)
         {
             if (!m_state.scriptFolder.empty() && ImGui::Button(Text(EditorText::FolderUp)))
             {
@@ -313,9 +328,16 @@ namespace BrightBox3D::Editor
     {
         DrawToolbar();
         ImGui::BeginChild("Items", ImVec2(0, -AssetsBottomBar::Height()), ImGuiChildFlags_None);
-        if (m_state.root == AssetsRoot::Scripts)
+        if (m_state.root != AssetsRoot::Assets)
         {
-            ScriptsView::DrawItems(m_application, m_state);
+            if (m_state.root == AssetsRoot::Scripts)
+            {
+                ScriptsView::DrawItems(m_application, m_state);
+            }
+            else
+            {
+                EngineClassesView::DrawItems(m_application, m_state);
+            }
             ImGui::EndChild();
             AssetsBottomBar::Draw(m_application, SizeSlider::Shown);
             return;

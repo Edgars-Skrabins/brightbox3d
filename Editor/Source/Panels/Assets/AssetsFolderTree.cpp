@@ -6,6 +6,7 @@
 #include "Panels/Assets/AssetActions.h"
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/EngineClassesView.h"
 #include "Panels/Assets/ScriptsView.h"
 
 #include <imgui.h>
@@ -135,5 +136,8 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             AssetsContextMenu::Draw(application, state, { {}, Assets::AssetDatabase::BuiltinFolder });
             ImGui::EndPopup();
         }
+        ImGui::Indent();
+        EngineClassesView::DrawFolderTree(state);
+        ImGui::Unindent();
     }
 }
