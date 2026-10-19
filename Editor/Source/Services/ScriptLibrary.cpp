@@ -99,6 +99,12 @@ namespace BrightBox3D::Editor
         return m_scripts;
     }
 
+    const std::vector<std::string>& ScriptLibrary::GetFolders()
+    {
+        RefreshIfDirty();
+        return m_folders;
+    }
+
     std::vector<std::string> ScriptLibrary::ChildFolders(const std::string& folder)
     {
         RefreshIfDirty();

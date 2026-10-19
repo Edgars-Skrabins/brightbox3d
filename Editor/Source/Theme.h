@@ -31,6 +31,7 @@ namespace BrightBox3D::Editor
         ProjectSettingsWindowHeight,
         FloatingPanelWidth,
         FloatingPanelHeight,
+        CreateScriptDialogWidth,
         Count
     };
 

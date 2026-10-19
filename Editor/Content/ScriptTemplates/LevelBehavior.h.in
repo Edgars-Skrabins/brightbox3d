@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Level/LevelBehavior.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Level::LevelBehavior
+{
+    BrightBody()
+public:
+    void OnGameStart() override;
+};

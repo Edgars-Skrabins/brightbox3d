@@ -1,0 +1,12 @@
+#pragma once
+
+#include "Level/LevelObjectComponent.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Level::LevelObjectComponent
+{
+    BrightBody()
+public:
+    void OnGameStart() override;
+    void OnGameUpdate(float deltaTime) override;
+};

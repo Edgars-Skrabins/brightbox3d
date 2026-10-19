@@ -40,6 +40,15 @@ namespace BrightBox3D::Editor
                 .isEnabled = notPlaying,
                 .execute = [&application] { application.OpenNewLevelDialog(); },
             });
+            registry.Register(CommandId::NewScript, {
+                .key = "NewScript",
+                .icon = Icon::FileCode,
+                .label = EditorText::NewScriptMenu,
+                .tooltip = EditorText::NewScriptTooltip,
+                .defaultShortcut = Chord(ImGuiKey_N, ImGuiMod_Ctrl | ImGuiMod_Shift),
+                .isEnabled = [&context, notPlaying] { return notPlaying() && context.GetProjectService().HasProject(); },
+                .execute = [&application] { application.OpenCreateScriptDialog(application.DefaultScriptRequest()); },
+            });
             registry.Register(CommandId::Save, {
                 .key = "Save",
                 .icon = Icon::Save,

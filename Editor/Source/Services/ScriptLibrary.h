@@ -32,6 +32,7 @@ namespace BrightBox3D::Editor
         void Refresh();
 
         const std::vector<ScriptEntry>& GetScripts();
+        const std::vector<std::string>& GetFolders();
         std::vector<std::string> ChildFolders(const std::string& folder);
         std::vector<ScriptEntry> ScriptsIn(const std::string& folder);
         const ScriptEntry* Find(const Core::Guid& id);

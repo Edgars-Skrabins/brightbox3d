@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Framework/GameStateBase.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Framework::GameStateBase
+{
+    BrightBody()
+public:
+    void OnGameUpdate(float deltaTime) override;
+};

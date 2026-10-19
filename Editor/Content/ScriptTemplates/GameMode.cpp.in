@@ -1,0 +1,5 @@
+#include "@CLASS@.h"
+
+void @CLASS@::OnGameStart()
+{
+}

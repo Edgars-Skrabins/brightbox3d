@@ -8,6 +8,7 @@
 #include "EditorContent.h"
 #include "EditorLayout.h"
 #include "EditorText.h"
+#include "Labels.h"
 #include "Level/LevelSerializer.h"
 #include "Panels/Assets/AssetActions.h"
 #include "Rendering/MaterialAsset.h"
@@ -108,6 +109,11 @@ namespace BrightBox3D::Editor::AssetsContextMenu
         if (ImGui::MenuItem(Text(EditorText::UITypeLabel, Assets::AssetTypeName(Assets::AssetType::StyleSheet)).c_str()))
         {
             CreateTextAsset(folder, Assets::AssetType::StyleSheet);
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem(IconLabel(Icon::FileCode, EditorText::ScriptEntryLabel).c_str()))
+        {
+            application.OpenCreateScriptDialog({ ScriptTemplate::Component, {}, {} });
         }
     }
 

@@ -1,0 +1,9 @@
+#include "@CLASS@.h"
+
+void @CLASS@::OnGameStart()
+{
+}
+
+void @CLASS@::OnGameUpdate(float deltaTime)
+{
+}

@@ -1,7 +1,11 @@
 #include "Scripts/ScriptFiles.h"
 
 #include "Assets/AssetType.h"
+#include "Core/FileSystem.h"
+#include "Reflection/TypeRegistry.h"
 #include "Services/ScriptLibrary.h"
+
+#include <cctype>
 
 #include <system_error>
 
@@ -109,5 +113,59 @@ namespace BrightBox3D::Editor::ScriptFiles
             }
         }
         return {};
+    }
+
+    bool IsClassName(const std::string& name)
+    {
+        if (name.empty() || std::isdigit(static_cast<unsigned char>(name.front())))
+        {
+            return false;
+        }
+        for (char character : name)
+        {
+            if (!std::isalnum(static_cast<unsigned char>(character)) && character != '_')
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    Core::Result<void, EditorError> ValidateNewClassName(const std::string& name, ScriptLibrary& library)
+    {
+        if (!IsClassName(name))
+        {
+            return EditorError(EditorText::ScriptNameInvalid, name);
+        }
+        if (Reflection::TypeRegistry::Find(name) || library.FindByClass(name))
+        {
+            return EditorError(EditorText::ScriptNameTaken, name);
+        }
+        return {};
+    }
+
+    Core::Result<std::filesystem::path, EditorError> CreateScript(const std::filesystem::path& root, const std::string& folder, const std::string& className, ScriptTemplate scriptTemplate)
+    {
+        Core::Result<ScriptSources, EditorError> sources = RenderScriptTemplate(scriptTemplate, className);
+        if (!sources)
+        {
+            return sources.GetError();
+        }
+        std::filesystem::path directory = folder.empty() ? root : root / folder;
+        std::filesystem::path header = directory / (className + ScriptLibrary::HeaderExtension);
+        std::filesystem::path source = directory / (className + ScriptLibrary::SourceExtension);
+        std::error_code error;
+        for (const std::filesystem::path& file : { header, source })
+        {
+            if (std::filesystem::exists(file, error))
+            {
+                return EditorError(EditorText::ScriptPathExists, file.filename().string());
+            }
+        }
+        if (!Core::FileSystem::WriteText(header, sources->header) || !Core::FileSystem::WriteText(source, sources->source))
+        {
+            return EditorError(EditorText::ScriptWriteFailed, source.filename().string());
+        }
+        return source;
     }
 }

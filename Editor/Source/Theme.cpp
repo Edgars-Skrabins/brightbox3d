@@ -38,6 +38,7 @@ namespace BrightBox3D::Editor
             520.0f,
             480.0f,
             640.0f,
+            420.0f,
             420.0f
         };
 

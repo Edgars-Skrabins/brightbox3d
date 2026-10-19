@@ -1,5 +1,6 @@
 #include "EditorCreateMenu.h"
 
+#include "Commands/CommandRegistry.h"
 #include "CreateMenuRegistry.h"
 #include "EditorContext.h"
 #include "Framework/Camera.h"
@@ -94,6 +95,15 @@ namespace BrightBox3D::Editor
             }
         }
 
+        void RegisterScript(CreateMenuRegistry& registry)
+        {
+            registry.Register({
+                .label = EditorText::ScriptEntryLabel,
+                .icon = Icon::FileCode,
+                .create = [](const CreateMenuContext&) { CommandRegistry::Get().Execute(CommandId::NewScript); },
+            });
+        }
+
         void RegisterPlacements(CreateMenuRegistry& registry)
         {
             registry.RegisterPlacement(Framework::PlayerStart::StaticType(), [](Level::LevelObject& object, const CreateMenuContext& context)
@@ -114,6 +124,7 @@ namespace BrightBox3D::Editor
         RegisterEmptyObject(registry);
         RegisterPrimitives(registry);
         RegisterLights(registry);
+        RegisterScript(registry);
         RegisterPlacements(registry);
     }
 }

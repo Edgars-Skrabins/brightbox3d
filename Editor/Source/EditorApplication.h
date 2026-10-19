@@ -3,6 +3,7 @@
 #include "EditorCommandLine.h"
 #include "EditorContext.h"
 #include "FileChangeRouter.h"
+#include "CreateScriptDialog.h"
 #include "NewLevelDialog.h"
 #include "Panels/EditorPanel.h"
 #include "Platform/Window.h"
@@ -71,6 +72,8 @@ namespace BrightBox3D::Editor
         void OpenProjectSettings();
         void OpenPreferences();
         void OpenNewLevelDialog();
+        void OpenCreateScriptDialog(const CreateScriptRequest& request);
+        CreateScriptRequest DefaultScriptRequest();
         void BuildGame();
         void CloseProject();
         void RequestExit();
@@ -146,6 +149,7 @@ namespace BrightBox3D::Editor
         RecentProjects m_recentProjects;
         ProjectLauncher m_launcher{ m_recentProjects };
         NewLevelDialog m_newLevelDialog;
+        CreateScriptDialog m_createScriptDialog;
         std::string m_lastTitle;
         bool m_resetLayout = false;
         uint32_t m_themeRevision = 0;

@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Framework/PlayerController.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Framework::PlayerController
+{
+    BrightBody()
+public:
+    void OnGameUpdate(float deltaTime) override;
+};

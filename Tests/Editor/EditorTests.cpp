@@ -8,6 +8,7 @@
 #include "PlaySession.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/BuiltinAssets.h"
+#include "Scripts/ScriptFiles.h"
 #include "Serialization/ObjectSerializer.h"
 
 #include <gtest/gtest.h>
@@ -184,6 +185,43 @@ TEST_F(ProjectFixture, PlaySessionRevertsUnlessKept)
     m_context.GetLevelService().SetPlaySession(nullptr);
     EXPECT_NEAR(m_context.GetLevelService().GetEditLevel()->FindObject(idA)->GetTransform().GetPosition().x, 0.0f, 1.0e-4f);
     EXPECT_NEAR(m_context.GetLevelService().GetEditLevel()->FindObject(idB)->GetTransform().GetPosition().x, 7.0f, 1.0e-4f);
+}
+
+TEST_F(ProjectFixture, EveryScriptTemplateCompilesAndRegisters)
+{
+    if (Editor::HotReload::FindCMake().empty())
+    {
+        GTEST_SKIP() << "CMake is not available";
+    }
+    std::filesystem::path scripts = m_context.GetProjectService().GetProject().GetScriptsDirectory();
+    for (size_t index = 0; index < static_cast<size_t>(Editor::ScriptTemplate::Count); ++index)
+    {
+        Editor::ScriptTemplate scriptTemplate = static_cast<Editor::ScriptTemplate>(index);
+        std::string className = std::string("Template") + Editor::GetScriptTemplateInfo(scriptTemplate).fileStem;
+        ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::ValidateNewClassName(className, m_context.GetScriptLibrary())));
+        ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::CreateScript(scripts, "Templates", className, scriptTemplate)));
+    }
+    EXPECT_FALSE(Editor::ScriptFiles::ValidateNewClassName("2Fast", m_context.GetScriptLibrary()));
+    EXPECT_FALSE(Editor::ScriptFiles::ValidateNewClassName("LevelObject", m_context.GetScriptLibrary()));
+    m_context.GetScriptLibrary().Refresh();
+    EXPECT_FALSE(Editor::ScriptFiles::ValidateNewClassName("TemplateComponent", m_context.GetScriptLibrary()));
+
+    Editor::HotReload reload(m_context);
+    reload.RequestCompile();
+    auto start = std::chrono::steady_clock::now();
+    do
+    {
+        reload.Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while ((reload.IsCompiling() || reload.GetState() == Editor::CompileState::Idle) && std::chrono::steady_clock::now() - start < std::chrono::minutes(5));
+    ASSERT_EQ(reload.GetState(), Editor::CompileState::Succeeded) << reload.GetStatusText();
+    for (size_t index = 0; index < static_cast<size_t>(Editor::ScriptTemplate::Count); ++index)
+    {
+        const Editor::ScriptTemplateInfo& info = Editor::GetScriptTemplateInfo(static_cast<Editor::ScriptTemplate>(index));
+        const Reflection::TypeInfo* type = Reflection::TypeRegistry::Find(std::string("Template") + info.fileStem);
+        ASSERT_NE(type, nullptr) << info.fileStem;
+        EXPECT_EQ(type->GetBase(), &info.baseType()) << info.fileStem;
+    }
 }
 
 TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)

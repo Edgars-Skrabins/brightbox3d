@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Framework/GameModeBase.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Framework::GameModeBase
+{
+    BrightBody()
+public:
+    void OnGameStart() override;
+};

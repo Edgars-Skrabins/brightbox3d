@@ -25,6 +25,7 @@ namespace BrightBox3D::Editor
     enum class CommandId
     {
         NewLevel,
+        NewScript,
         Save,
         BuildGame,
         ProjectSettings,

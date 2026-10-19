@@ -59,7 +59,7 @@ namespace BrightBox3D::Editor
         constexpr float CompileAreaWidth = 300.0f;
 
         const ToolbarItem PlayToolbar[] = { CommandId::Play, CommandId::Pause, CommandId::Step };
-        const ToolbarItem FileMenu[] = { CommandId::NewLevel, CommandId::Save, CommandId::BuildGame, ToolbarSeparator, CommandId::ProjectSettings, CommandId::OpenOtherProject, ToolbarSeparator, CommandId::Exit };
+        const ToolbarItem FileMenu[] = { CommandId::NewLevel, CommandId::NewScript, CommandId::Save, CommandId::BuildGame, ToolbarSeparator, CommandId::ProjectSettings, CommandId::OpenOtherProject, ToolbarSeparator, CommandId::Exit };
         const ToolbarItem EditMenu[] = { CommandId::Undo, CommandId::Redo, ToolbarSeparator, CommandId::Duplicate, CommandId::Delete, ToolbarSeparator, CommandId::Preferences };
         const ToolbarItem GameMenu[] = { CommandId::Play, CommandId::Compile };
         const ToolbarItem WindowMenu[] = { CommandId::NewLevelView, CommandId::NewLevelContents, CommandId::NewInspector, CommandId::NewAssets, CommandId::NewTerminal, ToolbarSeparator, CommandId::ResetLayout };
@@ -467,6 +467,21 @@ namespace BrightBox3D::Editor
         m_preferences->Open();
     }
 
+    void EditorApplication::OpenCreateScriptDialog(const CreateScriptRequest& request)
+    {
+        m_createScriptDialog.Open(request);
+    }
+
+    CreateScriptRequest EditorApplication::DefaultScriptRequest()
+    {
+        CreateScriptRequest request;
+        if (AssetsPanel* assets = GetAssets(); assets && assets->GetState().root == AssetsRoot::Scripts)
+        {
+            request.folder = assets->GetState().scriptFolder;
+        }
+        return request;
+    }
+
     void EditorApplication::OpenNewLevelDialog()
     {
         m_newLevelDialog.Open();
@@ -706,6 +721,7 @@ namespace BrightBox3D::Editor
         m_projectSettings->Draw();
         m_preferences->Draw();
         m_newLevelDialog.Draw(m_context.GetLevelService());
+        m_createScriptDialog.Draw(*this);
         if (m_context.GetProjectService().HasProject())
         {
             CommandRegistry::Get().DispatchShortcuts(CommandScope::Global);

@@ -6,6 +6,7 @@
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
+#include "Labels.h"
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/ScriptActions.h"
 #include "Scripts/ScriptFiles.h"
@@ -394,6 +395,11 @@ namespace BrightBox3D::Editor::ScriptsView
         if (ImGui::MenuItem(Assets::AssetTypeName(Assets::AssetType::Folder)))
         {
             ScriptActions::CreateFolder(application, state, folder);
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem(IconLabel(Icon::FileCode, EditorText::ScriptEntryLabel).c_str()))
+        {
+            application.OpenCreateScriptDialog({ ScriptTemplate::Component, folder, {} });
         }
     }
 

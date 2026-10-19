@@ -1,0 +1,12 @@
+#pragma once
+
+#include "Framework/PlayableLevelObject.h"
+
+BrightClass()
+class @CLASS@ : public BrightBox3D::Framework::PlayableLevelObject
+{
+    BrightBody()
+public:
+    void OnPossessed(BrightBox3D::Framework::PlayerController& controller) override;
+    void OnGameUpdate(float deltaTime) override;
+};

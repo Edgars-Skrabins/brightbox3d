@@ -1,0 +1,11 @@
+#include "@CLASS@.h"
+
+#include "Framework/PlayerController.h"
+
+void @CLASS@::OnPossessed(BrightBox3D::Framework::PlayerController& controller)
+{
+}
+
+void @CLASS@::OnGameUpdate(float deltaTime)
+{
+}
