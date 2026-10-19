@@ -1,3 +1,5 @@
+#include "Core/FileSystem.h"
+#include "Physics/Collider.h"
 #include "Reflection/TestTypes.h"
 #include "Reflection/TypeRegistry.h"
 #include "Serialization/BinaryJson.h"
@@ -139,4 +141,13 @@ TEST(SerializationTests, ComparesAndCopiesProperties)
     EXPECT_FALSE(PropertyValuesEqual(*speed, a, b));
     CopyPropertyValue(*speed, a, b);
     EXPECT_EQ(b.m_moveSpeed, 1.0f);
+}
+
+TEST(ReflectionTests, ClassesRecordTheirHeaderPath)
+{
+    EXPECT_EQ(Physics::Collider::StaticType().GetHeaderPath(), "Physics/Collider.h");
+    EXPECT_EQ(TestDerived::StaticType().GetHeaderPath(), "Reflection/TestTypes.h");
+    std::optional<std::filesystem::path> engineSource = Core::FileSystem::EngineSourceDirectory();
+    ASSERT_TRUE(engineSource);
+    EXPECT_TRUE(std::filesystem::exists(*engineSource / Physics::Collider::StaticType().GetHeaderPath()));
 }

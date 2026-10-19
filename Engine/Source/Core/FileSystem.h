@@ -21,6 +21,7 @@ namespace BrightBox3D::Core
         static std::filesystem::path ExecutableDirectory();
         static std::filesystem::path EngineDirectory();
         static std::filesystem::path EngineContentDirectory();
+        static std::optional<std::filesystem::path> EngineSourceDirectory();
         static std::optional<std::filesystem::path> FindContentDirectory(const std::filesystem::path& installedFolder, const std::filesystem::path& sourceTreeFolder);
         static std::string ToGenericString(const std::filesystem::path& path);
         static int64_t LastWriteTime(const std::filesystem::path& path);

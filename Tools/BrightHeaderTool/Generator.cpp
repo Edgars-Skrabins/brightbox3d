@@ -52,6 +52,7 @@ namespace BrightBox3D::HeaderTool
             out << "    " << reflection << "ClassMetadata metadata = BrightClassMetadata();\n";
             out << "    type.SetCategory(std::string(metadata.category.name));\n";
             out << "    type.SetIcon(metadata.icon);\n";
+            out << "    type.SetHeaderPath(\"" << includePath << "\");\n";
             std::set<std::string> names;
             for (const ReflectedProperty& property : reflected.properties)
             {

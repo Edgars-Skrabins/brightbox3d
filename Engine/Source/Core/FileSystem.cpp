@@ -159,6 +159,12 @@ namespace BrightBox3D::Core
         return EngineContentSearch().value_or(ExecutableDirectory() / EngineLayout::ContentFolder);
     }
 
+    std::optional<std::filesystem::path> FileSystem::EngineSourceDirectory()
+    {
+        std::filesystem::path sourceTree = std::filesystem::path(EngineLayout::SourceTreeEngineFolder) / EngineLayout::SourceTreeSourceFolder;
+        return FindContentDirectory(sourceTree, sourceTree);
+    }
+
     std::string FileSystem::ToGenericString(const std::filesystem::path& path)
     {
         return path.generic_string();

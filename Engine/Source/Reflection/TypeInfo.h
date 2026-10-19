@@ -150,6 +150,8 @@ namespace BrightBox3D::Reflection
         const std::string& GetCategory() const { return m_category; }
         void SetIcon(Core::Icon icon) { m_icon = icon; }
         Core::Icon GetIcon() const { return m_icon; }
+        void SetHeaderPath(std::string headerPath) { m_headerPath = std::move(headerPath); }
+        const std::string& GetHeaderPath() const { return m_headerPath; }
 
     private:
         std::string m_name;
@@ -161,5 +163,6 @@ namespace BrightBox3D::Reflection
         std::string m_moduleName;
         std::string m_category;
         Core::Icon m_icon = Core::Icon::None;
+        std::string m_headerPath;
     };
 }
