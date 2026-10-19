@@ -5,6 +5,7 @@
 #include "Services/LevelService.h"
 #include "Services/ObjectEditService.h"
 #include "Services/ProjectService.h"
+#include "Services/ScriptLibrary.h"
 #include "Services/SelectionService.h"
 #include "Services/UndoService.h"
 
@@ -30,6 +31,7 @@ namespace BrightBox3D::Editor
         const LevelObjectEditService& GetLevelObjectEditService() const { return m_levelObjectEditing; }
         AssetCreationService& GetAssetCreationService() { return m_assetCreation; }
         ObjectEditService& GetObjectEditService() { return m_objectEditing; }
+        ScriptLibrary& GetScriptLibrary() { return m_scripts; }
 
     private:
         ProjectService m_project;
@@ -39,5 +41,6 @@ namespace BrightBox3D::Editor
         LevelObjectEditService m_levelObjectEditing;
         AssetCreationService m_assetCreation;
         ObjectEditService m_objectEditing;
+        ScriptLibrary m_scripts;
     };
 }

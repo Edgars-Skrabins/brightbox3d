@@ -3,6 +3,7 @@
 #include "Assets/AssetDatabase.h"
 #include "Core/StringUtils.h"
 #include "HotReload.h"
+#include "Services/ScriptLibrary.h"
 #include "Services/ProjectService.h"
 
 #include <string>
@@ -41,22 +42,23 @@ namespace BrightBox3D::Editor
         m_watcher.Stop();
     }
 
-    void FileChangeRouter::Process(const ProjectService& projects, HotReload& hotReload)
+    void FileChangeRouter::Process(const ProjectService& projects, HotReload& hotReload, ScriptLibrary& scripts)
     {
         std::vector<Core::FileChange> changes = m_watcher.Poll();
         if (changes.empty() || !projects.HasProject())
         {
             return;
         }
-        WatchedRoot scripts(projects.GetProject().GetScriptsDirectory());
+        WatchedRoot scriptsRoot(projects.GetProject().GetScriptsDirectory());
         WatchedRoot assets(projects.GetProject().GetAssetsDirectory());
         bool assetsChanged = false;
         for (const Core::FileChange& change : changes)
         {
             std::string path = change.path.generic_string();
-            if (scripts.Contains(path))
+            if (scriptsRoot.Contains(path))
             {
                 hotReload.NotifySourceChanged(change.path);
+                scripts.MarkDirty();
             }
             else if (assets.Contains(path) && !Assets::AssetDatabase::IsIgnoredPath(change.path))
             {

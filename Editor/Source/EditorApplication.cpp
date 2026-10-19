@@ -632,7 +632,7 @@ namespace BrightBox3D::Editor
 
     void EditorApplication::Frame(float deltaTime)
     {
-        m_fileChanges.Process(m_context.GetProjectService(), *m_hotReload);
+        m_fileChanges.Process(m_context.GetProjectService(), *m_hotReload, m_context.GetScriptLibrary());
         m_hotReload->Update();
         UpdatePlayMode(deltaTime);
         Rendering::DebugDraw::Advance(deltaTime);

@@ -18,6 +18,7 @@ namespace BrightBox3D::Editor
         Runtime::Project::SetCurrent(&m_project);
         Runtime::MigrateLegacyLevelObjectAssets(m_project);
         Assets::AssetDatabase::Get().Open(m_project.GetRoot());
+        m_context.GetScriptLibrary().SetRoot(m_project.GetScriptsDirectory());
         Runtime::MigrateLegacyGameplaySettings(m_project);
         m_context.GetLevelService().OpenStartupLevel();
         return {};
@@ -31,6 +32,7 @@ namespace BrightBox3D::Editor
         m_context.GetUndoService().Clear();
         Level::LevelObjectLibrary::Get().Clear();
         Assets::AssetDatabase::Get().Close();
+        m_context.GetScriptLibrary().SetRoot({});
         Runtime::Project::SetCurrent(nullptr);
         m_project = Runtime::Project();
     }
