@@ -22,6 +22,7 @@ namespace BrightBox3D::Editor
         Level::LevelObject* CreateModelObject(const Core::Guid& model, const std::string& name, const Math::Vector3& position, Level::LevelObject* parent = nullptr);
         Level::LevelObject* InstantiateLevelObject(const Core::Guid& asset, const Math::Vector3& position, Level::LevelObject* parent = nullptr);
         Level::LevelObject* CreateLight(Rendering::LightType type);
+        Core::Result<Level::LevelObjectComponent*> AddComponent(Level::LevelObject& object, const Reflection::TypeInfo& type);
         void DeleteSelection();
         void DuplicateSelection();
         void Reparent(Level::LevelObject& object, Level::LevelObject* parent, Level::LevelCollection* collection, std::optional<size_t> siblingPosition);

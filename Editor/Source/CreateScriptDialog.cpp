@@ -114,6 +114,10 @@ namespace BrightBox3D::Editor
         }
         library.Refresh();
         Core::Log::Info(Text(EditorText::ScriptCreated, m_name));
+        if (m_request.targetObject.IsValid() && m_request.scriptTemplate == ScriptTemplate::Component)
+        {
+            application.GetPendingScriptComponent().Request(m_request.targetObject, m_name);
+        }
         SelectInAssets(application, m_request.folder, m_name);
         application.OpenFileInEditor(source->string(), 0);
         application.GetHotReload()->RequestCompile();

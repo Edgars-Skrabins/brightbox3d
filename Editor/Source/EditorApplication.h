@@ -5,6 +5,7 @@
 #include "FileChangeRouter.h"
 #include "CreateScriptDialog.h"
 #include "NewLevelDialog.h"
+#include "Scripts/PendingScriptComponent.h"
 #include "Panels/EditorPanel.h"
 #include "Platform/Window.h"
 #include "ProjectLauncher.h"
@@ -74,6 +75,7 @@ namespace BrightBox3D::Editor
         void OpenNewLevelDialog();
         void OpenCreateScriptDialog(const CreateScriptRequest& request);
         CreateScriptRequest DefaultScriptRequest();
+        PendingScriptComponent& GetPendingScriptComponent() { return m_pendingScriptComponent; }
         void BuildGame();
         void CloseProject();
         void RequestExit();
@@ -150,6 +152,7 @@ namespace BrightBox3D::Editor
         ProjectLauncher m_launcher{ m_recentProjects };
         NewLevelDialog m_newLevelDialog;
         CreateScriptDialog m_createScriptDialog;
+        PendingScriptComponent m_pendingScriptComponent;
         std::string m_lastTitle;
         bool m_resetLayout = false;
         uint32_t m_themeRevision = 0;

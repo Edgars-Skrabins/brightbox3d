@@ -163,6 +163,19 @@ namespace BrightBox3D::Editor
         return object;
     }
 
+    Core::Result<Level::LevelObjectComponent*> ObjectEditService::AddComponent(LevelObject& object, const Reflection::TypeInfo& type)
+    {
+        JsonDocument before;
+        Snapshot(object, before);
+        Core::Result<Level::LevelObjectComponent*> component = object.AddComponent(type);
+        if (component)
+        {
+            m_context.GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoAddComponent, type.GetName()));
+            m_context.GetLevelService().MarkDirty(object);
+        }
+        return component;
+    }
+
     LevelObject* ObjectEditService::CreateLight(Rendering::LightType type)
     {
         Level::Level* level = m_context.GetLevelService().GetActiveLevel();

@@ -6,6 +6,7 @@
 #include "EditorApplication.h"
 #include "EditorPreferences.h"
 #include "EditorText.h"
+#include "Labels.h"
 #include "Level/LevelFileSchema.h"
 #include "Level/LevelSerializer.h"
 #include "Level/MissingComponent.h"
@@ -233,11 +234,8 @@ namespace BrightBox3D::Editor
             {
                 if (ImGui::Selectable(ObjectIcons::Label(*type, type->GetName()).c_str()))
                 {
-                    Serialization::JsonDocument before;
-                    ObjectEditService::Snapshot(object, before);
-                    if (Core::Result<Level::LevelObjectComponent*> component = object.AddComponent(*type))
+                    if (Core::Result<Level::LevelObjectComponent*> component = m_application.GetContext().GetObjectEditService().AddComponent(object, *type))
                     {
-                        m_application.GetContext().GetUndoService().RecordObjectChange(object.GetId(), before, Text(EditorText::UndoAddComponent, type->GetName()));
                         added = true;
                     }
                     else
@@ -247,6 +245,12 @@ namespace BrightBox3D::Editor
                     ImGui::CloseCurrentPopup();
                 }
             }
+        }
+        ImGui::Separator();
+        if (ImGui::Selectable(IconLabel(Icon::FileCode, EditorText::NewScriptMenu).c_str()))
+        {
+            m_application.OpenCreateScriptDialog({ ScriptTemplate::Component, {}, object.GetId() });
+            ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
         return added;

@@ -173,13 +173,18 @@ namespace BrightBox3D::Editor
         m_hotReload = std::make_unique<HotReload>(m_context);
         m_hotReload->OnCompileFailed = [this]
         {
+            m_pendingScriptComponent.Clear();
             if (m_context.GetLevelService().IsPlaying())
             {
                 Core::Log::Warning(Text(EditorText::PlayModeStoppedByCompileError));
                 RequestStop();
             }
         };
-        m_hotReload->OnReloaded = [this] { m_context.GetLevelService().BumpLevelRevision(); };
+        m_hotReload->OnReloaded = [this]
+        {
+            m_context.GetLevelService().BumpLevelRevision();
+            m_pendingScriptComponent.OnReloaded(m_context);
+        };
     }
 
     LevelViewPanel* EditorApplication::GetActiveLevelView()

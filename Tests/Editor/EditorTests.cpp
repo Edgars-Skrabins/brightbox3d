@@ -8,6 +8,7 @@
 #include "PlaySession.h"
 #include "Reflection/TypeRegistry.h"
 #include "Rendering/BuiltinAssets.h"
+#include "Scripts/PendingScriptComponent.h"
 #include "Scripts/ScriptFiles.h"
 #include "Serialization/ObjectSerializer.h"
 
@@ -222,6 +223,44 @@ TEST_F(ProjectFixture, EveryScriptTemplateCompilesAndRegisters)
         ASSERT_NE(type, nullptr) << info.fileStem;
         EXPECT_EQ(type->GetBase(), &info.baseType()) << info.fileStem;
     }
+}
+
+TEST_F(ProjectFixture, ScriptCreatedFromAddComponentIsAddedAfterCompiling)
+{
+    if (Editor::HotReload::FindCMake().empty())
+    {
+        GTEST_SKIP() << "CMake is not available";
+    }
+    Level::Level* level = m_context.GetLevelService().GetEditLevel();
+    LevelObject* object = *level->CreateObject(LevelObject::StaticType());
+    Core::Guid id = object->GetId();
+    std::filesystem::path scripts = m_context.GetProjectService().GetProject().GetScriptsDirectory();
+    ASSERT_TRUE(Tests::Succeeded(Editor::ScriptFiles::CreateScript(scripts, "", "Spinner", Editor::ScriptTemplate::Component)));
+
+    Editor::PendingScriptComponent pending;
+    pending.Request(id, "Spinner");
+    Editor::HotReload reload(m_context);
+    reload.OnReloaded = [&] { pending.OnReloaded(m_context); };
+    reload.OnCompileFailed = [&] { pending.Clear(); };
+    reload.RequestCompile();
+    auto start = std::chrono::steady_clock::now();
+    do
+    {
+        reload.Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while ((reload.IsCompiling() || reload.GetState() == Editor::CompileState::Idle) && std::chrono::steady_clock::now() - start < std::chrono::minutes(5));
+    ASSERT_EQ(reload.GetState(), Editor::CompileState::Succeeded) << reload.GetStatusText();
+
+    EXPECT_FALSE(pending.IsPending());
+    const Reflection::TypeInfo* spinner = Reflection::TypeRegistry::Find("Spinner");
+    ASSERT_NE(spinner, nullptr);
+    LevelObject* current = m_context.GetLevelService().GetEditLevel()->FindObject(id);
+    ASSERT_NE(current, nullptr);
+    EXPECT_NE(current->GetComponent(*spinner), nullptr);
+    m_context.GetUndoService().Undo();
+    current = m_context.GetLevelService().GetEditLevel()->FindObject(id);
+    ASSERT_NE(current, nullptr);
+    EXPECT_EQ(current->GetComponent(*spinner), nullptr);
 }
 
 TEST_F(ProjectFixture, HotReloadCompilesAndPreservesState)
