@@ -6,7 +6,7 @@ namespace BrightBox3D::Editor
 {
     namespace
     {
-        constexpr const char* PayloadIds[] = { "BRIGHT_ASSET", "BRIGHT_OBJECT" };
+        constexpr const char* PayloadIds[] = { "BRIGHT_ASSET", "BRIGHT_OBJECT", "BRIGHT_SCRIPT", "BRIGHT_SCRIPT_FOLDER" };
 
         const char* PayloadId(DragDropPayload payload)
         {

@@ -9,9 +9,12 @@
 #include "Labels.h"
 #include "Panels/Assets/AssetFileImport.h"
 #include "Panels/Assets/AssetsFolderTree.h"
+#include "Panels/Assets/ScriptActions.h"
 #include "Theme.h"
 
 #include <imgui.h>
+
+#include <algorithm>
 
 namespace BrightBox3D::Editor
 {
@@ -20,6 +23,8 @@ namespace BrightBox3D::Editor
         constexpr float FolderColumnWidth = 180.0f;
         constexpr const char* DeletePopupId = "DeleteAsset";
         constexpr const char* FolderKey = "folder";
+        constexpr const char* RootKey = "root";
+        constexpr const char* ScriptFolderKey = "scriptFolder";
     }
 
     AssetsPanel::AssetsPanel(EditorApplication& application, int instanceIndex) : EditorPanel(EditorWindow::Assets, instanceIndex), m_application(application), m_items(application, m_state), m_tree(application, m_state)
@@ -29,11 +34,15 @@ namespace BrightBox3D::Editor
     void AssetsPanel::SaveState(Serialization::JsonValue& state, Serialization::JsonAllocator& allocator) const
     {
         Serialization::SetMember(state, FolderKey, Serialization::MakeString(m_state.folder, allocator), allocator);
+        Serialization::SetMember(state, RootKey, Serialization::JsonValue(static_cast<int>(m_state.root)), allocator);
+        Serialization::SetMember(state, ScriptFolderKey, Serialization::MakeString(m_state.scriptFolder, allocator), allocator);
     }
 
     void AssetsPanel::LoadState(const Serialization::JsonValue& state)
     {
         m_state.folder = Serialization::GetString(state, FolderKey);
+        m_state.root = static_cast<AssetsRoot>(std::clamp(static_cast<int>(Serialization::GetNumber(state, RootKey)), 0, static_cast<int>(AssetsRoot::EngineClasses)));
+        m_state.scriptFolder = Serialization::GetString(state, ScriptFolderKey);
     }
 
     AssetsTarget AssetsPanel::GetCommandTarget() const
@@ -41,6 +50,18 @@ namespace BrightBox3D::Editor
         if (m_state.menuTarget)
         {
             return *m_state.menuTarget;
+        }
+        if (m_state.root == AssetsRoot::Scripts)
+        {
+            if (const ScriptEntry* script = m_application.GetContext().GetScriptLibrary().Find(m_state.selectedScript))
+            {
+                return ScriptActions::TargetForScript(*script);
+            }
+            return ScriptActions::TargetForFolder(m_state.scriptFolder);
+        }
+        if (m_state.root == AssetsRoot::EngineClasses)
+        {
+            return { {}, m_state.engineModule, AssetsRoot::EngineClasses, {} };
         }
         SelectionService& selection = m_application.GetContext().GetSelectionService();
         if (selection.GetFocus() == SelectionFocus::Asset)
@@ -127,6 +148,10 @@ namespace BrightBox3D::Editor
         if (!m_state.folder.empty() && m_state.folder != Assets::AssetDatabase::BuiltinFolder && !Assets::AssetDatabase::Get().FindRecordByPath(m_state.folder))
         {
             m_state.folder.clear();
+        }
+        if (!m_application.GetContext().GetScriptLibrary().HasFolder(m_state.scriptFolder))
+        {
+            m_state.scriptFolder.clear();
         }
         PushSelectionColors();
         if (EditorPreferences::Get().GetAssetsLayout() == AssetsLayout::OneColumn)

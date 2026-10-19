@@ -53,6 +53,7 @@ namespace BrightBox3D::Editor
         AssetTexture,
         AssetUI,
         AssetStyleSheet,
+        AssetScript,
         AssetOther,
         Count
     };

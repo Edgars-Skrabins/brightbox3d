@@ -80,6 +80,7 @@ namespace BrightBox3D::Editor
             { "AssetTexture", EditorText::ColorAssetTexture, EditorColorCategory::AssetTypes, Hex(0x78DCDC), { &AssetTypeLabel<Assets::AssetType::Texture> } },
             { "AssetUI", EditorText::ColorAssetUI, EditorColorCategory::AssetTypes, Hex(0xF0A050), { &AssetTypeLabel<Assets::AssetType::Screen>, &AssetTypeLabel<Assets::AssetType::Widget> } },
             { "AssetStyleSheet", EditorText::ColorAssetStyleSheet, EditorColorCategory::AssetTypes, Hex(0xC878F0), { &AssetTypeLabel<Assets::AssetType::StyleSheet> } },
+            { "AssetScript", EditorText::ColorAssetScript, EditorColorCategory::AssetTypes, Hex(0x5FB3F0) },
             { "AssetOther", EditorText::ColorAssetOther, EditorColorCategory::AssetTypes, Hex(0xB4B4B4) }
         };
 

@@ -6,6 +6,7 @@
 #include "Panels/Assets/AssetActions.h"
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/ScriptsView.h"
 
 #include <imgui.h>
 
@@ -89,7 +90,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             {
                 flags |= ImGuiTreeNodeFlags_DefaultOpen;
             }
-            if (state.folder == folder)
+            if (state.root == AssetsRoot::Assets && state.folder == folder)
             {
                 flags |= ImGuiTreeNodeFlags_Selected;
             }
@@ -97,6 +98,7 @@ namespace BrightBox3D::Editor::AssetsFolderTree
             bool open = DrawNode(state, record, folder, label, flags);
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
             {
+                state.root = AssetsRoot::Assets;
                 state.folder = folder;
             }
             if (ImGui::BeginPopupContextItem("FolderContext"))
@@ -119,10 +121,12 @@ namespace BrightBox3D::Editor::AssetsFolderTree
     void Draw(EditorApplication& application, AssetsPanelState& state)
     {
         DrawFolder(application, state, "", Text(EditorText::AssetsTitle));
-        bool showBuiltin = state.folder == Assets::AssetDatabase::BuiltinFolder;
+        ScriptsView::DrawFolderTree(application, state);
+        bool showBuiltin = state.root == AssetsRoot::Assets && state.folder == Assets::AssetDatabase::BuiltinFolder;
         ImVec2 builtinPosition = ImGui::GetCursorScreenPos();
         if (ImGui::Selectable("##builtin", showBuiltin))
         {
+            state.root = AssetsRoot::Assets;
             state.folder = Assets::AssetDatabase::BuiltinFolder;
         }
         DrawAssetLabel(builtinPosition, Assets::AssetType::Folder, Text(EditorText::BuiltinAssets), FolderState::Closed);

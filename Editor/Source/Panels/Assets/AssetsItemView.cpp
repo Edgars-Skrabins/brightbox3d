@@ -14,6 +14,7 @@
 #include "Panels/Assets/AssetTypeStyle.h"
 #include "Panels/Assets/AssetsFolderTree.h"
 #include "Panels/Assets/AssetsToolbar.h"
+#include "Panels/Assets/ScriptsView.h"
 #include "Theme.h"
 #include "Thumbnails.h"
 
@@ -86,14 +87,26 @@ namespace BrightBox3D::Editor
 
     void AssetsItemView::DrawToolbar()
     {
-        AssetsToolbar::DrawCreateButton(m_application, CurrentFolder());
+        AssetsToolbar::DrawCreateButton(m_application, m_state);
         ImGui::SameLine();
-        if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
+        if (m_state.root == AssetsRoot::Scripts)
         {
-            m_state.folder = CurrentFolder() == Assets::AssetDatabase::BuiltinFolder ? "" : ParentFolder(CurrentFolder());
+            if (!m_state.scriptFolder.empty() && ImGui::Button(Text(EditorText::FolderUp)))
+            {
+                m_state.scriptFolder = ParentFolder(m_state.scriptFolder);
+            }
+            ImGui::SameLine();
+            ScriptsView::DrawBreadcrumbs(m_state);
         }
-        ImGui::SameLine();
-        DrawBreadcrumbs();
+        else
+        {
+            if (!CurrentFolder().empty() && ImGui::Button(Text(EditorText::FolderUp)))
+            {
+                m_state.folder = CurrentFolder() == Assets::AssetDatabase::BuiltinFolder ? "" : ParentFolder(CurrentFolder());
+            }
+            ImGui::SameLine();
+            DrawBreadcrumbs();
+        }
         ImGui::SameLine();
         AssetsToolbar::DrawSearch(m_state);
         ImGui::SameLine();
@@ -300,6 +313,13 @@ namespace BrightBox3D::Editor
     {
         DrawToolbar();
         ImGui::BeginChild("Items", ImVec2(0, -AssetsBottomBar::Height()), ImGuiChildFlags_None);
+        if (m_state.root == AssetsRoot::Scripts)
+        {
+            ScriptsView::DrawItems(m_application, m_state);
+            ImGui::EndChild();
+            AssetsBottomBar::Draw(m_application, SizeSlider::Shown);
+            return;
+        }
         std::vector<Assets::AssetRecord> items = CollectItems();
         if (EditorPreferences::Get().IsAssetListMode())
         {

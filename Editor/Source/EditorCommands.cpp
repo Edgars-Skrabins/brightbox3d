@@ -6,6 +6,7 @@
 #include "EditorPlaySession.h"
 #include "HotReload.h"
 #include "Panels/Assets/AssetActions.h"
+#include "Panels/Assets/ScriptActions.h"
 #include "Panels/AssetsPanel.h"
 #include "Panels/LevelContentsPanel.h"
 #include "Panels/LevelViewPanel.h"
@@ -338,6 +339,12 @@ namespace BrightBox3D::Editor
                 return assets ? assets->GetCommandTarget() : AssetsTarget{};
             };
             auto editable = [target] { return AssetActions::IsEditable(target()); };
+            auto inScripts = [target] { return target().root == AssetsRoot::Scripts; };
+            auto scriptItem = [target]
+            {
+                AssetsTarget current = target();
+                return current.root == AssetsRoot::Scripts && (current.script.IsValid() || !current.folder.empty());
+            };
             registry.Register(CommandId::AssetShowInFileBrowser, {
                 .key = "AssetShowInFileBrowser",
                 .icon = Icon::FolderSearch,
@@ -346,17 +353,45 @@ namespace BrightBox3D::Editor
                 .isEnabled = [target]
                 {
                     AssetsTarget current = target();
+                    if (current.root != AssetsRoot::Assets)
+                    {
+                        return current.root == AssetsRoot::Scripts;
+                    }
                     return current.asset.IsValid() ? AssetActions::IsEditable(current) : AssetActions::CanCreateIn(current.folder);
                 },
-                .execute = [&application, target] { AssetActions::ShowInFileBrowser(application, target()); },
+                .execute = [&application, target, inScripts]
+                {
+                    if (inScripts())
+                    {
+                        ScriptActions::ShowInFileBrowser(application, target());
+                        return;
+                    }
+                    AssetActions::ShowInFileBrowser(application, target());
+                },
             });
             registry.Register(CommandId::AssetOpen, {
                 .key = "AssetOpen",
                 .icon = Icon::ExternalLink,
                 .label = EditorText::Open,
                 .scope = CommandScope::Assets,
-                .isEnabled = editable,
-                .execute = [&application, target] { AssetActions::Open(application, application.GetAssets()->GetState(), target().asset); },
+                .isEnabled = [editable, scriptItem] { return editable() || scriptItem(); },
+                .execute = [&application, target, inScripts]
+                {
+                    if (inScripts())
+                    {
+                        ScriptActions::Open(application, application.GetAssets()->GetState(), target());
+                        return;
+                    }
+                    AssetActions::Open(application, application.GetAssets()->GetState(), target().asset);
+                },
+            });
+            registry.Register(CommandId::ScriptOpenHeader, {
+                .key = "ScriptOpenHeader",
+                .icon = Icon::FileCode,
+                .label = EditorText::OpenHeader,
+                .scope = CommandScope::Assets,
+                .isEnabled = [&application, target] { return ScriptActions::HasHeader(application, target()); },
+                .execute = [&application, target] { ScriptActions::OpenHeader(application, target()); },
             });
             registry.Register(CommandId::AssetRename, {
                 .key = "AssetRename",
@@ -364,8 +399,16 @@ namespace BrightBox3D::Editor
                 .label = EditorText::Rename,
                 .scope = CommandScope::Assets,
                 .defaultShortcut = Chord(ImGuiKey_F2),
-                .isEnabled = editable,
-                .execute = [&application, target] { AssetActions::BeginRename(application.GetAssets()->GetState(), target()); },
+                .isEnabled = [editable, scriptItem] { return editable() || scriptItem(); },
+                .execute = [&application, target, inScripts]
+                {
+                    if (inScripts())
+                    {
+                        ScriptActions::BeginRename(application, application.GetAssets()->GetState(), target());
+                        return;
+                    }
+                    AssetActions::BeginRename(application.GetAssets()->GetState(), target());
+                },
             });
             registry.Register(CommandId::AssetDelete, {
                 .key = "AssetDelete",
@@ -391,7 +434,16 @@ namespace BrightBox3D::Editor
                 .label = EditorText::CopyPath,
                 .scope = CommandScope::Assets,
                 .defaultShortcut = Chord(ImGuiKey_C, ImGuiMod_Ctrl | ImGuiMod_Alt),
-                .execute = [target] { AssetActions::CopyPath(target()); },
+                .isEnabled = [target] { return target().root != AssetsRoot::EngineClasses; },
+                .execute = [target, inScripts]
+                {
+                    if (inScripts())
+                    {
+                        ScriptActions::CopyPath(target());
+                        return;
+                    }
+                    AssetActions::CopyPath(target());
+                },
             });
             registry.Register(CommandId::AssetSetStartupLevel, {
                 .key = "AssetSetStartupLevel",

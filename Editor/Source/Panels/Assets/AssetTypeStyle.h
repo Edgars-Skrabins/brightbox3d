@@ -25,4 +25,5 @@ namespace BrightBox3D::Editor
     const AssetTypeStyle& GetAssetTypeStyle(Assets::AssetType type);
     Icon AssetTypeIcon(Assets::AssetType type, FolderState folder);
     void DrawAssetLabel(const ImVec2& position, Assets::AssetType type, const std::string& name, FolderState folder);
+    void DrawIconLabel(const ImVec2& position, Icon icon, EditorColor color, const std::string& name);
 }

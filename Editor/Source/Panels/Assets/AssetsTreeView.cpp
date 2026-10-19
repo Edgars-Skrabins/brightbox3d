@@ -13,6 +13,7 @@
 #include "Panels/Assets/AssetsFolderTree.h"
 #include "Panels/Assets/AssetsToolbar.h"
 #include "Panels/Assets/AssetTypeStyle.h"
+#include "Panels/Assets/ScriptsView.h"
 
 #include <algorithm>
 
@@ -55,7 +56,7 @@ namespace BrightBox3D::Editor
 
     void AssetsTreeView::DrawToolbar()
     {
-        AssetsToolbar::DrawCreateButton(m_application, CurrentFolder());
+        AssetsToolbar::DrawCreateButton(m_application, m_state);
         ImGui::SameLine();
         AssetsToolbar::DrawSearch(m_state);
         ImGui::SameLine();
@@ -94,6 +95,7 @@ namespace BrightBox3D::Editor
             {
                 m_application.GetContext().GetSelectionService().SelectAsset(record->guid);
             }
+            m_state.root = AssetsRoot::Assets;
             m_state.folder = folder;
             if (record && record->type != Assets::AssetType::Folder && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
             {
@@ -170,6 +172,7 @@ namespace BrightBox3D::Editor
         bool open = DrawNode(nullptr, "##builtin", Text(EditorText::BuiltinAssets), Assets::AssetType::Folder, ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth);
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
         {
+            m_state.root = AssetsRoot::Assets;
             m_state.folder = Assets::AssetDatabase::BuiltinFolder;
         }
         if (ImGui::BeginPopupContextItem("BuiltinContext"))
@@ -248,11 +251,13 @@ namespace BrightBox3D::Editor
         if (m_state.filter.empty())
         {
             DrawFolder("", Text(EditorText::AssetsTitle), nullptr);
+            ScriptsView::DrawTree(m_application, m_state);
             DrawBuiltin();
         }
         else
         {
             DrawSearchResults();
+            ScriptsView::DrawSearchResults(m_application, m_state);
         }
         AssetsDropZone::Draw(m_application, m_state, CurrentFolder());
         ImGui::EndChild();

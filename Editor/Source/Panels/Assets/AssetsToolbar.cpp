@@ -4,6 +4,7 @@
 #include "EditorText.h"
 #include "Labels.h"
 #include "Panels/Assets/AssetsContextMenu.h"
+#include "Panels/Assets/ScriptsView.h"
 #include "Theme.h"
 
 #include <imgui.h>
@@ -20,15 +21,24 @@ namespace BrightBox3D::Editor::AssetsToolbar
         constexpr float MinSearchWidth = 160.0f;
     }
 
-    void DrawCreateButton(EditorApplication& application, const std::string& folder)
+    void DrawCreateButton(EditorApplication& application, AssetsPanelState& state)
     {
+        ImGui::BeginDisabled(state.root == AssetsRoot::EngineClasses);
         if (ImGui::Button(Text(EditorText::CreateAssetButton)))
         {
             ImGui::OpenPopup(CreateAssetPopupId);
         }
+        ImGui::EndDisabled();
         if (ImGui::BeginPopup(CreateAssetPopupId))
         {
-            AssetsContextMenu::DrawCreateMenu(application, folder);
+            if (state.root == AssetsRoot::Scripts)
+            {
+                ScriptsView::DrawCreateMenu(application, state, state.scriptFolder);
+            }
+            else
+            {
+                AssetsContextMenu::DrawCreateMenu(application, state.folder);
+            }
             ImGui::EndPopup();
         }
     }

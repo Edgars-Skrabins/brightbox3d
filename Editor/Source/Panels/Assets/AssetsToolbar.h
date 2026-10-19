@@ -11,7 +11,7 @@ namespace BrightBox3D::Editor
 
 namespace BrightBox3D::Editor::AssetsToolbar
 {
-    void DrawCreateButton(EditorApplication& application, const std::string& folder);
+    void DrawCreateButton(EditorApplication& application, AssetsPanelState& state);
     void DrawSearch(AssetsPanelState& state);
     void DrawPanelMenu();
 }
