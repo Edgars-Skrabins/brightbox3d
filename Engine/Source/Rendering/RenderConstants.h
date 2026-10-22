@@ -9,6 +9,7 @@ namespace BrightBox3D::Rendering
 {
     constexpr uint32_t MaxLights = 128;
     constexpr uint32_t CascadeCount = 4;
+    constexpr uint32_t MaxLocalShadowViews = 64;
     constexpr uint32_t SSAOKernelSize = 16;
 
     struct ViewConstants
