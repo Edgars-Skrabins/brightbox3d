@@ -25,6 +25,23 @@ namespace BrightBox3D::Rendering
         constexpr uint64_t ObjectIdMask = 0xFFFFFF;
         constexpr float MinimumLightRange = 0.01f;
         constexpr float CulledDistance = -1.0f;
+        constexpr float NoLocalShadow = -1.0f;
+
+        LocalShadowCandidate MakeLocalShadowCandidate(const Light& light, uint32_t lightIndex, const Math::Vector3& position, const Math::Vector3& direction)
+        {
+            LocalShadowCandidate candidate;
+            candidate.lightIndex = lightIndex;
+            candidate.type = light.GetLightType();
+            candidate.position = position;
+            candidate.direction = direction;
+            candidate.range = std::max(light.GetRange(), MinimumLightRange);
+            candidate.outerAngle = light.GetOuterAngle();
+            candidate.intensity = light.GetIntensity();
+            candidate.maxTileSize = ShadowResolutionSize(light.GetShadowResolution());
+            candidate.bias = light.GetShadowBias();
+            candidate.normalBias = light.GetShadowNormalBias();
+            return candidate;
+        }
 
         enum MaterialTextureSlot : uint32_t
         {
@@ -198,6 +215,8 @@ namespace BrightBox3D::Rendering
         std::memset(constants, 0, sizeof(LightConstants));
         Store(constants->ambient, view.environment.ambientDiffuse, view.environment.ambientSpecular, 0.0f, 0.0f);
         lighting.hasShadowLight = false;
+        lighting.localShadowCandidates.clear();
+        bool localShadows = view.shadows.enabled && view.shadows.localEnabled;
         uint32_t count = 0;
         if (level)
         {
@@ -224,7 +243,11 @@ namespace BrightBox3D::Rendering
                     lighting.hasShadowLight = true;
                     lighting.shadowDirection = direction;
                 }
-                Store(gpu.spotShadow, inner, outer, shadow ? 1.0f : 0.0f, 0.0f);
+                Store(gpu.spotShadow, inner, outer, shadow ? 1.0f : 0.0f, NoLocalShadow);
+                if (light->GetLightType() != LightType::Directional && light->GetCastShadows() && localShadows)
+                {
+                    lighting.localShadowCandidates.push_back(MakeLocalShadowCandidate(*light, count, position, direction));
+                }
                 ++count;
             }
         }

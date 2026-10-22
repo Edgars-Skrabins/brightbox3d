@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math/Vector3.h"
+#include "Rendering/LocalShadowSelection.h"
 
 #include <cstdint>
 #include <vector>
@@ -28,5 +29,6 @@ namespace BrightBox3D::Rendering
         bool hasShadowLight = false;
         uint32_t lightCount = 0;
         RHI::Texture* shadowMap = nullptr;
+        std::vector<LocalShadowCandidate> localShadowCandidates;
     };
 }
