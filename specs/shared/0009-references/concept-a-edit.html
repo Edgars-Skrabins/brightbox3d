@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Concept A — Quiet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#9ec5ff}a:hover{color:#c7ddff}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.ib{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;color:#c4c4cb}
+.ib:hover{background:rgba(255,255,255,.07)}
+.row{display:flex;align-items:center;gap:8px;width:100%;height:28px;padding:0 10px 0 30px;border-radius:6px;color:#d6d6db;text-align:left;box-sizing:border-box}
+.row:hover{background:rgba(255,255,255,.04)}
+.chip{font-size:11px;color:#a1a1aa;margin-left:auto}
+.f{flex:1;min-width:0;height:26px;box-sizing:border-box;background:#0d0d0f;border:1px solid #26262b;border-radius:6px;padding:0 8px;font-family:'Geist Mono',monospace;font-size:12px;color:#e6e6e9}
+.ax{display:flex;align-items:center;flex:1;min-width:0;height:26px;box-sizing:border-box;background:#0d0d0f;border:1px solid #26262b;border-radius:6px;overflow:hidden}
+.ax span{width:18px;text-align:center;font-size:11px;font-weight:600}
+.ax input{flex:1;min-width:0;width:100%;background:none;border:0;font-family:'Geist Mono',monospace;font-size:12px;padding:0 6px 0 0;outline:none}
+.prop{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:10px;min-height:30px}
+.prop label{color:#a1a1aa;font-size:12px}
+.sec{border-top:1px solid #222226;padding:6px 14px 12px}
+.sech{display:flex;align-items:center;gap:8px;height:34px;font-weight:500;color:#ececef}
+.log{display:flex;gap:14px;height:20px;align-items:center}
+.log time{color:#8b8b94;font-family:'Geist Mono',monospace;font-size:11.5px}
+.crate{position:absolute;background:linear-gradient(160deg,#d9b27c,#b98c55);border-radius:3px;box-shadow:0 10px 14px -6px rgba(30,40,60,.45)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; flex-direction: column; background: #111113; color: #e6e6e9; font-family: 'Geist', system-ui, sans-serif; font-size: 13px; overflow: hidden">
+
+<header style="height: 42px; flex: none; display: flex; align-items: center; padding: 0 10px 0 14px; border-bottom: 1px solid #1f1f23">
+<div style="flex: 1; display: flex; align-items: center; gap: 14px">
+<div style="width: 20px; height: 20px; border-radius: 6px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #111113">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+</div>
+<nav style="display: flex; gap: 2px; color: #a1a1aa" aria-label="Main menu">
+<button style="padding: 5px 9px; border-radius: 6px">File</button>
+<button style="padding: 5px 9px; border-radius: 6px">Edit</button>
+<button style="padding: 5px 9px; border-radius: 6px">Game</button>
+<button style="padding: 5px 9px; border-radius: 6px">Window</button>
+</nav>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; color: #a1a1aa">
+<span>ArenaDemo</span>
+<span style="color: #5c5c64">/</span>
+<span style="color: #ececef; font-weight: 500">Main</span>
+<span style="width: 6px; height: 6px; border-radius: 3px; background: #a1a1aa" aria-label="Unsaved changes"></span>
+</div>
+<div style="flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 6px">
+<div style="display: flex; align-items: center; gap: 7px; padding: 0 10px; height: 28px; border-radius: 7px; color: #9fe0ad; font-size: 12px">
+<span style="width: 7px; height: 7px; border-radius: 4px; background: #7bd88f"></span>
+Reloaded · 0.1s
+</div>
+<button style="display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 7px; background: #1f1f23; border: 1px solid #2a2a2f">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64 13.36 2 9 6.36z"/></svg>
+Compile
+</button>
+<button class="ib" aria-label="Build game"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
+<button class="ib" aria-label="Preferences"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></button>
+</div>
+</header>
+
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: 264px minmax(0, 1fr) 328px">
+
+<aside style="border-right: 1px solid #1f1f23; display: flex; flex-direction: column; min-height: 0; background: #141416">
+<div style="height: 40px; display: flex; align-items: center; padding: 0 8px 0 14px; gap: 4px">
+<span style="font-weight: 600; font-size: 12px; letter-spacing: .02em">Level</span>
+<span style="color: #8b8b94; font-size: 12px; margin-left: 6px">24 objects</span>
+<button class="ib" aria-label="Create object" style="margin-left: auto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+</div>
+<div style="padding: 0 10px 8px">
+<label style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 7px; background: #0d0d0f; border: 1px solid #222226; color: #8b8b94">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+<input placeholder="Search objects" aria-label="Search objects" style="background: none; border: 0; outline: none; flex: 1; min-width: 0; font-size: 12.5px">
+</label>
+</div>
+<div style="flex: 1; overflow: hidden; padding: 0 6px">
+<button class="row" style="padding-left: 8px; color: #ececef; font-weight: 500">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+Main
+<span class="chip">Collection</span>
+</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e8c86a" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Directional Light</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Floor</button>
+<button class="row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="margin-left: -22px"><path d="m9 6 6 6-6 6"/></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Walls<span class="chip">4</span></button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row" style="background: {{accentSoft}}; color: #ffffff"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate<span class="chip" style="color: #d6d6db">Variant</span></button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Crate</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Orb</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e8c86a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Lamp</button>
+<button class="row"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7bd88f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22V4h12l-2 4.5L17 13H5"/></svg>PlayerStart</button>
+<button class="row" style="color: #9ec5ff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="margin-left: -22px"><path d="m9 6 6 6-6 6"/></svg><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5aa9ff" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Player<span class="chip">ArenaPlayer</span></button>
+</div>
+</aside>
+
+<main style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+<section aria-label="Level view" style="position: relative; flex: 1; overflow: hidden; background: linear-gradient(#c4ceda, #a9b7c7 46%, #8796a9 46.2%, #7d8da1)">
+<div style="position: absolute; left: 0; right: 0; top: 34%; height: 13%; background: linear-gradient(#8e9cad, #7a899c)"></div>
+<div style="position: absolute; left: -40%; right: -40%; bottom: -6%; height: 60%; background-color: #7f90a5; background-image: linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px); background-size: 64px 64px; transform: perspective(600px) rotateX(58deg); transform-origin: 50% 100%"></div>
+<div style="position: absolute; left: 38%; top: 51%; width: 210px; height: 16px; border-radius: 50%; background: rgba(30,40,60,.25); filter: blur(6px)"></div>
+<div class="crate" style="left: 36%; top: 43%; width: 54px; height: 50px"></div>
+<div class="crate" style="left: 41%; top: 40%; width: 46px; height: 58px"></div>
+<div class="crate" style="left: 45.5%; top: 44%; width: 58px; height: 52px; outline: 2px solid {{accent}}; outline-offset: 3px"></div>
+<div class="crate" style="left: 51%; top: 42%; width: 50px; height: 50px"></div>
+<div class="crate" style="left: 56%; top: 43.5%; width: 52px; height: 46px"></div>
+<svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; left: calc(45.5% - 2px); top: calc(44% - 62px)">
+<line x1="31" y1="88" x2="31" y2="20" stroke="#7bd88f" stroke-width="3"/><polygon points="31,10 25,22 37,22" fill="#7bd88f"/>
+<line x1="31" y1="88" x2="96" y2="88" stroke="#f26d6d" stroke-width="3"/><polygon points="106,88 94,82 94,94" fill="#f26d6d"/>
+<line x1="31" y1="88" x2="8" y2="108" stroke="#6ea8ff" stroke-width="3"/><polygon points="2,113 7,101 14,109" fill="#6ea8ff"/>
+<rect x="27" y="84" width="8" height="8" fill="#ffffff"/>
+</svg>
+<div style="position: absolute; left: 66%; top: 38%; width: 76px; height: 76px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffffff, #a6aeb9 22%, #4c5562 70%, #2d333c)"></div>
+<div style="position: absolute; left: 64%; top: 49%; width: 110px; height: 14px; border-radius: 50%; background: rgba(30,40,60,.3); filter: blur(5px)"></div>
+<div style="position: absolute; left: calc(50% - 46px); top: 52%; width: 92px; height: 200px; border-radius: 46px; background: linear-gradient(90deg, #3d86c4, #6fb2e6 45%, #3f7fb6)"></div>
+<div style="position: absolute; left: calc(50% - 90px); top: calc(52% + 186px); width: 170px; height: 26px; border-radius: 50%; background: rgba(30,40,60,.35); filter: blur(8px)"></div>
+
+<div style="position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: flex-start; justify-content: space-between">
+<div style="display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 11px; background: rgba(17,17,19,.82); border: 1px solid rgba(255,255,255,.07); backdrop-filter: blur(10px)" role="toolbar" aria-label="Transform tools">
+<button class="ib" aria-label="Move" aria-pressed="true" style="background: {{accent}}; color: #111113"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M2 12h20M5 9l-3 3 3 3M19 9l3 3-3 3M9 5l3-3 3 3M9 19l3 3 3-3"/></svg></button>
+<button class="ib" aria-label="Rotate"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+<button class="ib" aria-label="Scale"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 9 15"/><path d="M15 3h6v6"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg></button>
+<span style="width: 1px; height: 18px; background: rgba(255,255,255,.1); margin: 0 4px"></span>
+<button style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 7px; color: #d6d6db; font-size: 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>World</button>
+<button class="ib" aria-label="Snap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"/></svg></button>
+<button class="ib" aria-label="Grid" aria-pressed="true" style="color: {{accent}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></button>
+</div>
+
+<div style="display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: rgba(17,17,19,.82); border: 1px solid rgba(255,255,255,.07); backdrop-filter: blur(10px)" role="toolbar" aria-label="Play controls">
+<button aria-label="Play" style="display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 14px 0 11px; border-radius: 8px; background: {{accent}}; color: #111113; font-weight: 600; font-size: 12.5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>Play</button>
+<button class="ib" aria-label="Pause" disabled style="color: #6b6b73"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
+<button class="ib" aria-label="Step one frame" disabled style="color: #6b6b73"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg></button>
+<span style="width: 1px; height: 18px; background: rgba(255,255,255,.1); margin: 0 2px"></span>
+<button class="ib" aria-label="Play options" style="width: 24px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+</div>
+
+<div style="display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 11px; background: rgba(17,17,19,.82); border: 1px solid rgba(255,255,255,.07); backdrop-filter: blur(10px)" role="toolbar" aria-label="View options">
+<button style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 7px; color: #d6d6db; font-size: 12px">Perspective<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<button style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 7px; color: #d6d6db; font-size: 12px">Lit<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<button style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 7px; color: #d6d6db; font-size: 12px; font-family: 'Geist Mono', monospace"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m16 13 5 3V8l-5 3"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>6.0</button>
+</div>
+</div>
+
+<svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true" style="position: absolute; left: 16px; bottom: 14px">
+<line x1="18" y1="36" x2="44" y2="36" stroke="#f26d6d" stroke-width="2.5"/><text x="46" y="40" fill="#f26d6d" font-size="10" font-family="Geist">X</text>
+<line x1="18" y1="36" x2="18" y2="10" stroke="#7bd88f" stroke-width="2.5"/><text x="14" y="8" fill="#7bd88f" font-size="10" font-family="Geist">Y</text>
+<line x1="18" y1="36" x2="6" y2="48" stroke="#6ea8ff" stroke-width="2.5"/>
+</svg>
+<div style="position: absolute; right: 14px; bottom: 14px; padding: 5px 10px; border-radius: 8px; background: rgba(17,17,19,.72); color: #c4c4cb; font-family: 'Geist Mono', monospace; font-size: 11.5px">120 fps · 86 draws · 2 lights</div>
+</section>
+
+<section aria-label="Bottom panel" style="height: 214px; flex: none; border-top: 1px solid #1f1f23; display: flex; flex-direction: column; background: #141416">
+<div style="height: 38px; display: flex; align-items: center; padding: 0 8px 0 10px; gap: 4px">
+<div role="tablist" style="display: flex; gap: 2px">
+<button role="tab" aria-selected="false" style="height: 28px; padding: 0 10px; border-radius: 7px; color: #a1a1aa">Assets</button>
+<button role="tab" aria-selected="true" style="height: 28px; padding: 0 10px; border-radius: 7px; background: #1f1f23; color: #ececef">Terminal</button>
+</div>
+<div style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 12px">
+<button style="height: 24px; padding: 0 8px; border-radius: 6px; color: #c4c4cb">Info 10</button>
+<button style="height: 24px; padding: 0 8px; border-radius: 6px; color: #ffc452">Warnings 0</button>
+<button style="height: 24px; padding: 0 8px; border-radius: 6px; color: #ff8a8a">Errors 0</button>
+<label style="display: flex; align-items: center; gap: 6px; height: 26px; width: 200px; padding: 0 9px; margin-left: 6px; border-radius: 7px; background: #0d0d0f; border: 1px solid #222226; color: #8b8b94"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Filter" aria-label="Filter log" style="background: none; border: 0; outline: none; flex: 1; min-width: 0; font-size: 12px"></label>
+<button class="ib" aria-label="Clear log"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+<button class="ib" aria-label="Collapse panel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+</div>
+</div>
+<div style="padding: 2px 18px; font-size: 12.5px; color: #d6d6db; display: flex; flex-direction: column">
+<div class="log"><time>18:49:40</time>Graphics: Metal (Apple M3 Pro)</div>
+<div class="log"><time>18:49:40</time>Opened level 'Main'</div>
+<div class="log"><time>18:49:41</time>Loaded game module 'ArenaDemo' (4 reflected types)</div>
+<div class="log"><time>18:49:41</time>Opened project 'ArenaDemo'</div>
+<div class="log"><time>18:49:41</time>Compiling game code…</div>
+<div class="log"><time>18:49:41</time>Hot reloaded 'ArenaDemo' (generation 2, 4 objects preserved)</div>
+<div class="log"><time>18:49:44</time>Saved level 'Main'</div>
+</div>
+</section>
+</main>
+
+<aside aria-label="Inspector" style="border-left: 1px solid #1f1f23; display: flex; flex-direction: column; min-height: 0; background: #141416; overflow: hidden">
+<div style="padding: 14px 14px 12px; display: flex; gap: 12px; align-items: center">
+<div style="width: 38px; height: 38px; border-radius: 10px; background: #1f1f23; display: flex; align-items: center; justify-content: center; color: {{accent}}; flex: none">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+</div>
+<div style="flex: 1; min-width: 0">
+<input value="Crate" aria-label="Object name" style="width: 100%; box-sizing: border-box; background: none; border: 0; outline: none; font-size: 15px; font-weight: 600; padding: 0">
+<div style="display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; color: #a1a1aa">LevelObject<span style="color: #5c5c64">·</span><a href="#" style="text-decoration: none">Crate.variant</a></div>
+</div>
+<label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #a1a1aa"><input type="checkbox" checked aria-label="Active" style="accent-color: {{accent}}; width: 15px; height: 15px; margin: 0"></label>
+</div>
+<div style="padding: 0 14px 12px">
+<label style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 7px; background: #0d0d0f; border: 1px solid #222226; color: #8b8b94"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search properties" aria-label="Search properties" style="background: none; border: 0; outline: none; flex: 1; min-width: 0; font-size: 12px"></label>
+</div>
+
+<div class="sec">
+<div class="sech"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>Transform<button class="ib" aria-label="Transform options" style="margin-left: auto; width: 24px; height: 24px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button></div>
+<div class="prop"><label style="color: #9ec5ff">Position •</label><div style="display: flex; gap: 4px"><div class="ax"><span style="color: #f26d6d">X</span><input value="1.25" aria-label="Position X"></div><div class="ax"><span style="color: #7bd88f">Y</span><input value="0.50" aria-label="Position Y"></div><div class="ax"><span style="color: #6ea8ff">Z</span><input value="3.00" aria-label="Position Z"></div></div></div>
+<div class="prop"><label>Rotation</label><div style="display: flex; gap: 4px"><div class="ax"><span style="color: #f26d6d">X</span><input value="0" aria-label="Rotation X"></div><div class="ax"><span style="color: #7bd88f">Y</span><input value="12" aria-label="Rotation Y"></div><div class="ax"><span style="color: #6ea8ff">Z</span><input value="0" aria-label="Rotation Z"></div></div></div>
+<div class="prop"><label>Scale</label><div style="display: flex; gap: 4px"><div class="ax"><span style="color: #f26d6d">X</span><input value="1" aria-label="Scale X"></div><div class="ax"><span style="color: #7bd88f">Y</span><input value="1" aria-label="Scale Y"></div><div class="ax"><span style="color: #6ea8ff">Z</span><input value="1" aria-label="Scale Z"></div></div></div>
+</div>
+
+<div class="sec">
+<div class="sech"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><input type="checkbox" checked aria-label="Mesh Renderer enabled" style="accent-color: {{accent}}; width: 13px; height: 13px; margin: 0">Mesh Renderer</div>
+<div class="prop"><label for="a-mesh">Mesh</label><button id="a-mesh" style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; background: #0d0d0f; border: 1px solid #26262b; font-size: 12px; text-align: left"><span style="width: 16px; height: 16px; border-radius: 4px; background: #2a2a2f; display: flex; align-items: center; justify-content: center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c4c4cb" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/></svg></span>Cube</button></div>
+<div class="prop"><label for="a-mat">Material</label><button id="a-mat" style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 6px; background: #0d0d0f; border: 1px solid #26262b; font-size: 12px; text-align: left"><span style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, #d9b27c, #9b7444)"></span>Crate</button></div>
+<div class="prop"><label for="a-cast">Cast Shadows</label><input id="a-cast" type="checkbox" checked style="accent-color: {{accent}}; width: 15px; height: 15px; margin: 0"></div>
+</div>
+
+<div class="sec">
+<div class="sech"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><input type="checkbox" checked aria-label="Box Collider enabled" style="accent-color: {{accent}}; width: 13px; height: 13px; margin: 0">Box Collider</div>
+<div class="prop"><label>Size</label><div style="display: flex; gap: 4px"><div class="ax"><span style="color: #f26d6d">X</span><input value="1" aria-label="Size X"></div><div class="ax"><span style="color: #7bd88f">Y</span><input value="1" aria-label="Size Y"></div><div class="ax"><span style="color: #6ea8ff">Z</span><input value="1" aria-label="Size Z"></div></div></div>
+<div class="prop"><label for="a-trig">Is Trigger</label><input id="a-trig" type="checkbox" style="accent-color: {{accent}}; width: 15px; height: 15px; margin: 0"></div>
+</div>
+
+<div class="sec">
+<div class="sech"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b8b94" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg><input type="checkbox" checked aria-label="Rigidbody enabled" style="accent-color: {{accent}}; width: 13px; height: 13px; margin: 0">Rigidbody</div>
+</div>
+
+<div style="padding: 10px 14px">
+<button style="width: 100%; height: 32px; border-radius: 8px; border: 1px dashed #34343a; color: #c4c4cb; display: flex; align-items: center; justify-content: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add Component</button>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FF8A3D","options":["#FF8A3D","#5AA9FF","#7BD88F","#C792EA"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#FF8A3D';
+    const h = accent.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return { accent, accentSoft: 'rgba(' + r + ',' + g + ',' + b + ',0.16)' };
+  }
+}
+</script>
+</body>
+</html>
