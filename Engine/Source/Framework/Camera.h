@@ -118,5 +118,14 @@ namespace BrightBox3D::Framework
 
         BrightProperty(.edit = Edit::Anywhere, .category = Categories::Shadows)
         float m_shadowDistance = 80.0f;
+
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Shadows)
+        bool m_localShadows = true;
+
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Shadows)
+        Rendering::LocalShadowAtlasSize m_localShadowAtlasSize = Rendering::LocalShadowAtlasSize::Size8192;
+
+        BrightProperty(.edit = Edit::Anywhere, .category = Categories::Shadows)
+        float m_localShadowDistance = 40.0f;
     };
 }

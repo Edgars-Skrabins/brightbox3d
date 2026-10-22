@@ -47,6 +47,9 @@ namespace BrightBox3D::Framework
         view.environment.skyIntensity = m_skyIntensity;
         view.environment.ambientDiffuse = m_ambientIntensity;
         view.shadows.distance = m_shadowDistance;
+        view.shadows.localEnabled = m_localShadows;
+        view.shadows.localAtlasSize = m_localShadowAtlasSize;
+        view.shadows.localDistance = m_localShadowDistance;
         return view;
     }
 

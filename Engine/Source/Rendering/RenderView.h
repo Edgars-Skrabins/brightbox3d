@@ -53,6 +53,13 @@ namespace BrightBox3D::Rendering
         float ambientSpecular = 0.5f;
     };
 
+    BrightEnum()
+    enum class LocalShadowAtlasSize
+    {
+        Size4096,
+        Size8192
+    };
+
     struct ShadowSettings
     {
         bool enabled = true;
@@ -61,6 +68,9 @@ namespace BrightBox3D::Rendering
         float splitLambda = 0.75f;
         float bias = 0.0005f;
         float normalBias = 1.5f;
+        bool localEnabled = true;
+        LocalShadowAtlasSize localAtlasSize = LocalShadowAtlasSize::Size8192;
+        float localDistance = 40.0f;
     };
 
     BrightEnum()

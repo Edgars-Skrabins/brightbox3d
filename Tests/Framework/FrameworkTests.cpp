@@ -149,3 +149,21 @@ TEST(FrameworkTests, CameraAntiAliasingLoadsByNameIntoTheRenderView)
     Serialization::DeserializeProperties(*camera, document);
     EXPECT_EQ(camera->BuildRenderView(64, 64, 1).post.antiAliasing, Rendering::AntiAliasing::SMAA);
 }
+
+TEST(FrameworkTests, CameraLocalShadowSettingsReachTheRenderView)
+{
+    RuntimeLevel level("Camera");
+    auto* camera = *level.CreateObject<Framework::Camera>();
+    Rendering::ShadowSettings defaults = camera->BuildRenderView(64, 64, 1).shadows;
+    EXPECT_TRUE(defaults.localEnabled);
+    EXPECT_EQ(defaults.localAtlasSize, Rendering::LocalShadowAtlasSize::Size8192);
+    EXPECT_FLOAT_EQ(defaults.localDistance, 40.0f);
+
+    Serialization::JsonDocument document;
+    document.Parse(R"({ "m_localShadows": false, "m_localShadowAtlasSize": "Size4096", "m_localShadowDistance": 25.0 })");
+    Serialization::DeserializeProperties(*camera, document);
+    Rendering::ShadowSettings loaded = camera->BuildRenderView(64, 64, 1).shadows;
+    EXPECT_FALSE(loaded.localEnabled);
+    EXPECT_EQ(loaded.localAtlasSize, Rendering::LocalShadowAtlasSize::Size4096);
+    EXPECT_FLOAT_EQ(loaded.localDistance, 25.0f);
+}
