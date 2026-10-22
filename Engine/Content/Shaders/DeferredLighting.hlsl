@@ -45,6 +45,16 @@ float4 DeferredLightingPS(FullscreenOutput input) : SV_Target0
     if (debugMode == 4)
     {
         float shadow = DirectionalShadow(worldPosition, normal, viewDepth);
+        int count = (int)LightCounts.x;
+        for (int i = 0; i < count; ++i)
+        {
+            LightData light = Lights[i];
+            float3 offset = light.PositionRange.xyz - worldPosition;
+            if ((int)light.DirectionType.w != LIGHT_DIRECTIONAL && dot(offset, offset) <= light.PositionRange.w * light.PositionRange.w)
+            {
+                shadow = min(shadow, LocalShadow(light, worldPosition, normal));
+            }
+        }
         return float4(shadow, shadow, shadow, 1.0);
     }
     if (debugMode == 5)
