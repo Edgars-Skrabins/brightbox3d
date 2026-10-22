@@ -1,6 +1,6 @@
 # BrightBox3D
 
-C++20 3D game engine: an Unreal-style gameplay framework, a Unity-style editor, and C++ hot reload. The authoritative design is `docs/SPEC.md`; §17 there records implementation decisions. Feature specs for follow-up work live in `docs/specs/`. All specs are private: `docs/SPEC.md` and `docs/specs/` are excluded locally via `.git/info/exclude` and must never be added, committed or pushed. The README only describes the engine, its tech stack and how to build and launch it; it never mentions other engines. Game development guides belong in `docs/instructions/` (not written yet).
+C++20 3D game engine: an Unreal-style gameplay framework, a Unity-style editor, and C++ hot reload. The authoritative design is `specs/shared/SPEC.md`; §17 there records implementation decisions. Feature specs live next to it in `specs/shared/`; `specs/personal/` is gitignored. The README only describes the engine, its tech stack and how to build and launch it; it never mentions other engines.
 
 ## Repository layout
 
@@ -15,6 +15,7 @@ C++20 3D game engine: an Unreal-style gameplay framework, a Unity-style editor, 
 | `Tests/<Area>` | GoogleTest suite `BrightTests`. `System/` builds and runs a full packaged game |
 | `Samples/ArenaDemo` | Sample game project, used by the system tests |
 | `cmake/` | `Dependencies.cmake` (FetchContent), `BrightReflection.cmake`, `BrightGame.cmake` (game module builds), `ModuleDependencies.cmake` (allowed module includes) and `CheckModuleDependencies.cmake` (the build-time check) |
+| `specs/` | `shared/`: the engine design (`SPEC.md`) and numbered feature specs, committed. `personal/`: private notes and reference images, gitignored |
 
 ## Tech stack
 
@@ -130,7 +131,4 @@ Editor automation flags, useful for visual checks: `--select <name>`, `--play`, 
 
 ## Workflow rules
 
-- Follow the owner's global rules. Ask instead of assuming when a design decision isn't specified.
-- Present changes for review, and commit only after explicit approval.
-- Commits are small and logically scoped, with short messages and no AI attribution.
 - Run `BrightTests` before presenting work. For editor UI changes, also check a screenshot.
