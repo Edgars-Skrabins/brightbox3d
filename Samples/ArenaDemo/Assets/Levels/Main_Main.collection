@@ -24,7 +24,10 @@
                         "m_range": 10.0,
                         "m_innerAngle": 25.0,
                         "m_outerAngle": 35.0,
-                        "m_castShadows": true
+                        "m_castShadows": true,
+                        "m_shadowResolution": "Medium",
+                        "m_shadowBias": 0.0005,
+                        "m_shadowNormalBias": 1.5
                     }
                 }],
             "children": []
@@ -908,7 +911,10 @@
                         "m_range": 8.0,
                         "m_innerAngle": 25.0,
                         "m_outerAngle": 35.0,
-                        "m_castShadows": true
+                        "m_castShadows": true,
+                        "m_shadowResolution": "Medium",
+                        "m_shadowBias": 0.0005,
+                        "m_shadowNormalBias": 1.5
                     }
                 }],
             "children": []

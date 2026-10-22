@@ -107,7 +107,10 @@
                     "m_skyGround": [0.28, 0.26, 0.24, 1.0],
                     "m_skyIntensity": 1.0,
                     "m_ambientIntensity": 0.6,
-                    "m_shadowDistance": 80.0
+                    "m_shadowDistance": 80.0,
+                    "m_localShadows": true,
+                    "m_localShadowAtlasSize": "Size8192",
+                    "m_localShadowDistance": 40.0
                 },
                 "transform": {
                     "m_localPosition": [0.0, 2.2, -5.0],
