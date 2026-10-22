@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
+#include <cmath>
 #include <iterator>
 #include <string>
 #include <unordered_map>
@@ -28,9 +29,33 @@ namespace BrightBox3D::Editor::ValueDrawers
         constexpr float FloatDragSpeed = 0.01f;
         constexpr float RotationDragSpeed = 0.25f;
         constexpr float EulerCacheTolerance = 0.01f;
-        constexpr const char* FloatFormat = "%.3f";
+        constexpr const char* FloatFormats[] = { "%.3f", "%.4f", "%.5f", "%.6f" };
+        constexpr float FloatFormatTolerance = 0.005f;
+        constexpr int MinFloatDecimals = 3;
         constexpr const char* DoubleFormat = "%.4f";
         constexpr const char* RotationFormat = "%.2f";
+
+        const char* FloatFormatFor(const float* values, size_t count)
+        {
+            size_t chosen = 0;
+            for (size_t i = 0; i < count; ++i)
+            {
+                float magnitude = std::abs(values[i]);
+                if (magnitude == 0.0f)
+                {
+                    continue;
+                }
+                size_t format = chosen;
+                float scale = std::pow(10.0f, static_cast<float>(MinFloatDecimals + format));
+                while (format + 1 < std::size(FloatFormats) && std::abs(std::round(magnitude * scale) / scale - magnitude) > magnitude * FloatFormatTolerance)
+                {
+                    ++format;
+                    scale *= 10.0f;
+                }
+                chosen = format;
+            }
+            return FloatFormats[chosen];
+        }
 
         std::unordered_map<const void*, Math::Vector3>& EulerCache()
         {
@@ -94,7 +119,7 @@ namespace BrightBox3D::Editor::ValueDrawers
 
         bool DrawFloat(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
-            return ImGui::DragFloat(label, static_cast<float*>(value), FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
+            return ImGui::DragFloat(label, static_cast<float*>(value), FloatDragSpeed, 0.0f, 0.0f, FloatFormatFor(static_cast<float*>(value), 1));
         }
 
         bool DrawDouble(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
@@ -109,17 +134,20 @@ namespace BrightBox3D::Editor::ValueDrawers
 
         bool DrawVector2(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
-            return ImGui::DragFloat2(label, &static_cast<Math::Vector2*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
+            float* components = &static_cast<Math::Vector2*>(value)->x;
+            return ImGui::DragFloat2(label, components, FloatDragSpeed, 0.0f, 0.0f, FloatFormatFor(components, 2));
         }
 
         bool DrawVector3(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
-            return ImGui::DragFloat3(label, &static_cast<Math::Vector3*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
+            float* components = &static_cast<Math::Vector3*>(value)->x;
+            return ImGui::DragFloat3(label, components, FloatDragSpeed, 0.0f, 0.0f, FloatFormatFor(components, 3));
         }
 
         bool DrawVector4(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
         {
-            return ImGui::DragFloat4(label, &static_cast<Math::Vector4*>(value)->x, FloatDragSpeed, 0.0f, 0.0f, FloatFormat);
+            float* components = &static_cast<Math::Vector4*>(value)->x;
+            return ImGui::DragFloat4(label, components, FloatDragSpeed, 0.0f, 0.0f, FloatFormatFor(components, 4));
         }
 
         bool DrawQuaternion(const char* label, const ValueDescriptor&, void* value, FieldAccess, const Level::Level*)
