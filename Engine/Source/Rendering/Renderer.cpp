@@ -6,6 +6,7 @@
 #include "Rendering/GBufferPass.h"
 #include "Rendering/LightingPass.h"
 #include "Rendering/LinePass.h"
+#include "Rendering/LocalShadowPass.h"
 #include "Rendering/PostProcessPass.h"
 #include "Rendering/SSAOPass.h"
 #include "Rendering/ShadowPass.h"
@@ -87,6 +88,7 @@ namespace BrightBox3D::Rendering
     {
         RenderPassResources passResources{ device, shaders, resources, m_statistics };
         m_passes.push_back(std::make_unique<ShadowPass>(passResources));
+        m_passes.push_back(std::make_unique<LocalShadowPass>(passResources));
         m_passes.push_back(std::make_unique<GBufferPass>(passResources));
         m_passes.push_back(std::make_unique<SSAOPass>(passResources));
         m_passes.push_back(std::make_unique<LightingPass>(passResources));

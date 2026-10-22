@@ -11,5 +11,7 @@ namespace BrightBox3D::Rendering
         uint32_t culledObjects = 0;
         uint32_t lights = 0;
         uint32_t shadowCasters = 0;
+        uint32_t localShadowLights = 0;
+        uint32_t localShadowViews = 0;
     };
 }
