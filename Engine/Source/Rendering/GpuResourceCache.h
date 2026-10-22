@@ -42,6 +42,7 @@ namespace BrightBox3D::Rendering
         RHI::Texture* GetBlackTexture() const { return m_black.get(); }
         RHI::Texture* GetFlatNormalTexture() const { return m_flatNormal.get(); }
         RHI::Texture* GetDummyShadowMap() const { return m_dummyShadow.get(); }
+        RHI::Texture* GetDummyLocalShadowAtlas() const { return m_dummyLocalShadow.get(); }
         RHI::Sampler* GetSampler(TextureFilterMode filter, TextureWrapMode wrap);
         RHI::Sampler* GetLinearClampSampler();
         RHI::Sampler* GetPointClampSampler();
@@ -66,6 +67,7 @@ namespace BrightBox3D::Rendering
         std::unique_ptr<RHI::Texture> m_black;
         std::unique_ptr<RHI::Texture> m_flatNormal;
         std::unique_ptr<RHI::Texture> m_dummyShadow;
+        std::unique_ptr<RHI::Texture> m_dummyLocalShadow;
         std::vector<Core::Guid> m_pendingInvalidations;
         Core::EventHandle m_assetChangedHandle = 0;
         Core::EventHandle m_assetRemovedHandle = 0;

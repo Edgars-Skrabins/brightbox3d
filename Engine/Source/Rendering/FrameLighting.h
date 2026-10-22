@@ -30,5 +30,7 @@ namespace BrightBox3D::Rendering
         uint32_t lightCount = 0;
         RHI::Texture* shadowMap = nullptr;
         std::vector<LocalShadowCandidate> localShadowCandidates;
+        std::vector<uint8_t> localShadowConstants;
+        RHI::Texture* localShadowAtlas = nullptr;
     };
 }

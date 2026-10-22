@@ -22,6 +22,14 @@ namespace BrightBox3D::Rendering
         shadowDesc.debugName = "DummyShadowMap";
         m_dummyShadow = m_device.CreateTexture(shadowDesc);
 
+        RHI::TextureDesc localShadowDesc;
+        localShadowDesc.width = 1;
+        localShadowDesc.height = 1;
+        localShadowDesc.format = RHI::Format::Depth32Float;
+        localShadowDesc.usage = RHI::TextureUsageDepthStencil | RHI::TextureUsageSampled;
+        localShadowDesc.debugName = "DummyLocalShadowAtlas";
+        m_dummyLocalShadow = m_device.CreateTexture(localShadowDesc);
+
         m_assetChangedHandle = Assets::AssetDatabase::Get().OnAssetChanged.Subscribe([this](const Core::Guid& guid) { m_pendingInvalidations.push_back(guid); });
         m_assetRemovedHandle = Assets::AssetDatabase::Get().OnAssetRemoved.Subscribe([this](const Core::Guid& guid) { m_pendingInvalidations.push_back(guid); });
     }

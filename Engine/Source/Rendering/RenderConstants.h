@@ -70,6 +70,19 @@ namespace BrightBox3D::Rendering
         float params[4];
     };
 
+    struct LocalShadowView
+    {
+        Math::Matrix4 viewProjection;
+        float atlasRect[4];
+        float params[4];
+    };
+
+    struct LocalShadowConstants
+    {
+        float settings[4];
+        LocalShadowView views[MaxLocalShadowViews];
+    };
+
     struct TonemapConstants
     {
         float exposure[4];

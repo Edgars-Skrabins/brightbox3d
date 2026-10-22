@@ -17,6 +17,7 @@ namespace BrightBox3D::Rendering
     {
         lightConstants.resize(sizeof(LightConstants));
         shadowConstants.resize(sizeof(ShadowConstants));
+        localShadowConstants.resize(sizeof(LocalShadowConstants));
     }
 
     void FrameLighting::Bind(RHI::CommandList& commands, const ViewConstants& viewConstants, GpuResourceCache& resources) const
@@ -26,5 +27,7 @@ namespace BrightBox3D::Rendering
         commands.SetConstants(BRIGHT_SLOT_SHADOW_CONSTANTS, shadowConstants.data(), shadowConstants.size());
         commands.SetTexture(BRIGHT_SLOT_SHADOW_MAP, shadowMap ? shadowMap : resources.GetDummyShadowMap());
         commands.SetSampler(BRIGHT_SLOT_SHADOW_SAMPLER, resources.GetShadowSampler());
+        commands.SetConstants(BRIGHT_SLOT_LOCAL_SHADOW_CONSTANTS, localShadowConstants.data(), localShadowConstants.size());
+        commands.SetTexture(BRIGHT_SLOT_LOCAL_SHADOW_ATLAS, localShadowAtlas ? localShadowAtlas : resources.GetDummyLocalShadowAtlas());
     }
 }
